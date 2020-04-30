@@ -1,0 +1,38 @@
+{
+  "loginserver": {
+    "host": "127.0.0.1",
+    "autoCreate": true,
+    "database": {
+      "name": "l2jmobiush5",
+      "host": "127.0.0.1",
+      "port": 3306,
+      "user": "root",
+      "password": ""
+    }
+  },
+  "gameservers": [
+    {
+      "name": "Bartz",
+      "secret": "CHANGE_ME_PLEASE",
+      "internalIP": "127.0.0.1",
+      "externalIP": "192.168.1.2",
+      "port": 7777,
+      "database": {
+        "name": "l2jmobiush5",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "user": "root",
+        "password": ""
+      },
+      "cache": {
+        "host": "127.0.0.1",
+        "port": 6379,
+        "password": ""
+      },
+      "options": {
+        "maxPlayers": 10000,
+        "testing": false
+      }
+    }
+  ]
+}
