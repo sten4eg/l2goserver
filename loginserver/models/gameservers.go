@@ -22,7 +22,7 @@ func (g *GameServer) Receive() (opcode byte, data []byte, e error) {
 	n, err := g.Socket.Read(header)
 
 	if n != 2 || err != nil {
-		return 0x00, nil, errors.New("An error occured while reading the packet header.")
+		return 0x00, nil, errors.New("12An error occured while reading the packet header.")
 	}
 
 	// Calculate the packet size

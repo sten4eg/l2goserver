@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/packets"
+	"log"
 	"net"
 )
 
@@ -29,7 +30,6 @@ func (c *Client) Receive() (opcode byte, data []byte, e error) {
 	// Read the first two bytes to define the packet size
 	header := make([]byte, 2)
 	n, err := c.Socket.Read(header)
-
 	if n != 2 || err != nil {
 		return 0x00, nil, errors.New("An error occured while reading the packet header.")
 	}
@@ -49,11 +49,15 @@ func (c *Client) Receive() (opcode byte, data []byte, e error) {
 		return 0x00, nil, errors.New("An error occured while reading the packet data.")
 	}
 
+	crypt.Decrypt(&data, 0, 40)
+	log.Println(data)
+	log.Println(len(data))
+	log.Printf("%X\n", data)
+	log.Println(data[0])
 	// Print the raw packet
-	fmt.Printf("Пакет : Header: %X  Data: %X\n", header, data)
-
+	fmt.Printf("package : Header: %X  Data: %X\n", header, data)
 	// Decrypt the packet data using the blowfish key
-	data, err = crypt.BlowfishDecrypt(data, []byte("_;v.]05-31!|+-%xT!^[$\000"))
+	//data, err = crypt.BlowfishDecrypt(data, []byte("_;v.]05-31!|+-%xT!^[$\000"))
 
 	if err != nil {
 		return 0x00, nil, errors.New("An error occured while decrypting the packet data.")
@@ -64,17 +68,26 @@ func (c *Client) Receive() (opcode byte, data []byte, e error) {
 		fmt.Printf("Расшифрованный контент пакета : %X\n", data)
 		fmt.Println("Чексумма пакета ok")
 	} else {
-		return 0x00, nil, errors.New("Неверная контрольная сумма пакета.")
+		return 0x00, nil, errors.New("Bad chechsum.")
 	}
 
 	// Extract the op code
+	//log.Println(data)
+	log.Printf("%X\n", data)
+	log.Printf("%X\n", data[0])
+	//log.Println(data[0])
 	opcode = data[0]
+
 	data = data[1:]
 	e = nil
 	return
 }
 
 func (c *Client) Send(data []byte, params ...bool) error {
+	//bufferr := packets.NewBuffer()
+	//bufferr.Write(bufferr.Bytes())
+	//_, err := c.Socket.Write(bufferr.Bytes())
+	//log.Fatal(11, err)
 	var doChecksum, doBlowfish bool = true, true
 
 	// Should we skip the checksum?
@@ -82,7 +95,7 @@ func (c *Client) Send(data []byte, params ...bool) error {
 		doChecksum = false
 	}
 
-	// Should we skip the blowfish encryption?
+	// Should we skip the blowfish encryUnable to determine package typeption?
 	if len(params) >= 2 && params[1] == false {
 		doBlowfish = false
 	}
@@ -103,10 +116,9 @@ func (c *Client) Send(data []byte, params ...bool) error {
 		// Finally do the checksum
 		crypt.Checksum(data)
 	}
-
 	if doBlowfish == true {
 		var err error
-		data, err = crypt.BlowfishEncrypt(data, []byte("[;'.]94-31==-%&@!^+]\000"))
+		data, err = crypt.BlowfishEncrypt(data, []byte("_;v.]05-31!|+-%xT!^[$\000"))
 
 		if err != nil {
 			return err
@@ -115,15 +127,14 @@ func (c *Client) Send(data []byte, params ...bool) error {
 
 	// Calculate the packet length
 	length := uint16(len(data) + 2)
-
 	// Put everything together
 	buffer := packets.NewBuffer()
 	buffer.WriteUInt16(length)
 	buffer.Write(data)
 
-	_, err := c.Socket.Write(buffer.Bytes())
+	_, errr := c.Socket.Write(buffer.Bytes())
 
-	if err != nil {
+	if errr != nil {
 		return errors.New("The packet couldn't be sent.")
 	}
 

@@ -6,7 +6,6 @@ import (
 	"os"
 )
 
-
 type Config struct {
 	LoginServer LoginServerType
 	GameServers []GameServerType
@@ -54,17 +53,16 @@ type OptionsType struct {
 
 func Read() Config {
 
-
 	var config Config
 	file, err := os.Open("./config/config.json")
 	if err != nil {
-		log.Fatal("Не удалось загузить файл конфигурации")
+		log.Fatal("Failed to load config file")
 	}
 
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&config)
 	if err != nil {
-		log.Fatal("Не удалось декодировать файл конфигурации")
+		log.Fatal("Failed to decode config file")
 	}
 	return config
 }

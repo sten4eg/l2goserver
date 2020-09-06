@@ -2,12 +2,15 @@ package loginserver
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
 	"l2goserver/config"
 	"l2goserver/loginserver/clientpackets"
+	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/serverpackets"
 	"log"
@@ -46,10 +49,10 @@ func (l *LoginServer) Init() {
 	l.database, err = sql.Open("mysql", "root:@/l2jmobiush5")
 	if err != nil {
 
-		log.Fatal("Не удалось подключиться к базе данных: ", err.Error())
-		log.Fatal(l.config.LoginServer.Database.User + ":" + l.config.LoginServer.Database.Password+ "@"+ l.config.LoginServer.Database.Host+"/" + l.config.LoginServer.Database.Name)
+		log.Fatal("Failed to connect to database: ", err.Error())
+		log.Fatal(l.config.LoginServer.Database.User + ":" + l.config.LoginServer.Database.Password + "@" + l.config.LoginServer.Database.Host + "/" + l.config.LoginServer.Database.Name)
 	} else {
-		fmt.Println("Удачное подключение к базе данных")
+		fmt.Println("Successful database connection")
 	}
 
 	// Select the appropriate database
@@ -57,17 +60,17 @@ func (l *LoginServer) Init() {
 	// Listen for client connections
 	l.clientsListener, err = net.Listen("tcp", ":2106")
 	if err != nil {
-		log.Fatal("Не удалось подключиться к порту 2106: ", err.Error())
+		log.Fatal("Failed to connect to port 2106:", err.Error())
 	} else {
-		fmt.Println("Логин сервер слушает порт 2106")
+		fmt.Println("Login server is listening on port 2106")
 	}
 
 	// Listen for game servers connections
 	l.gameServersListener, err = net.Listen("tcp", ":9413")
 	if err != nil {
-		log.Fatal("Не удалось подключиться к порту 9413: ", err.Error())
+		log.Fatal("Failed to connect to port 9413: ", err.Error())
 	} else {
-		fmt.Println("Логин сервер слушает порт 9413")
+		fmt.Println("Login server is listening on port 9413")
 	}
 }
 
@@ -154,17 +157,36 @@ func (l *LoginServer) handleGameServerPackets(gameserver *models.GameServer) {
 
 func (l *LoginServer) handleClientPackets(client *models.Client) {
 
-	fmt.Println("Клиент попытался подключиться")
+	fmt.Println("Client tried to connect")
 	defer l.kickClient(client)
+	lenaPrivateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	pub := lenaPrivateKey.PublicKey.N.Bytes()
+	x := []byte{0x6b,
+		0x60,
+		0xcb,
+		0x5b,
+		0x82,
+		0xce,
+		0x90,
+		0xb1,
+		0xcc,
+		0x2b,
+		0x6c,
+		0x55,
+		0x6c,
+		0x6c,
+		0x6c,
+		0x6c}
 
-	buffer := serverpackets.NewInitPacket()
-	err := client.Send(buffer, false, false)
-
+	buffer := serverpackets.NewInitPacket(pub, x)
+	xx := crypt.Enc(buffer)
+	//log.Println(xx)
+	err := client.Send(xx, false, false)
 	if err != nil {
 		fmt.Println(err)
 		return
 	} else {
-		fmt.Println("Пакет Init отправлен")
+		fmt.Println("Init packet send")
 	}
 
 	for {
@@ -172,7 +194,7 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 
 		if err != nil {
 			fmt.Println(err)
-			fmt.Println("Закрытие соединения")
+			fmt.Println("Closing a connection")
 			break
 		}
 		switch opcode {
@@ -184,7 +206,7 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 
 			fmt.Printf("User %s is trying to login\n", requestAuthLogin.Username)
 			//accounts := l.database.Exec("accounts")
-		//	err := accounts.Find(bson.M{"username": requestAuthLogin.Username}).One(&client.Account)
+			//	err := accounts.Find(bson.M{"username": requestAuthLogin.Username}).One(&client.Account)
 
 			if err != nil {
 				if l.config.LoginServer.AutoCreate == true {
@@ -196,12 +218,12 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 						buffer = serverpackets.NewLoginFailPacket(serverpackets.REASON_SYSTEM_ERROR)
 					} else {
 						client.Account = models.Account{
-						//	Id:          bson.NewObjectId(),
+							//	Id:          bson.NewObjectId(),
 							Username:    requestAuthLogin.Username,
 							Password:    string(hashedPassword),
 							AccessLevel: ACCESS_LEVEL_PLAYER}
 
-				//		err = accounts.Insert(&client.Account)
+						//		err = accounts.Insert(&client.Account)
 						if err != nil {
 							fmt.Printf("Couldn't create an account for the user %s\n", requestAuthLogin.Username)
 							l.status.failedAccountCreation += 1
@@ -293,7 +315,9 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			}
 
 		default:
-			fmt.Println("Не удалось определить тип пакета")
+
+			fmt.Println("Unable to determine package type")
+			fmt.Printf("opcode: %X", opcode)
 		}
 	}
 }
