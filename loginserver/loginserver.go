@@ -161,27 +161,11 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 	defer l.kickClient(client)
 	lenaPrivateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
 	pub := lenaPrivateKey.PublicKey.N.Bytes()
-	x := []byte{0x6b,
-		0x60,
-		0xcb,
-		0x5b,
-		0x82,
-		0xce,
-		0x90,
-		0xb1,
-		0xcc,
-		0x2b,
-		0x6c,
-		0x55,
-		0x6c,
-		0x6c,
-		0x6c,
-		0x6c}
 
-	buffer := serverpackets.NewInitPacket(pub, x)
-	xx := crypt.Enc(buffer)
+	buffer := serverpackets.NewInitPacket(pub, crypt.StaticBlowfish)
+	data := crypt.EncodeData(buffer)
 	//log.Println(xx)
-	err := client.Send(xx, false, false)
+	err := client.Send(data, false, false)
 	if err != nil {
 		fmt.Println(err)
 		return

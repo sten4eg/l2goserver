@@ -3,10 +3,9 @@ package crypt
 import (
 	"fmt"
 	"l2goserver/loginserver/crypt/blowfish"
-	"log"
 )
 
-var Kek = []byte{
+var StaticBlowfish = []byte{
 	0x6b,
 	0x60,
 	0xcb,
@@ -53,54 +52,9 @@ func Checksum(raw []byte) bool {
 	return ecx == chksum
 }
 
-//func BlowfishDecrypt(encrypted, key []byte) ([]byte, error) {
-//cipher, err := blowfish.NewCipher(key)
-//
-//if err != nil {
-//	return nil, errors.New("Couldn't initialize the blowfish cipher")
-//}
-//
-//// Check if the encrypted data is a multiple of our block size
-//if len(encrypted)%8 != 0 {
-//	return nil, errors.New("The encrypted data is not a multiple of the block size")
-//}
-//
-//count := len(encrypted) / 8
-//
-//decrypted := make([]byte, len(encrypted))
-//
-//for i := 0; i < count; i++ {
-//	cipher.Decrypt(decrypted[i*8:], encrypted[i*8:])
-//}
-//
-//return decrypted, nil
-//}
-
-func BlowfishEncrypt(decrypted, key []byte) ([]byte, error) {
-	//cipher, err := blowfish.NewCipher(key)
-
-	//	if err != nil {
-	//		return nil, errors.New("Couldn't initialize the blowfish cipher")
-	//	}
-
-	// Check if the decrypted data is a multiple of our block size
-
-	//	count := len(decrypted) / 8
-
-	//	encrypted := make([]byte, 65536)
-
-	for i := 2; i < 176; i += 8 {
-		//	cipher.Encrypt(encrypted[i*8:], decrypted[i*8:])
-	}
-
-	return decrypted, nil
-}
-
 func encXORPass(raww []byte, offset, size, key int) []byte {
-	raw := make([]byte, 200, 200)
-	for i := range raww {
-		raw[i] = raww[i]
-	}
+	raw := make([]byte, 200)
+	copy(raw[:], raww[:])
 
 	var stop = size - 8
 	var pos = 4 + offset
@@ -140,23 +94,14 @@ func encXORPass(raww []byte, offset, size, key int) []byte {
 	return raw
 }
 
-func Enc(raw []byte) []byte {
+func EncodeData(raw []byte) []byte {
 
 	size := len(raw) + 15
 	size = size - (size % 8) //184
 	//
-	data := encXORPass(raw, 2, 184, 244820523) // kak na java 181 выход
-	crypt(&data, 2, 184)                       // 184 вышло без 0   .. 185 выход с00
-	kek := data[2:186]
-	return kek
-	dataq, err := BlowfishEncrypt(data, Kek) //тут должно быть с 0 по 181 сайз 184 оффсет 2
-	if err != nil {
-		log.Fatal("tut error", err)
-	}
-	//dataq.Encrypt(data,data)
-	newArray := dataq[0:184]
-
-	return newArray
+	data := encXORPass(raw, 2, size, 244820523) // kak na java 181 выход
+	crypt(&data, 2, size)                       // 184 вышло без 0   .. 185 выход с00
+	return data[2:186]
 }
 
 func crypt(raw *[]byte, offset int, size int) {
@@ -169,15 +114,15 @@ func crypt(raw *[]byte, offset int, size int) {
 func Decrypt(raw *[]byte, offset int, size int) {
 	stop := offset + size
 	for i := offset; i < stop; i += 8 {
-		CipherDcryptBlock(&raw, i)
+		CipherDecryptBlock(&raw, i)
 	}
 }
 
-func CipherDcryptBlock(raw **[]byte, i int) {
-	cipher, _ := blowfish.NewCipher(Kek)
+func CipherDecryptBlock(raw **[]byte, i int) {
+	cipher, _ := blowfish.NewCipher(StaticBlowfish)
 	cipher.Decrypt(**raw, **raw, i, i)
 }
 func CipherEncryptBlock(raw **[]byte, i int) {
-	cipher, _ := blowfish.NewCipher(Kek)
+	cipher, _ := blowfish.NewCipher(StaticBlowfish)
 	cipher.Encrypt(**raw, **raw, i, i)
 }

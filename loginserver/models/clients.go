@@ -84,10 +84,7 @@ func (c *Client) Receive() (opcode byte, data []byte, e error) {
 }
 
 func (c *Client) Send(data []byte, params ...bool) error {
-	//bufferr := packets.NewBuffer()
-	//bufferr.Write(bufferr.Bytes())
-	//_, err := c.Socket.Write(bufferr.Bytes())
-	//log.Fatal(11, err)
+
 	var doChecksum, doBlowfish bool = true, true
 
 	// Should we skip the checksum?
@@ -118,7 +115,7 @@ func (c *Client) Send(data []byte, params ...bool) error {
 	}
 	if doBlowfish == true {
 		var err error
-		data, err = crypt.BlowfishEncrypt(data, []byte("_;v.]05-31!|+-%xT!^[$\000"))
+		//data, err = crypt.BlowfishEncrypt(data, []byte("_;v.]05-31!|+-%xT!^[$\000"))
 
 		if err != nil {
 			return err
