@@ -63,34 +63,33 @@ func encXORPass(raww []byte, offset, size, key int) []byte {
 	//pos-6 stop-176 raww - 172len(171index)
 
 	for pos < stop {
-		edx = int(raw[pos] & 255)
-		edx |= int(raw[pos+1]&255) << 8
-		edx |= int(raw[pos+2]&255) << 16
-		edx |= int(raw[pos+3]&255) << 24
+		edx = int(raw[pos])
+		edx |= int(raw[pos+1]) << 8
+		edx |= int(raw[pos+2]) << 16
+		edx |= int(raw[pos+3]) << 24
 
 		ecx += edx
 
 		edx ^= ecx
 
 		pos++
-		raw[pos] = byte(edx & 255)
+		raw[pos] = byte(edx)
 		pos++
-		raw[pos] = byte((edx >> 8) & 255)
+		raw[pos] = byte(edx >> 8)
 		pos++
-		raw[pos] = byte((edx >> 16) & 255)
+		raw[pos] = byte(edx >> 16)
 		pos++
-		raw[pos] = byte((edx >> 24) & 255)
+		raw[pos] = byte(edx >> 24)
 
 	}
 
 	pos++
-	raw[pos] = byte(ecx & 255)
+	raw[pos] = byte(ecx)
 	pos++
-	raw[pos] = byte((ecx >> 8) & 255)
+	raw[pos] = byte(ecx >> 8)
 	pos++
-	raw[pos] = byte((ecx >> 16) & 255)
-	pos++
-	raw[pos] = byte((ecx >> 24) & 255)
+	raw[pos] = byte(ecx >> 16)
+	raw[pos] = byte(ecx >> 24)
 	return raw
 }
 
@@ -99,8 +98,9 @@ func EncodeData(raw []byte) []byte {
 	size := len(raw) + 15
 	size = size - (size % 8) //184
 	//
-	data := encXORPass(raw, 2, size, 244820523) // kak na java 181 выход
-	crypt(&data, 2, size)                       // 184 вышло без 0   .. 185 выход с00
+	kek := raw[0:171]
+	data := encXORPass(kek, 2, size, 244820523) //выход инд181 с 000 вход 170индекс последнего значащего числа
+	crypt(&data, 2, size)                       //  .. 185 выход с00
 	return data[2:186]
 }
 

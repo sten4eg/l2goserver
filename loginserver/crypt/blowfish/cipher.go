@@ -73,7 +73,7 @@ func (c *Cipher) BlockSize() int { return BlockSize }
 // it is not safe to just call Encrypt on successive blocks;
 // instead, use an encryption mode like CBC (see crypto/cipher/cbc.go).
 func (c *Cipher) Encrypt(dst, src []byte, sIndex, dIndex int) {
-	l := uint32(src[sIndex+3])<<24 | uint32(src[sIndex+2])<<16 | uint32(src[sIndex+1])<<8 | uint32(src[sIndex+0])
+	l := uint32(src[sIndex+3])<<24 | uint32(src[sIndex+2])<<16 | uint32(src[sIndex+1])<<8 | uint32(src[sIndex])
 	r := uint32(src[sIndex+7])<<24 | uint32(src[sIndex+6])<<16 | uint32(src[sIndex+5])<<8 | uint32(src[sIndex+4])
 	l, r = encryptBlock(l, r, c)
 	c.bits32ToBytes(int(r), dst, dIndex)
