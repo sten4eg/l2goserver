@@ -76,10 +76,10 @@ func (c *Cipher) Encrypt(dst, src []byte, sIndex, dIndex int) {
 	l := uint32(src[sIndex+3])<<24 | uint32(src[sIndex+2])<<16 | uint32(src[sIndex+1])<<8 | uint32(src[sIndex])
 	r := uint32(src[sIndex+7])<<24 | uint32(src[sIndex+6])<<16 | uint32(src[sIndex+5])<<8 | uint32(src[sIndex+4])
 	l, r = encryptBlock(l, r, c)
-	c.bits32ToBytes(int(r), dst, dIndex)
-	c.bits32ToBytes(int(l), dst, dIndex+4)
-	//	dst[3], dst[2], dst[1], dst[0] = byte(l>>24), byte(l>>16), byte(l>>8), byte(l)
-	//	dst[7], dst[6], dst[5], dst[4] = byte(r>>24), byte(r>>16), byte(r>>8), byte(r)
+	//	c.bits32ToBytes(int(r), dst, dIndex)
+	//	c.bits32ToBytes(int(l), dst, dIndex+4)
+	dst[dIndex+3], dst[dIndex+2], dst[dIndex+1], dst[dIndex] = byte(l>>24), byte(l>>16), byte(l>>8), byte(l)
+	dst[dIndex+7], dst[dIndex+6], dst[dIndex+5], dst[dIndex+4] = byte(r>>24), byte(r>>16), byte(r>>8), byte(r)
 }
 
 func (c *Cipher) bits32ToBytes(in int, dst []byte, dstIndex int) {

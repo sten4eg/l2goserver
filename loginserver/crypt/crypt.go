@@ -98,8 +98,7 @@ func EncodeData(raw []byte) []byte {
 	size := len(raw) + 15
 	size = size - (size % 8) //184
 	//
-	kek := raw[0:171]
-	data := encXORPass(kek, 2, size, 244820523) //выход инд181 с 000 вход 170индекс последнего значащего числа
+	data := encXORPass(raw, 2, size, 244820523) //выход инд181 с 000 вход 170индекс последнего значащего числа
 	crypt(&data, 2, size)                       //  .. 185 выход с00
 	return data[2:186]
 }
