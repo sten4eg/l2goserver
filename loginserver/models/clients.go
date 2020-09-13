@@ -2,6 +2,7 @@ package models
 
 import (
 	"crypto/rand"
+	"crypto/rsa"
 	"errors"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/packets"
@@ -14,6 +15,7 @@ type Client struct {
 	Socket     net.Conn
 	Rsa        []byte
 	SessionKey []byte
+	PrivateKey *rsa.PrivateKey
 }
 
 func NewClient() *Client {
@@ -58,32 +60,8 @@ func (c *Client) Receive() (uint8, []byte, error) {
 	return opcode, fullPackage[1:], nil
 }
 
-func (c *Client) Send(data []byte, params ...bool) error {
-
-	var doChecksum bool = true
-
-	// Should we skip the checksum?
-	if len(params) >= 1 && params[0] == false {
-		doChecksum = false
-	}
-
-	// Should we skip the blowfish encryUnable to determine package typeption?
-
-	if doChecksum == true {
-		// Add 4 empty bytes for the checksum new( new(
-		data = append(data, []byte{0x00, 0x00, 0x00, 0x00}...)
-
-		// Add blowfish padding
-		missing := len(data) % 8
-
-		if missing != 0 {
-			for i := missing; i < 8; i++ {
-				data = append(data, byte(0x00))
-			}
-		}
-
-	}
-
+func (c *Client) Send(data []byte) error {
+	data = crypt.EncodeData(data)
 	// Calculate the packet length
 	length := uint16(len(data) + 2)
 	// Put everything together
@@ -91,9 +69,9 @@ func (c *Client) Send(data []byte, params ...bool) error {
 	buffer.WriteUInt16(length)
 	buffer.Write(data)
 
-	_, errr := c.Socket.Write(buffer.Bytes())
+	_, err := c.Socket.Write(buffer.Bytes())
 
-	if errr != nil {
+	if err != nil {
 		return errors.New("The packet couldn't be sent.")
 	}
 

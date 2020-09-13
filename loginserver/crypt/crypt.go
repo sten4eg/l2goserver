@@ -48,13 +48,13 @@ func verifyChecksum(raw []byte, size int) bool {
 	return ecx == checksum
 }
 
-func appendchecksum(raw []byte, offset, size int) []byte {
+func appendchecksum(raw []byte, size int) []byte {
 	var chksum int64
 	var count = size - 4
 	var ecx int64
 	var i int
 
-	for i = offset; i < count; i += 4 {
+	for i = 0; i < count; i += 4 {
 		var ecx = int64(raw[i])
 		ecx |= (int64(raw[i+1]) << 8) & 0xff00
 		ecx |= (int64(raw[i+2]) << 0x10) & 0xff0000
@@ -73,9 +73,7 @@ func appendchecksum(raw []byte, offset, size int) []byte {
 	raw[i+3] = (byte)((chksum >> 0x18) & 0xff)
 	return raw
 }
-func encXORPass(raww []byte, size, key int) []byte {
-	raw := make([]byte, 200)
-	copy(raw[:], raww[:])
+func encXORPass(raw []byte, size, key int) []byte {
 
 	var stop = size - 8
 	var pos = 4
@@ -115,20 +113,20 @@ func encXORPass(raww []byte, size, key int) []byte {
 func EncodeData(raw []byte) []byte {
 
 	size := len(raw) + 4 // reserve checksum
-	var data []byte
+	data := make([]byte, 200)
+	copy(data, raw)
 	if isStatic {
 
 		size += 4                      // reserve for XOR "key"
 		size = (size + 8) - (size % 8) // padding
 
-		data = encXORPass(raw, size, rand.Int()) //Xor
-		crypt(&data, size)                       //blowfish
+		data = encXORPass(data, size, rand.Int()) //Xor
+		crypt(&data, size)                        //blowfish
 		isStatic = false
 	} else {
 		size = (size + 8) - (size % 8) // padding
-		appendchecksum(raw, 2, size)
+		appendchecksum(data, size)
 		crypt(&data, size)
-		data = []byte{1}
 	}
 
 	return data[:size]
@@ -136,14 +134,14 @@ func EncodeData(raw []byte) []byte {
 
 func DecodeData(raw []byte) []byte {
 	size := len(raw) - 2 // minus length package
-	raww := make([]byte, 200)
-	copy(raww[:], raw[2:])
-	decrypt(&raww, size) //size 40
-	valid := verifyChecksum(raww, size)
+	data := make([]byte, 200)
+	copy(data[:], raw[2:])
+	decrypt(&data, size)
+	valid := verifyChecksum(data, size)
 	if !valid {
 		log.Fatal("not verifiedCheckSum")
 	}
-	return raww
+	return data
 }
 
 func crypt(raw *[]byte, size int) {
@@ -157,6 +155,5 @@ func decrypt(raw *[]byte, size int) {
 	cipher, _ := blowfish.NewCipher(StaticBlowfish)
 	for i := 0; i < size; i += 8 {
 		cipher.Decrypt(*raw, *raw, i, i)
-
 	}
 }

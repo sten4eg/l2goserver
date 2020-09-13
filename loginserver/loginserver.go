@@ -10,7 +10,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"l2goserver/config"
 	"l2goserver/loginserver/clientpackets"
-	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/serverpackets"
 	"log"
@@ -160,12 +159,13 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 	fmt.Println("Client tried to connect")
 	defer l.kickClient(client)
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	client.PrivateKey = privateKey
 	client.Rsa = privateKey.PublicKey.N.Bytes()
 
 	buffer := serverpackets.NewInitPacket(*client)
-	data := crypt.EncodeData(buffer)
+
 	//log.Println(xx)
-	err := client.Send(data, false, false)
+	err := client.Send(buffer)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -184,14 +184,18 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 		switch opcode {
 		case 7:
 			authGameGuard := clientpackets.NewAuthGameGuard(data, client.SessionID)
-			serverpackets.Newggauth(authGameGuard)
+			buffer := serverpackets.Newggauth(authGameGuard)
+			err = client.Send(buffer)
 
+			if err != nil {
+				fmt.Println(err)
+			}
 			break
 		case 00:
 			// response buffer
 			var buffer []byte
 
-			requestAuthLogin := clientpackets.NewRequestAuthLogin(data)
+			requestAuthLogin := clientpackets.NewRequestAuthLogin(data, *client)
 
 			fmt.Printf("User %s is trying to login\n", requestAuthLogin.Username)
 			//accounts := l.database.Exec("accounts")
