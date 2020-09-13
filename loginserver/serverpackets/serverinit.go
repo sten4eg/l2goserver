@@ -15,7 +15,7 @@ type InitLs struct {
 func NewInitPacket(c models.Client) []byte {
 
 	buffer := new(packets.Buffer)
-	buffer.WriteB([]byte{0x00, 0x00, 0x00}) // Packet type: Init    1
+	buffer.WriteB([]byte{0x00}) // Packet type: Init    1
 
 	KEK := []byte{
 		-3 & 255,

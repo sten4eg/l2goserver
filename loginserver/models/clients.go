@@ -53,9 +53,9 @@ func (c *Client) Receive() (uint8, []byte, error) {
 	fullPackage = append(fullPackage, data...)
 	fullPackage = crypt.DecodeData(fullPackage)
 
-	opcode := fullPackage[2]
+	opcode := fullPackage[0]
 
-	return opcode, fullPackage[3:], nil
+	return opcode, fullPackage[1:], nil
 }
 
 func (c *Client) Send(data []byte, params ...bool) error {
