@@ -159,10 +159,10 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 
 	fmt.Println("Client tried to connect")
 	defer l.kickClient(client)
-	lenaPrivateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
-	pub := lenaPrivateKey.PublicKey.N.Bytes()
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	client.Rsa = privateKey.PublicKey.N.Bytes()
 
-	buffer := serverpackets.NewInitPacket(pub, crypt.StaticBlowfish)
+	buffer := serverpackets.NewInitPacket(*client)
 	data := crypt.EncodeData(buffer)
 	//log.Println(xx)
 	err := client.Send(data, false, false)
@@ -182,6 +182,11 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			break
 		}
 		switch opcode {
+		case 7:
+			authGameGuard := clientpackets.NewAuthGameGuard(data, client.SessionID)
+			serverpackets.Newggauth(authGameGuard)
+
+			break
 		case 00:
 			// response buffer
 			var buffer []byte

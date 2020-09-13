@@ -1,8 +1,9 @@
 package crypt
 
 import (
-	"fmt"
 	"l2goserver/loginserver/crypt/blowfish"
+	"log"
+	"math/rand"
 )
 
 var StaticBlowfish = []byte{
@@ -24,32 +25,25 @@ var StaticBlowfish = []byte{
 	0x6c,
 }
 
-func Checksum(raw []byte) bool {
-	var chksum uint64
-
-	size := len(raw)
+func verifyChecksum(raw []byte, offset, size int) bool {
+	var checksum int64
 	count := size - 4
-	i := 0
+	var i int
 
-	for i = 0; i < count; i += 4 {
-		var ecx = (uint64(raw[i])) & 0xff
-		ecx |= (uint64(raw[i+1]) << 8) & 0xff00
-		ecx |= (uint64(raw[i+2]) << 0x10) & 0xff0000
-		ecx |= (uint64(raw[i+3]) << 0x18) & 0xff000000
-		chksum ^= ecx
+	for i = offset; i < count; i += 4 {
+		var ecx = int64(raw[i])
+		ecx |= (int64(raw[i+1]) << 8) & 0xff00
+		ecx |= (int64(raw[i+2]) << 0x10) & 0xff0000
+		ecx |= (int64(raw[i+3]) << 0x18) & 0xff000000
+		checksum ^= ecx
 	}
 
-	var ecx = (uint64(raw[i])) & 0xff
-	ecx |= (uint64(raw[i+1]) << 8) & 0xff00
-	ecx |= (uint64(raw[i+2]) << 0x10) & 0xff0000
-	ecx |= (uint64(raw[i+3]) << 0x18) & 0xff000000
+	var ecx = int64(raw[i])
+	ecx |= (int64(raw[i+1]) << 8) & 0xff00
+	ecx |= (int64(raw[i+2]) << 0x10) & 0xff0000
+	ecx |= (int64(raw[i+3]) << 0x18) & 0xff000000
 
-	//raw[i] = byte(chksum)
-	//raw[i+1] = byte(chksum >> 0x08)
-	//raw[i+2] = byte(chksum >> 0x10)
-	//raw[i+3] = byte(chksum >> 0x18)
-	fmt.Println(ecx, chksum)
-	return ecx == chksum
+	return ecx == checksum
 }
 
 func encXORPass(raww []byte, offset, size, key int) []byte {
@@ -72,7 +66,6 @@ func encXORPass(raww []byte, offset, size, key int) []byte {
 
 		edx ^= ecx
 
-		pos++
 		raw[pos] = byte(edx)
 		pos++
 		raw[pos] = byte(edx >> 8)
@@ -80,15 +73,15 @@ func encXORPass(raww []byte, offset, size, key int) []byte {
 		raw[pos] = byte(edx >> 16)
 		pos++
 		raw[pos] = byte(edx >> 24)
-
+		pos++
 	}
 
-	pos++
 	raw[pos] = byte(ecx)
 	pos++
 	raw[pos] = byte(ecx >> 8)
 	pos++
 	raw[pos] = byte(ecx >> 16)
+	pos++
 	raw[pos] = byte(ecx >> 24)
 	return raw
 }
@@ -98,30 +91,35 @@ func EncodeData(raw []byte) []byte {
 	size := len(raw) + 15
 	size = size - (size % 8) //184
 	//
-	data := encXORPass(raw, 2, size, 244820523) //выход инд181 с 000 вход 170индекс последнего значащего числа
-	crypt(&data, 2, size)                       //  .. 185 выход с00
+	data := encXORPass(raw, 2, size, rand.Int()) //выход инд181 с 000 вход 170индекс последнего значащего числа
+	crypt(&data, 2, size)                        //  .. 185 выход с00
 	return data[2:186]
+}
+
+func DecodeData(raw []byte) []byte {
+	raww := make([]byte, 200)
+	copy(raww[:], raw[:])
+	decrypt(&raww, 2, 40) //size 40 , offset 2
+	valid := verifyChecksum(raww, 2, 40)
+	if !valid {
+		log.Fatal("not verifiedCheckSum")
+	}
+	return raww
 }
 
 func crypt(raw *[]byte, offset int, size int) {
 	stop := offset + size
+	cipher, _ := blowfish.NewCipher(StaticBlowfish)
 	for i := offset; i < stop; i += 8 {
-		CipherEncryptBlock(&raw, i)
+		cipher.Encrypt(*raw, *raw, i, i)
 	}
 }
 
-func Decrypt(raw *[]byte, offset int, size int) {
+func decrypt(raw *[]byte, offset int, size int) {
 	stop := offset + size
+	cipher, _ := blowfish.NewCipher(StaticBlowfish)
 	for i := offset; i < stop; i += 8 {
-		CipherDecryptBlock(&raw, i)
-	}
-}
+		cipher.Decrypt(*raw, *raw, i, i)
 
-func CipherDecryptBlock(raw **[]byte, i int) {
-	cipher, _ := blowfish.NewCipher(StaticBlowfish)
-	cipher.Decrypt(**raw, **raw, i, i)
-}
-func CipherEncryptBlock(raw **[]byte, i int) {
-	cipher, _ := blowfish.NewCipher(StaticBlowfish)
-	cipher.Encrypt(**raw, **raw, i, i)
+	}
 }

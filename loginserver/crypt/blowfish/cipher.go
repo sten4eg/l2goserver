@@ -82,23 +82,15 @@ func (c *Cipher) Encrypt(dst, src []byte, sIndex, dIndex int) {
 	dst[dIndex+7], dst[dIndex+6], dst[dIndex+5], dst[dIndex+4] = byte(r>>24), byte(r>>16), byte(r>>8), byte(r)
 }
 
-func (c *Cipher) bits32ToBytes(in int, dst []byte, dstIndex int) {
-	dst[dstIndex] = byte(in)
-	dst[dstIndex+1] = byte(in >> 8)
-	dst[dstIndex+2] = byte(in >> 16)
-	dst[dstIndex+3] = byte(in >> 24)
-}
-
 // Decrypt decrypts the 8-byte buffer src using the key k
 // and stores the result in dst.
 func (c *Cipher) Decrypt(dst, src []byte, sIndex, dIndex int) {
-	l := uint32(src[sIndex+3])<<24 | uint32(src[sIndex+2])<<16 | uint32(src[sIndex+1])<<8 | uint32(src[sIndex+0])
+	l := uint32(src[sIndex+3])<<24 | uint32(src[sIndex+2])<<16 | uint32(src[sIndex+1])<<8 | uint32(src[sIndex])
 	r := uint32(src[sIndex+7])<<24 | uint32(src[sIndex+6])<<16 | uint32(src[sIndex+5])<<8 | uint32(src[sIndex+4])
-	l, r = decryptBlock(l, r, c)
-	c.bits32ToBytes(int(r), dst, dIndex)
-	c.bits32ToBytes(int(l), dst, dIndex+4)
-	//	dst[0], dst[1], dst[2], dst[3] = byte(l>>24), byte(l>>16), byte(l>>8), byte(l)
-	//	dst[4], dst[5], dst[6], dst[7] = byte(r>>24), byte(r>>16), byte(r>>8), byte(r)
+	r, l = decryptBlock(l, r, c) //xr xl
+
+	dst[dIndex+3], dst[dIndex+2], dst[dIndex+1], dst[dIndex] = byte(r>>24), byte(r>>16), byte(r>>8), byte(r)
+	dst[dIndex+7], dst[dIndex+6], dst[dIndex+5], dst[dIndex+4] = byte(l>>24), byte(l>>16), byte(l>>8), byte(l)
 }
 
 func initCipher(c *Cipher) {
