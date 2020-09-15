@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"l2goserver/config"
 	"l2goserver/loginserver/clientpackets"
+	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/serverpackets"
 	"log"
@@ -160,8 +161,7 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 	defer l.kickClient(client)
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
 	client.PrivateKey = privateKey
-	client.Rsa = privateKey.PublicKey.N.Bytes()
-
+	client.Rsa = crypt.ScrambleModulus(privateKey.PublicKey.N.Bytes())
 	buffer := serverpackets.NewInitPacket(*client)
 
 	//log.Println(xx)

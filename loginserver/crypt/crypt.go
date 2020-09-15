@@ -157,3 +157,33 @@ func decrypt(raw *[]byte, size int) {
 		cipher.Decrypt(*raw, *raw, i, i)
 	}
 }
+
+func ScrambleModulus(modulus []byte) []byte {
+
+	scrambledMod := modulus
+	var temp []byte
+	copy(temp, scrambledMod)
+	//	System.arraycopy(scrambledMod, 1, temp, 0, 0x80)
+	//	scrambledMod = temp
+
+	// step 1 : 0x4d-0x50 <-> 0x00-0x04
+
+	for i := 0; i < 4; i++ {
+		temp := scrambledMod[0x00+i]
+		scrambledMod[0x00+i] = scrambledMod[0x4d+i]
+		scrambledMod[0x4d+i] = temp
+	}
+	// step 2 : xor first 0x40 bytes with last 0x40 bytes
+	for i := 0; i < 0x40; i++ {
+		scrambledMod[i] = (byte)(scrambledMod[i] ^ scrambledMod[0x40+i])
+	}
+	// step 3 : xor bytes 0x0d-0x10 with bytes 0x34-0x38
+	for i := 0; i < 4; i++ {
+		scrambledMod[0x0d+i] = (byte)(scrambledMod[0x0d+i] ^ scrambledMod[0x34+i])
+	}
+	// step 4 : xor last 0x40 bytes with first 0x40 bytes
+	for i := 0; i < 0x40; i++ {
+		scrambledMod[0x40+i] = (byte)(scrambledMod[0x40+i] ^ scrambledMod[i])
+	}
+	return scrambledMod
+}
