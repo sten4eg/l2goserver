@@ -6,7 +6,6 @@ import (
 	_ "github.com/andreburgaud/crypt2go/ecb"
 	_ "github.com/andreburgaud/crypt2go/padding"
 	"l2goserver/loginserver/models"
-	"log"
 	"math/big"
 )
 
@@ -18,31 +17,13 @@ type RequestAuthLogin struct {
 func NewRequestAuthLogin(request []byte, client models.Client) RequestAuthLogin {
 	var result RequestAuthLogin
 
-	//rng := rand.Reader
 	data := request[:128]
 
-	// rsa.DecryptOAEP(rand.Reader, priv, ciphertext)
-
-	//xxx ,err := PublicDecrypt(&client.PrivateKey.PublicKey, data)
-	//if err != nil {
-	//log.Fatal(err)
-	//}
 	c := new(big.Int).SetBytes(data)
-	plainText := c.Exp(c, client.PrivateKey.D, client.PrivateKey.N).Bytes()
-	x := plainText
-	_ = x
-	//xxx, err := rsa.DecryptOAEP(sha256.New(), rand.Reader,client.PrivateKey,plainText,[]byte(""))
+	decodeData := c.Exp(c, client.PrivateKey.D, client.PrivateKey.N).Bytes()
 
-	//	xxx , err := client.PrivateKey.Decrypt(rand.Reader,data,nil)
-
-	log.Fatal(123321)
-	//xxx, err := rsa.DecryptPKCS1v15(rng, client.PrivateKey ,request)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-
-	result.Username = string(data[:14])
-	result.Password = string(data[14:28])
+	result.Username = string(decodeData[1:14])
+	result.Password = string(decodeData[14:28])
 
 	return result
 }
