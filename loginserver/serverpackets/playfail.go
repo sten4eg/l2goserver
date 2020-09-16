@@ -7,7 +7,7 @@ import (
 func NewPlayFailPacket(reason uint32) []byte {
 	buffer := new(packets.Buffer)
 	buffer.WriteByte(0x06) // Packet type: PlayFail
-	buffer.WriteUInt32(reason)
+	buffer.WriteD(reason)
 
 	return buffer.Bytes()
 }

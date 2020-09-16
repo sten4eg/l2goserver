@@ -14,7 +14,7 @@ func NewAuthGameGuard(request, clientSessionId []byte) []byte {
 
 	data := binary.LittleEndian.Uint32(clientSessionId)
 	if data != sessionId {
-		log.Fatal("wrong sessionId") // kick clienta nado
+		log.Fatal("wrong sessionId") //Todo kick clienta
 	}
 	return clientSessionId
 

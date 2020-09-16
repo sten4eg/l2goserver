@@ -6,8 +6,6 @@ import (
 	"crypto/rsa"
 	"database/sql"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"golang.org/x/crypto/bcrypt"
 	"l2goserver/config"
 	"l2goserver/loginserver/clientpackets"
 	"l2goserver/loginserver/crypt"
@@ -46,7 +44,7 @@ func (l *LoginServer) Init() {
 	var err error
 
 	// Connect to our database
-	l.database, err = sql.Open("mysql", "root:@/l2jmobiush5")
+	//	l.database, err = sql.Open("mysql", "root:@/l2jmobiush5")
 	if err != nil {
 
 		log.Fatal("Failed to connect to database: ", err.Error())
@@ -120,8 +118,10 @@ func (l *LoginServer) Start() {
 
 }
 func (l *LoginServer) kickClient(client *models.Client) {
-	client.Socket.Close()
-
+	err := client.Socket.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 	for i, item := range l.clients {
 		if bytes.Equal(item.SessionID, client.SessionID) {
 			copy(l.clients[i:], l.clients[i+1:])
@@ -159,13 +159,18 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 
 	fmt.Println("Client tried to connect")
 	defer l.kickClient(client)
-	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
-	client.PrivateKey = privateKey
-	client.Rsa = crypt.ScrambleModulus(privateKey.PublicKey.N.Bytes())
-	buffer := serverpackets.NewInitPacket(*client)
 
-	//log.Println(xx)
-	err := client.Send(buffer)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	client.PrivateKey = privateKey
+	client.ScrambleModulus = crypt.ScrambleModulus(privateKey.PublicKey.N.Bytes())
+
+	initPacket := serverpackets.NewInitPacket(*client)
+
+	err = client.Send(initPacket)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -181,130 +186,38 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			fmt.Println("Closing a connection")
 			break
 		}
+
 		switch opcode {
-		case 7:
+		case 07:
 			authGameGuard := clientpackets.NewAuthGameGuard(data, client.SessionID)
 			buffer := serverpackets.Newggauth(authGameGuard)
 			err = client.Send(buffer)
-
 			if err != nil {
 				fmt.Println(err)
 			}
 			break
 		case 00:
-			// response buffer
-			var buffer []byte
-
 			requestAuthLogin := clientpackets.NewRequestAuthLogin(data, *client)
-
+			loginOk := serverpackets.NewLoginOkPacket(client)
+			err = client.Send(loginOk)
+			if err != nil {
+				log.Fatal(err)
+			}
 			fmt.Printf("User %s is trying to login\n", requestAuthLogin.Username)
-			//accounts := l.database.Exec("accounts")
-			//	err := accounts.Find(bson.M{"username": requestAuthLogin.Username}).One(&client.Account)
-
-			if err != nil {
-				if l.config.LoginServer.AutoCreate == true {
-					hashedPassword, err := bcrypt.GenerateFromPassword([]byte(requestAuthLogin.Password), 10)
-					if err != nil {
-						fmt.Println("An error occured while trying to generate the password")
-						l.status.failedAccountCreation += 1
-
-						buffer = serverpackets.NewLoginFailPacket(serverpackets.REASON_SYSTEM_ERROR)
-					} else {
-						client.Account = models.Account{
-							//	Id:          bson.NewObjectId(),
-							Username:    requestAuthLogin.Username,
-							Password:    string(hashedPassword),
-							AccessLevel: ACCESS_LEVEL_PLAYER}
-
-						//		err = accounts.Insert(&client.Account)
-						if err != nil {
-							fmt.Printf("Couldn't create an account for the user %s\n", requestAuthLogin.Username)
-							l.status.failedAccountCreation += 1
-
-							buffer = serverpackets.NewLoginFailPacket(serverpackets.REASON_SYSTEM_ERROR)
-						} else {
-							fmt.Printf("Account successfully created for the user %s\n", requestAuthLogin.Username)
-							l.status.successfulAccountCreation += 1
-
-							buffer = serverpackets.NewLoginOkPacket(client.SessionID)
-						}
-					}
-				} else {
-					fmt.Println("Account not found !")
-					l.status.failedLogins += 1
-
-					buffer = serverpackets.NewLoginFailPacket(serverpackets.REASON_USER_OR_PASS_WRONG)
-				}
-			} else {
-				// Account exists; Is the password ok?
-				err = bcrypt.CompareHashAndPassword([]byte(client.Account.Password), []byte(requestAuthLogin.Password))
-
-				if err != nil {
-					fmt.Printf("Wrong password for the account %s\n", requestAuthLogin.Username)
-					l.status.failedLogins += 1
-
-					buffer = serverpackets.NewLoginFailPacket(serverpackets.REASON_USER_OR_PASS_WRONG)
-				} else {
-
-					if client.Account.AccessLevel >= ACCESS_LEVEL_PLAYER {
-						l.status.successfulLogins += 1
-
-						buffer = serverpackets.NewLoginOkPacket(client.SessionID)
-					} else {
-						l.status.failedLogins += 1
-
-						buffer = serverpackets.NewLoginFailPacket(serverpackets.REASON_ACCESS_FAILED)
-					}
-
-				}
-			}
-
-			err = client.Send(buffer)
-
-			if err != nil {
-				fmt.Println(err)
-			}
-
 		case 02:
 			requestPlay := clientpackets.NewRequestPlay(data)
-
-			fmt.Printf("The client wants to connect to the server : %d\n", requestPlay.ServerID)
-
-			var buffer []byte
-			if len(l.config.GameServers) >= int(requestPlay.ServerID) && (l.config.GameServers[requestPlay.ServerID-1].Options.Testing == false || client.Account.AccessLevel > ACCESS_LEVEL_PLAYER) {
-				if !bytes.Equal(client.SessionID[:8], requestPlay.SessionID) {
-					l.status.hackAttempts += 1
-
-					buffer = serverpackets.NewLoginFailPacket(serverpackets.REASON_ACCESS_FAILED)
-				} else {
-					buffer = serverpackets.NewPlayOkPacket()
-				}
-			} else {
-				l.status.hackAttempts += 1
-
-				buffer = serverpackets.NewPlayFailPacket(serverpackets.REASON_ACCESS_FAILED)
-			}
-			err := client.Send(buffer)
-
+			_ = requestPlay
+			x := serverpackets.NewPlayOkPacket(client)
+			err = client.Send(x)
 			if err != nil {
-				fmt.Println(err)
+				log.Fatal(err)
 			}
-
 		case 05:
-			requestServerList := clientpackets.NewRequestServerList(data)
+			requestServerList := serverpackets.NewServerListPacket(l.config.GameServers, client.Socket.RemoteAddr().String())
 
-			var buffer []byte
-			if !bytes.Equal(client.SessionID[:8], requestServerList.SessionID) {
-				l.status.hackAttempts += 1
-
-				buffer = serverpackets.NewLoginFailPacket(serverpackets.REASON_ACCESS_FAILED)
-			} else {
-				buffer = serverpackets.NewServerListPacket(l.config.GameServers, client.Socket.RemoteAddr().String())
-			}
-			err := client.Send(buffer)
-
+			err := client.Send(requestServerList)
 			if err != nil {
-				fmt.Println(err)
+				log.Fatal(err)
 			}
 
 		default:

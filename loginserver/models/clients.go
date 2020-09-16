@@ -1,31 +1,43 @@
 package models
 
 import (
-	"crypto/rand"
 	"crypto/rsa"
 	"errors"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/packets"
+	"log"
+	"math/rand"
 	"net"
 )
 
 type Client struct {
-	Account    Account
-	SessionID  []byte
-	Socket     net.Conn
-	Rsa        []byte
-	SessionKey []byte
-	PrivateKey *rsa.PrivateKey
+	Account         Account
+	SessionID       []byte
+	Socket          net.Conn
+	ScrambleModulus []byte
+	SessionKey      *SessionKey
+	PrivateKey      *rsa.PrivateKey
+}
+type SessionKey struct {
+	PlayOk1  uint32
+	PlayOk2  uint32
+	LoginOk1 uint32
+	LoginOk2 uint32
 }
 
 func NewClient() *Client {
-	id := make([]byte, 4)
+	id := make([]byte, 4, 4)
 	_, err := rand.Read(id)
-
 	if err != nil {
-		return nil
+		log.Fatal(err) //todo
 	}
-	return &Client{SessionID: id}
+	sk := SessionKey{
+		PlayOk1:  rand.Uint32(),
+		PlayOk2:  rand.Uint32(),
+		LoginOk1: rand.Uint32(),
+		LoginOk2: rand.Uint32(),
+	}
+	return &Client{SessionID: id, SessionKey: &sk}
 }
 
 func (c *Client) Receive() (uint8, []byte, error) {
@@ -33,7 +45,7 @@ func (c *Client) Receive() (uint8, []byte, error) {
 	header := make([]byte, 2)
 	n, err := c.Socket.Read(header)
 	if n != 2 || err != nil {
-		return 0, nil, errors.New("An error occured while reading the packet header.")
+		return 0, nil, errors.New("An error occured while reading the packet header.3" + c.Socket.LocalAddr().String())
 	}
 
 	// Calculate the packet size
@@ -66,7 +78,7 @@ func (c *Client) Send(data []byte) error {
 	length := uint16(len(data) + 2)
 	// Put everything together
 	buffer := packets.NewBuffer()
-	buffer.WriteUInt16(length)
+	buffer.WriteH(length)
 	buffer.Write(data)
 
 	_, err := c.Socket.Write(buffer.Bytes())

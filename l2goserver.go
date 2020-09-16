@@ -8,8 +8,9 @@ import (
 func main() {
 
 	globalConfig := config.Read()
-	server := loginserver.New(globalConfig)
+	loginServer := loginserver.New(globalConfig)
 
-	server.Init()
-	server.Start()
+	loginServer.Init()
+	loginServer.Start()
+
 }

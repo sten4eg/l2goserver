@@ -1,14 +1,15 @@
 package serverpackets
 
 import (
+	"l2goserver/loginserver/models"
 	"l2goserver/packets"
 )
 
-func NewPlayOkPacket() []byte {
+func NewPlayOkPacket(client *models.Client) []byte {
 	buffer := new(packets.Buffer)
-	buffer.WriteByte(0x07)
-	buffer.Write([]byte{0x34, 0x0b, 0x00, 0x01}) // Session Key
-	buffer.Write([]byte{0x55, 0x66, 0x77, 0x88}) // Session Key 2?
+	buffer.WriteSingleByte(0x07)
+	buffer.WriteD(client.SessionKey.PlayOk1) // Session Key
+	buffer.WriteD(client.SessionKey.PlayOk2) // Session Key
 
 	return buffer.Bytes()
 }
