@@ -14,54 +14,7 @@ func NewBuffer() *Buffer {
 	return &Buffer{}
 }
 
-func (b *Buffer) WriteC(value int32) {
-	err := binary.Write(b, binary.BigEndian, value)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-func (b *Buffer) WriteCC(value int32) {
-	err := binary.Write(b, binary.LittleEndian, value)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-func (b *Buffer) WriteUInt64(value uint64) {
-	err := binary.Write(b, binary.LittleEndian, value)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (b *Buffer) WriteUInt32(value uint32) {
-	err := binary.Write(b, binary.LittleEndian, value)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (b *Buffer) WriteUInt16(value uint16) {
-	err := binary.Write(b, binary.LittleEndian, value)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (b *Buffer) WriteUInt8(value uint8) {
-	err := binary.Write(b, binary.LittleEndian, value)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (b *Buffer) WriteFloat64(value float64) {
-	err := binary.Write(b, binary.LittleEndian, value)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (b *Buffer) WriteFloat32(value float32) {
+func (b *Buffer) WriteH(value uint16) {
 	err := binary.Write(b, binary.LittleEndian, value)
 	if err != nil {
 		log.Fatal(err)
@@ -75,8 +28,15 @@ func (b *Buffer) WriteD(value uint32) {
 	}
 }
 
-func (b *Buffer) WriteB(val []byte) {
+func (b *Buffer) WriteSlice(val []byte) {
 	err := binary.Write(b, binary.LittleEndian, val)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (b *Buffer) WriteSingleByte(value byte) {
+	err := b.WriteByte(value)
 	if err != nil {
 		log.Fatal(err)
 	}

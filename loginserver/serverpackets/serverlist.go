@@ -8,9 +8,9 @@ import (
 
 func NewServerListPacket(gameServers []config.GameServerType, remoteAddr string) []byte {
 	buffer := new(packets.Buffer)
-	buffer.WriteByte(0x04)
-	buffer.WriteUInt8(uint8(len(gameServers))) // Servers count
-	buffer.WriteByte(0x00)                     // Unused
+	buffer.WriteSingleByte(0x04)
+	buffer.WriteSingleByte(uint8(len(gameServers))) // Servers count
+	buffer.WriteSingleByte(0x00)                    // Last Picked Server
 
 	network, _, _ := net.SplitHostPort(remoteAddr)
 
@@ -23,23 +23,25 @@ func NewServerListPacket(gameServers []config.GameServerType, remoteAddr string)
 			ip = net.ParseIP(gameserver.ExternalIP).To4()
 		}
 
-		buffer.WriteUInt8(uint8(index + 1))               // Server ID (Bartz)
-		buffer.WriteByte(ip[0])                           // Server IP address 1/4
-		buffer.WriteByte(ip[1])                           // Server IP address 2/4
-		buffer.WriteByte(ip[2])                           // Server IP address 3/4
-		buffer.WriteByte(ip[3])                           // Server IP address 4/4
-		buffer.WriteUInt32(uint32(gameserver.Port))       // Server port number
-		buffer.WriteByte(0x0f)                            // Age limit
-		buffer.WriteByte(0x01)                            // Is pvp allowed?
-		buffer.WriteUInt16(0)                             // How many players are online
-		buffer.WriteUInt16(gameserver.Options.MaxPlayers) // Maximum allowed players
-		if gameserver.Options.Testing == true {           // Is this a testing server?
-			buffer.WriteByte(0x00)
+		buffer.WriteSingleByte(uint8(index + 1))     // Server ID (Bartz)
+		buffer.WriteSingleByte(ip[0])                // Server IP address 1/4
+		buffer.WriteSingleByte(ip[1])                // Server IP address 2/4
+		buffer.WriteSingleByte(ip[2])                // Server IP address 3/4
+		buffer.WriteSingleByte(ip[3])                // Server IP address 4/4
+		buffer.WriteD(uint32(gameserver.Port))       // GameServer port number
+		buffer.WriteSingleByte(0x00)                 // Age Limit 0, 15, 18
+		buffer.WriteSingleByte(0x01)                 // Is pvp allowed?
+		buffer.WriteH(0)                             // How many players are online Unused In client
+		buffer.WriteH(gameserver.Options.MaxPlayers) // Maximum allowed players
+		if gameserver.Options.Testing == true {      // Is this a testing server? (Status Up or Down)
+			buffer.WriteSingleByte(0x00)
 		} else {
-			buffer.WriteByte(0x01)
+			buffer.WriteSingleByte(0x01)
 		}
-		buffer.WriteUInt32(0x02) // Display a green clock (what is this for?)
+		buffer.WriteD(0x02)          // Display a green clock (what is this for?)
+		buffer.WriteSingleByte(0x00) //bracket [NULL]Bartz
 	}
-
+	buffer.WriteH(0x00)
+	//todo Count characters in servers
 	return buffer.Bytes()
 }

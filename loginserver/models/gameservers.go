@@ -56,7 +56,7 @@ func (g *GameServer) Send(data []byte) error {
 
 	// Put everything together
 	buffer := packets.NewBuffer()
-	buffer.WriteUInt16(length)
+	buffer.WriteH(length)
 	buffer.Write(data)
 
 	_, err := g.Socket.Write(buffer.Bytes())
