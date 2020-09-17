@@ -168,6 +168,7 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 	client.PrivateKey = privateKey
 	client.ScrambleModulus = crypt.ScrambleModulus(privateKey.PublicKey.N.Bytes())
 
+	crypt.IsStatic = true //todo костыль?
 	initPacket := serverpackets.NewInitPacket(*client)
 
 	err = client.Send(initPacket)
