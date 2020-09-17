@@ -118,8 +118,10 @@ func (l *LoginServer) Start() {
 
 }
 func (l *LoginServer) kickClient(client *models.Client) {
-	client.Socket.Close()
-
+	err := client.Socket.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 	for i, item := range l.clients {
 		if bytes.Equal(item.SessionID, client.SessionID) {
 			copy(l.clients[i:], l.clients[i+1:])
