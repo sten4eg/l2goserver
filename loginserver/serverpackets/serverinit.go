@@ -15,7 +15,7 @@ func NewInitPacket(c models.Client) []byte {
 	buffer.WriteD(0xc621)                // PROTOCOL_REV
 	buffer.WriteSlice(c.ScrambleModulus) // pubKey
 
-	//unk GG related?
+	// unk GG related?
 	buffer.WriteD(0x29DD954E)
 	buffer.WriteD(0x77C39CFC)
 	buffer.WriteD(0x97ADB620)

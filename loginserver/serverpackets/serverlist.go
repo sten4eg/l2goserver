@@ -39,9 +39,9 @@ func NewServerListPacket(gameServers []config.GameServerType, remoteAddr string)
 			buffer.WriteSingleByte(0x01)
 		}
 		buffer.WriteD(0x02)          // Display a green clock (what is this for?)
-		buffer.WriteSingleByte(0x00) //bracket [NULL]Bartz
+		buffer.WriteSingleByte(0x00) // bracket [NULL]Bartz
 	}
 	buffer.WriteH(0x00)
-	//todo Count characters in servers
+	// todo Count characters in servers
 	return buffer.Bytes()
 }

@@ -168,7 +168,7 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 	client.PrivateKey = privateKey
 	client.ScrambleModulus = crypt.ScrambleModulus(privateKey.PublicKey.N.Bytes())
 
-	crypt.IsStatic = true //todo костыль?
+	crypt.IsStatic = true // todo костыль?
 	initPacket := serverpackets.NewInitPacket(*client)
 
 	err = client.Send(initPacket)
@@ -202,7 +202,8 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			loginOk := serverpackets.NewLoginOkPacket(client)
 			err = client.Send(loginOk)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				return
 			}
 			fmt.Printf("User %s is trying to login\n", requestAuthLogin.Username)
 		case 02:
@@ -211,14 +212,16 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			x := serverpackets.NewPlayOkPacket(client)
 			err = client.Send(x)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				return
 			}
 		case 05:
 			requestServerList := serverpackets.NewServerListPacket(l.config.GameServers, client.Socket.RemoteAddr().String())
 
 			err := client.Send(requestServerList)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				return
 			}
 
 		default:

@@ -121,8 +121,8 @@ func EncodeData(raw []byte) []byte {
 		size += 4                      // reserve for XOR "key"
 		size = (size + 8) - (size % 8) // padding
 
-		data = encXORPass(data, size, rand.Int()) //Xor
-		crypt(&data, size)                        //blowfish
+		data = encXORPass(data, size, rand.Int()) // Xor
+		crypt(&data, size)                        // blowfish
 		IsStatic = false
 	} else {
 		size = (size + 8) - (size % 8) // padding
@@ -136,7 +136,7 @@ func EncodeData(raw []byte) []byte {
 func DecodeData(raw []byte) []byte {
 	size := len(raw) - 2 // minus length package
 	data := make([]byte, 200)
-	copy(data[:], raw[2:])
+	copy(data, raw[2:])
 	decrypt(&data, size)
 
 	valid := verifyChecksum(data, size)
@@ -171,9 +171,7 @@ func ScrambleModulus(modulus []byte) []byte {
 	// step 1 : 0x4d-0x50 <-> 0x00-0x04
 
 	for i := 0; i < 4; i++ {
-		temp := scrambledMod[0x00+i]
-		scrambledMod[0x00+i] = scrambledMod[0x4d+i]
-		scrambledMod[0x4d+i] = temp
+		scrambledMod[0x00+i], scrambledMod[0x4d+i] = scrambledMod[0x4d+i], scrambledMod[0x00+i]
 	}
 	// step 2 : xor first 0x40 bytes with last 0x40 bytes
 	for i := 0; i < 0x40; i++ {

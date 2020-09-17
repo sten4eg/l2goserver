@@ -27,8 +27,8 @@ func (g *GameServer) Receive() (opcode byte, data []byte, e error) {
 
 	// Calculate the packet size
 	size := 0
-	size = size + int(header[0])
-	size = size + int(header[1])*256
+	size += int(header[0])
+	size += int(header[1]) * 256
 
 	// Allocate the appropriate size for our data (size - 2 bytes used for the length
 	data = make([]byte, size-2)

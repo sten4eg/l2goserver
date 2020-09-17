@@ -5,7 +5,6 @@ import (
 	"errors"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/packets"
-	"log"
 	"math/rand"
 	"net"
 )
@@ -27,10 +26,7 @@ type SessionKey struct {
 
 func NewClient() *Client {
 	id := make([]byte, 4, 4)
-	_, err := rand.Read(id)
-	if err != nil {
-		log.Fatal(err) //todo
-	}
+	_, _ = rand.Read(id)
 	sk := SessionKey{
 		PlayOk1:  rand.Uint32(),
 		PlayOk2:  rand.Uint32(),
@@ -50,8 +46,8 @@ func (c *Client) Receive() (uint8, []byte, error) {
 
 	// Calculate the packet size
 	size := 0
-	size = size + int(header[0])
-	size = size + int(header[1])*256
+	size += int(header[0])
+	size += int(header[1]) * 256
 
 	// Allocate the appropriate size for our data (size - 2 bytes used for the length
 	data := make([]byte, size-2)
