@@ -3,11 +3,11 @@
     "host": "127.0.0.1",
     "autoCreate": true,
     "database": {
-      "name": "l2jmobiush5",
+      "name": "postgres",
       "host": "127.0.0.1",
-      "port": 3306,
-      "user": "root",
-      "password": ""
+      "port": 5432,
+      "user": "postgres",
+      "password": "postgres"
     }
   },
   "gameservers": [
@@ -18,11 +18,12 @@
       "externalIP": "192.168.1.2",
       "port": 7777,
       "database": {
-        "name": "l2jmobiush5",
+        "name": "l2g",
         "host": "127.0.0.1",
-        "port": 3306,
-        "user": "root",
-        "password": ""
+        "port": 5432,
+        "user": "postgres",
+        "password": "postgres",
+        "pgDSN": "postgres://ma_usr:m4_u$3r@172.22.22.103/ma_db?sslmode=disable&pool_max_conns=60"
       },
       "cache": {
         "host": "127.0.0.1",

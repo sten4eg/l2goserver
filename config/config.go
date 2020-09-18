@@ -19,7 +19,7 @@ type GameServerConfigObject struct {
 type DatabaseType struct {
 	Name     string
 	Host     string
-	Port     int
+	Port     uint16
 	User     string
 	Password string
 }

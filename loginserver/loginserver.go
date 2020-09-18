@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
-	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx"
 	"l2goserver/config"
 	"l2goserver/loginserver/clientpackets"
 	"l2goserver/loginserver/crypt"
@@ -18,7 +18,7 @@ import (
 type LoginServer struct {
 	clients             []*models.Client
 	gameservers         []*models.GameServer
-	database            *sql.DB
+	database            *pgx.Conn
 	config              config.Config
 	internalServersList []byte
 	externalServersList []byte
@@ -43,8 +43,16 @@ func New(cfg config.Config) *LoginServer {
 func (l *LoginServer) Init() {
 	var err error
 
-	// Connect to our database
-	//	l.database, err = sql.Open("mysql", "root:@/l2jmobiush5")
+	dbConfig := pgx.ConnConfig{
+		Host:              l.config.LoginServer.Database.Host,
+		Port:              l.config.LoginServer.Database.Port,
+		Database:          l.config.LoginServer.Database.Name,
+		User:              l.config.LoginServer.Database.User,
+		Password:          l.config.LoginServer.Database.Password,
+		TLSConfig:         nil,
+		FallbackTLSConfig: nil,
+	}
+	l.database, err = pgx.Connect(dbConfig)
 	if err != nil {
 
 		log.Fatal("Failed to connect to database: ", err.Error())
