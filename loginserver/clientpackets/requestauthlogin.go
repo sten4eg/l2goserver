@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/jackc/pgx"
+	"golang.org/x/crypto/bcrypt"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/serverpackets"
 	"math/big"
@@ -33,10 +34,14 @@ func NewRequestAuthLogin(request []byte, client *models.Client, db *pgx.Conn, l 
 }
 
 func (r *RequestAuthLogin) validate(db *pgx.Conn, client *models.Client, l []*models.Client) (byte, error) {
-
 	var account models.Account
-	row := db.QueryRow("SELECT * FROM accounts WHERE login = $1 AND password = $2", r.Login, r.Password)
+	row := db.QueryRow("SELECT * FROM accounts WHERE login = $1", r.Login)
 	err := row.Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer)
+	if err != nil {
+		return serverpackets.REASON_USER_OR_PASS_WRONG, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(r.Password))
 	if err != nil {
 		return serverpackets.REASON_USER_OR_PASS_WRONG, err
 	}

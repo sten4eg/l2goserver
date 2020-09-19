@@ -1,7 +1,7 @@
 create table public.accounts
 (
 	login varchar(45) not null,
-	password varchar(45) not null,
+	password varchar(65) not null,
 	created_at timestamp default current_timestamp not null,
 	last_active timestamp default null,
 	access_level smallint default 0 not null,
