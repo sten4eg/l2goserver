@@ -1,7 +1,6 @@
 package loginserver
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
@@ -56,7 +55,6 @@ func (l *LoginServer) Init() {
 	if err != nil {
 
 		log.Fatal("Failed to connect to database: ", err.Error())
-		log.Fatal(l.config.LoginServer.Database.User + ":" + l.config.LoginServer.Database.Password + "@" + l.config.LoginServer.Database.Host + "/" + l.config.LoginServer.Database.Name)
 	} else {
 		fmt.Println("Successful database connection")
 	}
@@ -131,7 +129,7 @@ func (l *LoginServer) kickClient(client *models.Client) {
 		log.Fatal(err)
 	}
 	for i, item := range l.clients {
-		if bytes.Equal(item.SessionID, client.SessionID) {
+		if item.SessionID == client.SessionID {
 			copy(l.clients[i:], l.clients[i+1:])
 			l.clients[len(l.clients)-1] = nil
 			l.clients = l.clients[:len(l.clients)-1]
@@ -167,7 +165,6 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 
 	fmt.Println("Client tried to connect")
 	defer l.kickClient(client)
-
 	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		fmt.Println(err)
@@ -206,14 +203,20 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			}
 			break
 		case 00:
-			requestAuthLogin := clientpackets.NewRequestAuthLogin(data, *client)
-			loginOk := serverpackets.NewLoginOkPacket(client)
-			err = client.Send(loginOk)
+			requestAuthLogin, err := clientpackets.NewRequestAuthLogin(data, client, l.database)
+			var loginResult []byte
+			if err != nil {
+				loginResult = serverpackets.NewLoginFailPacket(requestAuthLogin)
+			} else {
+				loginResult = serverpackets.NewLoginOkPacket(client)
+			}
+
+			err = client.Send(loginResult)
 			if err != nil {
 				log.Println(err)
 				return
 			}
-			fmt.Printf("User %s is trying to login\n", requestAuthLogin.Username)
+			//fmt.Printf("User %s is trying to login\n", requestAuthLogin.Login)
 		case 02:
 			requestPlay := clientpackets.NewRequestPlay(data)
 			_ = requestPlay
@@ -233,7 +236,6 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			}
 
 		default:
-
 			fmt.Println("Unable to determine package type")
 			fmt.Printf("opcode: %X", opcode)
 		}

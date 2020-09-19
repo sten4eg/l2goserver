@@ -11,7 +11,7 @@ import (
 
 type Client struct {
 	Account         Account
-	SessionID       []byte
+	SessionID       uint32
 	Socket          net.Conn
 	ScrambleModulus []byte
 	SessionKey      *SessionKey
@@ -25,8 +25,8 @@ type SessionKey struct {
 }
 
 func NewClient() *Client {
-	id := make([]byte, 4, 4)
-	_, _ = rand.Read(id)
+	id := rand.Uint32()
+
 	sk := SessionKey{
 		PlayOk1:  rand.Uint32(),
 		PlayOk2:  rand.Uint32(),

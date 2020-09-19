@@ -1,7 +1,16 @@
 package models
 
+import (
+	"database/sql"
+	"github.com/jackc/pgx/pgtype"
+)
+
 type Account struct {
-	Username    string `bson:"username"`
-	Password    string `bson:"password"`
-	AccessLevel int8   `bson:"access_level"`
+	Login       string
+	Password    string
+	CreatedAt   pgtype.Timestamp
+	LastActive  pgtype.Timestamp
+	AccessLevel int8
+	LastIp      sql.NullString
+	LastServer  int8
 }

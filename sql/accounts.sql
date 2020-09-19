@@ -1,4 +1,4 @@
-create table l2g.accounts
+create table public.accounts
 (
 	login varchar(45) not null,
 	password varchar(45) not null,
@@ -10,9 +10,9 @@ create table l2g.accounts
 );
 
 create unique index accounts_login_uindex
-	on l2g.accounts (login);
+	on public.accounts (login);
 
-alter table l2g.accounts
+alter table public.accounts
 	add constraint accounts_pk
 		primary key (login);
 

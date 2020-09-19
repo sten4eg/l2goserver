@@ -11,7 +11,7 @@ func NewInitPacket(c models.Client) []byte {
 	buffer := new(packets.Buffer)
 	buffer.WriteSingleByte(0x00)
 
-	buffer.WriteSlice(c.SessionID)       // SessionId
+	buffer.WriteD(c.SessionID)           // SessionId
 	buffer.WriteD(0xc621)                // PROTOCOL_REV
 	buffer.WriteSlice(c.ScrambleModulus) // pubKey
 
