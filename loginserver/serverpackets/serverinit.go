@@ -1,7 +1,6 @@
 package serverpackets
 
 import (
-	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
 	"l2goserver/packets"
 )
@@ -21,7 +20,7 @@ func NewInitPacket(c models.Client) []byte {
 	buffer.WriteD(0x97ADB620)
 	buffer.WriteD(0x07BDE0F7)
 
-	buffer.WriteSlice(crypt.StaticBlowfish)
+	buffer.WriteSlice(c.BlowFish)
 	buffer.WriteSingleByte(0x00)
 	return buffer.Bytes()
 }

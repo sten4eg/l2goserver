@@ -52,7 +52,6 @@ func verifyChecksum(raw []byte, size int) bool {
 func appendchecksum(raw []byte, size int) []byte {
 	var chksum int64
 	var count = size - 4
-	//var ecx int64
 	var i int
 
 	for i = 0; i < count; i += 4 {
@@ -106,7 +105,7 @@ func encXORPass(raw []byte, size, key int) []byte {
 	return raw
 }
 
-func EncodeData(raw []byte) []byte {
+func EncodeData(raw []byte, blowfishKey []byte) []byte {
 
 	size := len(raw) + 4 // reserve checksum
 	data := make([]byte, 200)
@@ -117,22 +116,22 @@ func EncodeData(raw []byte) []byte {
 		size = (size + 8) - (size % 8) // padding
 
 		data = encXORPass(data, size, rand.Int()) // Xor
-		crypt(&data, size)                        // blowfish
+		crypt(&data, size, StaticBlowfish)        // blowfish
 		IsStatic = false
 	} else {
 		size = (size + 8) - (size % 8) // padding
 		appendchecksum(data, size)
-		crypt(&data, size)
+		crypt(&data, size, blowfishKey)
 	}
 
 	return data[:size]
 }
 
-func DecodeData(raw []byte) []byte {
+func DecodeData(raw []byte, blowfishKey []byte) []byte {
 	size := len(raw) - 2 // minus length package
 	data := make([]byte, 200)
 	copy(data, raw[2:])
-	decrypt(&data, size)
+	decrypt(&data, size, blowfishKey)
 
 	valid := verifyChecksum(data, size)
 	if !valid {
@@ -141,15 +140,15 @@ func DecodeData(raw []byte) []byte {
 	return data
 }
 
-func crypt(raw *[]byte, size int) {
-	cipher, _ := blowfish.NewCipher(StaticBlowfish)
+func crypt(raw *[]byte, size int, blowfishKey []byte) {
+	cipher, _ := blowfish.NewCipher(blowfishKey)
 	for i := 0; i < size; i += 8 {
 		cipher.Encrypt(*raw, *raw, i, i)
 	}
 }
 
-func decrypt(raw *[]byte, size int) {
-	cipher, _ := blowfish.NewCipher(StaticBlowfish)
+func decrypt(raw *[]byte, size int, blowfishKey []byte) {
+	cipher, _ := blowfish.NewCipher(blowfishKey)
 	for i := 0; i < size; i += 8 {
 		cipher.Decrypt(*raw, *raw, i, i)
 	}

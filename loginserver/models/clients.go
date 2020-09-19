@@ -1,8 +1,10 @@
 package models
 
 import (
+	crand "crypto/rand"
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/packets"
 	"math/rand"
@@ -16,6 +18,7 @@ type Client struct {
 	ScrambleModulus []byte
 	SessionKey      *SessionKey
 	PrivateKey      *rsa.PrivateKey
+	BlowFish        []byte
 }
 type SessionKey struct {
 	PlayOk1  uint32
@@ -33,7 +36,16 @@ func NewClient() *Client {
 		LoginOk1: rand.Uint32(),
 		LoginOk2: rand.Uint32(),
 	}
-	return &Client{SessionID: id, SessionKey: &sk}
+	blowfish := make([]byte, 16)
+	_, _ = rand.Read(blowfish)
+
+	privateKey, err := rsa.GenerateKey(crand.Reader, 1024)
+	if err != nil {
+		fmt.Println(err)
+	}
+	scrambleModulus := crypt.ScrambleModulus(privateKey.PublicKey.N.Bytes())
+
+	return &Client{SessionID: id, SessionKey: &sk, BlowFish: blowfish, PrivateKey: privateKey, ScrambleModulus: scrambleModulus}
 }
 
 func (c *Client) Receive() (uint8, []byte, error) {
@@ -61,7 +73,7 @@ func (c *Client) Receive() (uint8, []byte, error) {
 
 	fullPackage := header
 	fullPackage = append(fullPackage, data...)
-	fullPackage = crypt.DecodeData(fullPackage)
+	fullPackage = crypt.DecodeData(fullPackage, c.BlowFish)
 
 	opcode := fullPackage[0]
 
@@ -69,15 +81,18 @@ func (c *Client) Receive() (uint8, []byte, error) {
 }
 
 func (c *Client) Send(data []byte) error {
-	data = crypt.EncodeData(data)
+
+	data = crypt.EncodeData(data, c.BlowFish)
 	// Calculate the packet length
 	length := uint16(len(data) + 2)
 	// Put everything together
 	buffer := packets.NewBuffer()
 	buffer.WriteH(length)
-	buffer.Write(data)
-
-	_, err := c.Socket.Write(buffer.Bytes())
+	_, err := buffer.Write(data)
+	if err != nil {
+		return errors.New("The packet couldn't be sent.(write in buffer)")
+	}
+	_, err = c.Socket.Write(buffer.Bytes())
 
 	if err != nil {
 		return errors.New("The packet couldn't be sent.")

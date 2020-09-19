@@ -1,8 +1,6 @@
 package loginserver
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
 	"github.com/jackc/pgx"
 	"l2goserver/config"
@@ -151,18 +149,11 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 
 	fmt.Println("Client tried to connect")
 	defer l.kickClient(client)
-	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	client.PrivateKey = privateKey
-	client.ScrambleModulus = crypt.ScrambleModulus(privateKey.PublicKey.N.Bytes())
 
 	crypt.IsStatic = true // todo костыль?
 	initPacket := serverpackets.NewInitPacket(*client)
 
-	err = client.Send(initPacket)
+	err := client.Send(initPacket)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -201,7 +192,6 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 				log.Println(err)
 				return
 			}
-			//fmt.Printf("User %s is trying to login\n", requestAuthLogin.Login)
 		case 02:
 			requestPlay := clientpackets.NewRequestPlay(data)
 			_ = requestPlay
