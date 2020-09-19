@@ -15,7 +15,7 @@ type RequestAuthLogin struct {
 	Password string
 }
 
-func NewRequestAuthLogin(request []byte, client *models.Client, db *pgx.Conn) (byte, error) {
+func NewRequestAuthLogin(request []byte, client *models.Client, db *pgx.Conn, l []*models.Client) (byte, error) {
 	var result RequestAuthLogin
 
 	payload := request[:128]
@@ -29,10 +29,10 @@ func NewRequestAuthLogin(request []byte, client *models.Client, db *pgx.Conn) (b
 	result.Login = string(trimLogin)
 	result.Password = string(trimPassword)
 
-	return result.validate(db, client)
+	return result.validate(db, client, l)
 }
 
-func (r *RequestAuthLogin) validate(db *pgx.Conn, client *models.Client) (byte, error) {
+func (r *RequestAuthLogin) validate(db *pgx.Conn, client *models.Client, l []*models.Client) (byte, error) {
 
 	var account models.Account
 	row := db.QueryRow("SELECT * FROM accounts WHERE login = $1 AND password = $2", r.Login, r.Password)
@@ -43,10 +43,17 @@ func (r *RequestAuthLogin) validate(db *pgx.Conn, client *models.Client) (byte, 
 	if account.AccessLevel < 0 {
 		return serverpackets.REASON_BAN, errors.New("Ban")
 	}
+
+	for _, v := range l {
+		if v.Account.Login == account.Login {
+			return serverpackets.REASON_ACCOUNT_IN_USE, errors.New("account used")
+		}
+	}
 	_, err = db.Exec("UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3", client.Socket.RemoteAddr().String(), time.Now(), r.Login)
 	if err != nil {
 		return serverpackets.REASON_INFO_WRONG, err
 	}
+
 	client.Account = account
 	return 0, nil
 }

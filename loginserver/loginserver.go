@@ -203,7 +203,7 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			}
 			break
 		case 00:
-			requestAuthLogin, err := clientpackets.NewRequestAuthLogin(data, client, l.database)
+			requestAuthLogin, err := clientpackets.NewRequestAuthLogin(data, client, l.database, l.clients)
 			var loginResult []byte
 			if err != nil {
 				loginResult = serverpackets.NewLoginFailPacket(requestAuthLogin)
