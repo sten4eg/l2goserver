@@ -141,7 +141,9 @@ func (r *Reader) ReadUInt8() uint8 {
 	buf := bytes.NewBuffer(buffer)
 
 	err = binary.Read(buf, binary.LittleEndian, &result)
-
+	if err != nil {
+		log.Fatal(err)
+	}
 	return result
 }
 

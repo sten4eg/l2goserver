@@ -52,7 +52,7 @@ func verifyChecksum(raw []byte, size int) bool {
 func appendchecksum(raw []byte, size int) []byte {
 	var chksum int64
 	var count = size - 4
-	var ecx int64
+	//var ecx int64
 	var i int
 
 	for i = 0; i < count; i += 4 {
@@ -62,11 +62,6 @@ func appendchecksum(raw []byte, size int) []byte {
 		ecx |= (int64(raw[i+3]) << 0x18) & 0xff000000
 		chksum ^= ecx
 	}
-
-	ecx = int64(raw[i] & 0xff)
-	ecx |= int64(raw[i+1]<<8) & 0xff00
-	ecx |= int64(raw[i+2]<<0x10) & 0xff0000
-	ecx |= int64(raw[i+3]<<0x18) & 0xff000000
 
 	raw[i] = (byte)(chksum & 0xff)
 	raw[i+1] = (byte)((chksum >> 0x08) & 0xff)

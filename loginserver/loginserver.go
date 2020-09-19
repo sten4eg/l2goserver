@@ -15,24 +15,13 @@ import (
 )
 
 type LoginServer struct {
-	clients             []*models.Client
-	gameservers         []*models.GameServer
-	database            *pgx.Conn
-	config              config.Config
-	internalServersList []byte
-	externalServersList []byte
-	status              loginServerStatus
+	clients     []*models.Client
+	gameservers []*models.GameServer
+	database    *pgx.Conn
+	config      config.Config
 
 	clientsListener     net.Listener
 	gameServersListener net.Listener
-}
-
-type loginServerStatus struct {
-	successfulAccountCreation uint32
-	failedAccountCreation     uint32
-	successfulLogins          uint32
-	failedLogins              uint32
-	hackAttempts              uint32
 }
 
 func New(cfg config.Config) *LoginServer {
@@ -41,7 +30,6 @@ func New(cfg config.Config) *LoginServer {
 
 func (l *LoginServer) Init() {
 	var err error
-
 	dbConfig := pgx.ConnConfig{
 		Host:              l.config.LoginServer.Database.Host,
 		Port:              l.config.LoginServer.Database.Port,
@@ -98,7 +86,6 @@ func (l *LoginServer) Start() {
 				go l.handleClientPackets(client)
 			}
 		}
-		done <- true
 	}()
 
 	go func() {
@@ -115,7 +102,6 @@ func (l *LoginServer) Start() {
 			}
 		}
 
-		done <- true
 	}()
 
 	for i := 0; i < 2; i++ {
@@ -201,7 +187,6 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			if err != nil {
 				fmt.Println(err)
 			}
-			break
 		case 00:
 			requestAuthLogin, err := clientpackets.NewRequestAuthLogin(data, client, l.database, l.clients)
 			var loginResult []byte

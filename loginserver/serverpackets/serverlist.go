@@ -33,7 +33,7 @@ func NewServerListPacket(lastServer int8, gameServers []config.GameServerType, r
 		buffer.WriteSingleByte(0x01)                 // Is pvp allowed?
 		buffer.WriteH(0)                             // How many players are online Unused In client
 		buffer.WriteH(gameserver.Options.MaxPlayers) // Maximum allowed players
-		if gameserver.Options.Testing == true {      // Is this a testing server? (Status Up or Down)
+		if gameserver.Options.Testing {              // Is this a testing server? (Status Up or Down)
 			buffer.WriteSingleByte(0x00)
 		} else {
 			buffer.WriteSingleByte(0x01)
