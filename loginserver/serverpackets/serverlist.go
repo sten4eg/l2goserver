@@ -6,11 +6,11 @@ import (
 	"net"
 )
 
-func NewServerListPacket(gameServers []config.GameServerType, remoteAddr string) []byte {
+func NewServerListPacket(lastServer int8, gameServers []config.GameServerType, remoteAddr string) []byte {
 	buffer := new(packets.Buffer)
 	buffer.WriteSingleByte(0x04)
 	buffer.WriteSingleByte(uint8(len(gameServers))) // Servers count
-	buffer.WriteSingleByte(0x00)                    // Last Picked Server
+	buffer.WriteSingleByte(byte(lastServer))        // Last Picked Server
 
 	network, _, _ := net.SplitHostPort(remoteAddr)
 

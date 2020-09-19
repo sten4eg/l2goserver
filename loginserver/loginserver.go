@@ -227,7 +227,7 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 				return
 			}
 		case 05:
-			requestServerList := serverpackets.NewServerListPacket(l.config.GameServers, client.Socket.RemoteAddr().String())
+			requestServerList := serverpackets.NewServerListPacket(client.Account.LastServer, l.config.GameServers, client.Socket.RemoteAddr().String())
 
 			err := client.Send(requestServerList)
 			if err != nil {
