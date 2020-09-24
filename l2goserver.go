@@ -6,7 +6,6 @@ import (
 )
 
 func main() {
-
 	globalConfig := config.Read()
 	loginServer := loginserver.New(globalConfig)
 

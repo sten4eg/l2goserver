@@ -18,8 +18,7 @@ type LoginServer struct {
 	database    *pgx.Conn
 	config      config.Config
 
-	clientsListener     net.Listener
-	gameServersListener net.Listener
+	clientsListener net.Listener
 }
 
 func New(cfg config.Config) *LoginServer {
@@ -38,6 +37,7 @@ func (l *LoginServer) Init() {
 		FallbackTLSConfig: nil,
 	}
 	l.database, err = pgx.Connect(dbConfig)
+	//toDO need ping to table
 	if err != nil {
 
 		log.Fatal("Failed to connect to database: ", err.Error())
@@ -56,54 +56,23 @@ func (l *LoginServer) Init() {
 	}
 
 	// Listen for game servers connections
-	l.gameServersListener, err = net.Listen("tcp", ":9413")
-	if err != nil {
-		log.Fatal("Failed to connect to port 9413: ", err.Error())
-	} else {
-		fmt.Println("Login server is listening on port 9413")
-	}
 }
 
 func (l *LoginServer) Start() {
 	defer l.database.Close()
 	defer l.clientsListener.Close()
-	defer l.gameServersListener.Close()
 
-	done := make(chan bool)
-
-	go func() {
-		for {
-			var err error
-			client := models.NewClient()
-			client.Socket, err = l.clientsListener.Accept()
-			l.clients = append(l.clients, client)
-			if err != nil {
-				fmt.Println("Couldn't accept the incoming connection.")
-				continue
-			} else {
-				go l.handleClientPackets(client)
-			}
+	for {
+		var err error
+		client := models.NewClient()
+		client.Socket, err = l.clientsListener.Accept()
+		l.clients = append(l.clients, client)
+		if err != nil {
+			fmt.Println("Couldn't accept the incoming connection.")
+			continue
+		} else {
+			go l.handleClientPackets(client)
 		}
-	}()
-
-	go func() {
-		for {
-			var err error
-			gameserver := models.NewGameServer()
-			gameserver.Socket, err = l.gameServersListener.Accept()
-			l.gameservers = append(l.gameservers, gameserver)
-			if err != nil {
-				fmt.Println("Couldn't accept the incoming connection.")
-				continue
-			} else {
-				go l.handleGameServerPackets(gameserver)
-			}
-		}
-
-	}()
-
-	for i := 0; i < 2; i++ {
-		<-done
 	}
 
 }
@@ -120,7 +89,6 @@ func (l *LoginServer) kickClient(client *models.Client) {
 			break
 		}
 	}
-
 	fmt.Println("The client has been successfully kicked from the server.")
 }
 
