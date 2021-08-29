@@ -9,6 +9,7 @@ import (
 	"l2goserver/packets"
 	"math/rand"
 	"net"
+	"strconv"
 )
 
 type Client struct {
@@ -52,8 +53,11 @@ func (c *Client) Receive() (uint8, []byte, error) {
 	// Read the first two bytes to define the packet size
 	header := make([]byte, 2)
 	n, err := c.Socket.Read(header)
-	if n != 2 || err != nil {
-		return 0, nil, errors.New("An error occured while reading the packet header.3" + c.Socket.LocalAddr().String())
+	if n != 2 {
+		return 0, nil, errors.New("Ожидалось 2 байта длинны, получено: " + strconv.Itoa(n))
+	}
+	if err != nil {
+		return 0, nil, err
 	}
 
 	// Calculate the packet size

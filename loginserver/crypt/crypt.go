@@ -44,8 +44,6 @@ func verifyChecksum(raw []byte, size int) bool {
 	ecx |= (int64(raw[i+1]) << 8) & 0xff00
 	ecx |= (int64(raw[i+2]) << 0x10) & 0xff0000
 	ecx |= (int64(raw[i+3]) << 0x18) & 0xff000000
-	log.Println(checksum)
-	log.Println(ecx)
 	return ecx == checksum
 }
 
