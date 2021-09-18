@@ -6,56 +6,39 @@ import (
 	"os"
 )
 
-type Config struct {
-	LoginServer LoginServerType
-	GameServers []GameServerType
-}
+var globalConfig Conf
 
-type GameServerConfigObject struct {
-	LoginServer LoginServerType
-	GameServer  GameServerType
+type Conf struct {
+	LoginServer LoginServerType  `json:"loginserver"`
+	GameServers []GameServerType `json:"gameservers"`
 }
 
 type DatabaseType struct {
-	Name         string `json:"name"`
-	Host         string `json:"host"`
-	Port         string `json:"port"`
-	User         string `json:"user"`
-	Password     string `json:"password"`
-	SSLMode      string `json:"sslmode"`
-	PoolMaxConns string `json:"pool_max_conns"`
-}
-
-type CacheType struct {
-	Host     string
-	Port     int
-	Password string
+	Name        string `json:"name"`
+	Host        string `json:"host"`
+	Port        string `json:"port"`
+	User        string `json:"user"`
+	Password    string `json:"password"`
+	SSLMode     string `json:"sslMode"`
+	PoolMaxConn string `json:"PoolMaxConn"`
 }
 
 type LoginServerType struct {
-	Host       string
-	AutoCreate bool
-	Database   DatabaseType
+	Host       string       `json:"host"`
+	AutoCreate bool         `json:"autoCreate"`
+	Database   DatabaseType `json:"database"`
 }
 
 type GameServerType struct {
-	Name       string
-	InternalIP string
-	ExternalIP string
-	Port       int
-	Database   DatabaseType
-	Cache      CacheType
-	Options    OptionsType
+	Name       string       `json:"name"`
+	InternalIp string       `json:"internalIp"`
+	Port       string       `json:"port"`
+	MaxPlayers uint16       `json:"maxPlayers"`
+	Database   DatabaseType `json:"database"`
 }
 
-type OptionsType struct {
-	MaxPlayers uint16
-	Testing    bool
-}
-
-func Read() Config {
-
-	var config Config
+func Read() {
+	var config Conf
 	file, err := os.Open("./config/config.json")
 	if err != nil {
 		log.Fatal("Failed to load config file")
@@ -66,5 +49,9 @@ func Read() Config {
 	if err != nil {
 		log.Fatal("Failed to decode config file")
 	}
-	return config
+	globalConfig = config
+}
+
+func GetConfig() Conf {
+	return globalConfig
 }

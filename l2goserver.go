@@ -10,8 +10,8 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	globalConfig := config.Read()
-	loginServer := loginserver.New(globalConfig)
+	config.Read()
+	loginServer := loginserver.New(config.GetConfig())
 
 	db.ConfigureDB()
 	loginServer.Init()

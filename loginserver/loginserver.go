@@ -3,6 +3,7 @@ package loginserver
 import (
 	"fmt"
 	"l2goserver/config"
+	"l2goserver/data/accounts"
 	"l2goserver/loginserver/clientpackets"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
@@ -19,16 +20,18 @@ type charactersAccount struct {
 type LoginServer struct {
 	clients         []*models.Client
 	gameservers     []*models.GameServer
-	config          config.Config
+	config          config.Conf
 	clientsListener net.Listener
 }
 
-func New(cfg config.Config) *LoginServer {
+func New(cfg config.Conf) *LoginServer {
 	return &LoginServer{config: cfg}
 }
 
 func (l *LoginServer) Init() {
 	var err error
+	accounts.Get()
+
 	// Listen for client connections
 	l.clientsListener, err = net.Listen("tcp", ":2106")
 	if err != nil {

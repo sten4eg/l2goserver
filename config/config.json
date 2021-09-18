@@ -8,57 +8,40 @@
       "port": "5432",
       "user": "postgres",
       "password": "postgres",
-      "sslmode" : "disable",
-      "pool_max_conns" : "100"
+      "sslMode" : "disable",
+      "poolMaxConn" : "100"
     }
   },
   "gameservers": [
     {
       "name": "Bartz",
       "secret": "CHANGE_ME_PLEASE",
-      "internalIP": "127.0.0.1",
-      "externalIP": "192.168.1.2",
-      "port": 7777,
+      "internalIp": "127.0.0.1",
+      "port": "7777",
+      "maxPlayers": 10000,
       "database": {
-        "name": "server",
+        "name": "postgres",
         "host": "127.0.0.1",
-        "port": 5432,
+        "port": "5432",
         "user": "postgres",
-        "password": "",
-        "pgDSN": "postgres://ma_usr:m4_u$3r@172.22.22.103/ma_db?sslmode=disable&pool_max_conns=60"
-      },
-      "cache": {
-        "host": "127.0.0.1",
-        "port": 6379,
-        "password": ""
-      },
-      "options": {
-        "maxPlayers": 10000,
-        "testing": false
+        "password": "postgres",
+        "sslMode" : "disable",
+        "poolMaxConn" : "1"
       }
     },
     {
       "name": "Bartzik",
-      "secret": "CHANGE_ME_PLEASE",
-      "internalIP": "127.0.0.1",
-      "externalIP": "192.168.1.2",
-      "port": 7777,
+      "internalIp": "127.0.0.1",
+      "port": "7777",
+      "maxPlayers": 10000,
       "database": {
-        "name": "serverTwo",
+        "name": "postgres",
         "host": "127.0.0.1",
-        "port": 5432,
+        "port": "5432",
         "user": "postgres",
-        "password": "",
-        "pgDSN": "postgres://ma_usr:m4_u$3r@172.22.22.103/ma_db?sslmode=disable&pool_max_conns=60"
-      },
-      "cache": {
-        "host": "127.0.0.1",
-        "port": 6379,
-        "password": ""
-      },
-      "options": {
-        "maxPlayers": 10000,
-        "testing": false
+        "password": "postgres",
+        "sslMode" : "disable",
+        "poolMaxConn" : "1"
       }
     }
   ]

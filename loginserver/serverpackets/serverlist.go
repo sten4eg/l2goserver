@@ -21,21 +21,25 @@ func NewServerListPacket(account *models.Client, gameServers []config.GameServer
 	for index, gameserver := range gameServers {
 		var ip net.IP
 		if network == "127.0.0.1" {
-			ip = net.ParseIP(gameserver.InternalIP).To4()
+			ip = net.ParseIP(gameserver.InternalIp).To4()
 		} else {
-			ip = net.ParseIP(gameserver.ExternalIP).To4()
+			ip = net.ParseIP(gameserver.InternalIp).To4()
 		}
-		buffer.WriteSingleByte(uint8(index + 1))     // Server ID (Bartz)
-		buffer.WriteSingleByte(ip[0])                // Server IP address 1/4
-		buffer.WriteSingleByte(ip[1])                // Server IP address 2/4
-		buffer.WriteSingleByte(ip[2])                // Server IP address 3/4
-		buffer.WriteSingleByte(ip[3])                // Server IP address 4/4
-		buffer.WriteD(uint32(gameserver.Port))       // GameServer port number
-		buffer.WriteSingleByte(0x00)                 // Age Limit 0, 15, 18
-		buffer.WriteSingleByte(0x01)                 // Is pvp allowed?
-		buffer.WriteH(0)                             // How many players are online Unused In client
-		buffer.WriteH(gameserver.Options.MaxPlayers) // Maximum allowed players
-		buffer.WriteSingleByte(checkConnect(gameserver.InternalIP, gameserver.Port))
+		buffer.WriteSingleByte(uint8(index + 1)) // Server ID (Bartz)
+		buffer.WriteSingleByte(ip[0])            // Server IP address 1/4
+		buffer.WriteSingleByte(ip[1])            // Server IP address 2/4
+		buffer.WriteSingleByte(ip[2])            // Server IP address 3/4
+		buffer.WriteSingleByte(ip[3])            // Server IP address 4/4
+		port, err := strconv.Atoi(gameserver.Port)
+		if err != nil {
+			panic(err.Error())
+		}
+		buffer.WriteD(uint32(port))          // GameServer port number
+		buffer.WriteSingleByte(0x00)         // Age Limit 0, 15, 18
+		buffer.WriteSingleByte(0x01)         // Is pvp allowed?
+		buffer.WriteH(0)                     // How many players are online Unused In client
+		buffer.WriteH(gameserver.MaxPlayers) // Maximum allowed players
+		buffer.WriteSingleByte(checkConnect(gameserver.InternalIp, port))
 		buffer.WriteD(0x40)          // Display a green clock (what is this for?)
 		buffer.WriteSingleByte(0x00) // bracket [NULL]Bartz
 	}

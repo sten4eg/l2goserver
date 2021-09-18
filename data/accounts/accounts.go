@@ -15,12 +15,14 @@ type List struct {
 	Count   int    //Кол-во персов
 }
 
-var accountCount []List
+var AccountCount []List
 
 // Get Чтение всех аккаунтов и персонажей
 func Get() {
 	accountList := getAccounts()
 	getCharacters(accountList)
+	qw := AccountCount
+	_ = qw
 }
 
 func getAccounts() []string {
@@ -55,12 +57,18 @@ func getCharacters(accountList []string) {
 	}
 	defer dbConn.Release()
 	sql := `SELECT login FROM "characters"`
-	for id, db := range conndb {
-		rows, err := db.Query(sql)
+
+	for i := 0; i < db.CountDBConn(); i++ {
+		conn, err := db.GetConnToGS(i)
 		if err != nil {
 			log.Println(err)
 		}
-		defer rows.Close()
+		defer conn.Release()
+
+		rows, err := conn.Query(context.Background(), sql)
+		if err != nil {
+			panic(err.Error())
+		}
 		for rows.Next() {
 			var loginChar string
 			err = rows.Scan(&loginChar)
@@ -70,17 +78,17 @@ func getCharacters(accountList []string) {
 			for _, login := range accountList {
 				if login == loginChar {
 					var isFindAccount = false
-					for idacc, acc := range accountCount {
+					for idacc, acc := range AccountCount {
 						if acc.Account == login {
-							if acc.ID == id {
-								accountCount[idacc].Count = accountCount[idacc].Count + 1
+							if acc.ID == i {
+								AccountCount[idacc].Count = AccountCount[idacc].Count + 1
 								isFindAccount = true
 							}
 						}
 					}
 					if isFindAccount == false {
-						accountCount = append(accountCount, List{
-							ID:      id,
+						AccountCount = append(AccountCount, List{
+							ID:      i,
 							Account: loginChar,
 							Count:   1,
 						})
@@ -94,7 +102,7 @@ func getCharacters(accountList []string) {
 
 // CountCharacterInAccount Кол-во аккаунтов на персонаже
 func CountCharacterInAccount(sid int, login string) int {
-	for _, account := range accountCount {
+	for _, account := range AccountCount {
 		if account.ID == sid && account.Account == login {
 			return account.Count
 		}
