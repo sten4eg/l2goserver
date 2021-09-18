@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx"
 	"l2goserver/config"
+	"l2goserver/data/accounts"
 	"l2goserver/loginserver/clientpackets"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
@@ -11,6 +12,11 @@ import (
 	"log"
 	"net"
 )
+
+type charactersAccount struct {
+	account string
+	count   int
+}
 
 type LoginServer struct {
 	clients     []*models.Client
@@ -39,11 +45,32 @@ func (l *LoginServer) Init() {
 	l.database, err = pgx.Connect(dbConfig)
 	//toDO need ping to table
 	if err != nil {
-
 		log.Fatal("Failed to connect to database: ", err.Error())
 	} else {
-		fmt.Println("Successful database connection")
+		log.Println("Successful login database connection")
 	}
+
+	var ConnGS []*pgx.Conn
+	for i, gameserver := range l.config.GameServers {
+		dbConfig = pgx.ConnConfig{
+			Host:              gameserver.Database.Host,
+			Port:              gameserver.Database.Port,
+			Database:          gameserver.Database.Name,
+			User:              gameserver.Database.User,
+			Password:          gameserver.Database.Password,
+			TLSConfig:         nil,
+			FallbackTLSConfig: nil,
+		}
+		s, err := pgx.Connect(dbConfig)
+		if err != nil {
+			log.Fatal("Failed to connect to database: ", err.Error())
+		} else {
+			log.Printf("Successful gameserver database connection #%d", i)
+		}
+		ConnGS = append(ConnGS, s)
+	}
+
+	accounts.Get(l.database, ConnGS)
 
 	// Select the appropriate database
 
@@ -52,7 +79,7 @@ func (l *LoginServer) Init() {
 	if err != nil {
 		log.Fatal("Failed to connect to port 2106:", err.Error())
 	} else {
-		fmt.Println("Login server is listening on port 2106")
+		log.Println("Login server is listening on port 2106")
 	}
 
 	// Listen for game servers connections
@@ -68,7 +95,7 @@ func (l *LoginServer) Start() {
 		client.Socket, err = l.clientsListener.Accept()
 		l.clients = append(l.clients, client)
 		if err != nil {
-			fmt.Println("Couldn't accept the incoming connection.")
+			log.Println("Couldn't accept the incoming connection.")
 			continue
 		} else {
 			go l.handleClientPackets(client)
@@ -89,7 +116,7 @@ func (l *LoginServer) kickClient(client *models.Client) {
 			break
 		}
 	}
-	fmt.Println("The client has been successfully kicked from the server.")
+	log.Println("The client has been successfully kicked from the server.")
 }
 
 func (l *LoginServer) handleGameServerPackets(gameserver *models.GameServer) {
@@ -99,23 +126,23 @@ func (l *LoginServer) handleGameServerPackets(gameserver *models.GameServer) {
 		opcode, _, err := gameserver.Receive()
 
 		if err != nil {
-			fmt.Println(err)
-			fmt.Println("Closing the connection...")
+			log.Println(err)
+			log.Println("Closing the connection...")
 			break
 		}
 
 		switch opcode {
 		case 00:
-			fmt.Println("A game server sent a request to register")
+			log.Println("A game server sent a request to register")
 		default:
-			fmt.Println("Can't recognize the packet sent by the gameserver")
+			log.Println("Can't recognize the packet sent by the gameserver")
 		}
 	}
 }
 
 func (l *LoginServer) handleClientPackets(client *models.Client) {
 
-	fmt.Println("Client tried to connect")
+	log.Println("Client tried to connect")
 	defer l.kickClient(client)
 
 	crypt.IsStatic = true // todo костыль?
@@ -123,34 +150,43 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 
 	err := client.Send(initPacket)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	} else {
-		fmt.Println("Init packet send")
+		log.Println("Init packet send")
 	}
 
 	for {
 		opcode, data, err := client.Receive()
-
 		if err != nil {
-			fmt.Println(err)
-			fmt.Println("Closing a connection")
+			log.Println(err)
+			log.Println("Closing a connection")
 			break
 		}
-
+		log.Println("Опкод", opcode)
 		switch opcode {
 		case 07:
 			authGameGuard := clientpackets.NewAuthGameGuard(data, client.SessionID)
 			buffer := serverpackets.Newggauth(authGameGuard)
 			err = client.Send(buffer)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 			}
 		case 00:
 			requestAuthLogin, err := clientpackets.NewRequestAuthLogin(data, client, l.database, l.clients)
 			var loginResult []byte
 			if err != nil {
-				loginResult = serverpackets.NewLoginFailPacket(requestAuthLogin)
+				if l.config.LoginServer.AutoCreate {
+					log.Println("Авторегистрация нового аккаунта")
+					err = clientpackets.CreateAccount(data, client, l.database)
+					if err != nil {
+						loginResult = serverpackets.NewLoginFailPacket(requestAuthLogin)
+					} else {
+						loginResult = serverpackets.NewLoginOkPacket(client)
+					}
+				} else {
+					loginResult = serverpackets.NewLoginFailPacket(requestAuthLogin)
+				}
 			} else {
 				loginResult = serverpackets.NewLoginOkPacket(client)
 			}
@@ -170,16 +206,14 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 				return
 			}
 		case 05:
-			requestServerList := serverpackets.NewServerListPacket(client.Account.LastServer, l.config.GameServers, client.Socket.RemoteAddr().String())
-
+			requestServerList := serverpackets.NewServerListPacket(client, l.config.GameServers, client.Socket.RemoteAddr().String())
 			err := client.Send(requestServerList)
 			if err != nil {
 				log.Println(err)
 				return
 			}
-
 		default:
-			fmt.Println("Unable to determine package type")
+			log.Println("Unable to determine package type")
 			fmt.Printf("opcode: %X", opcode)
 		}
 	}

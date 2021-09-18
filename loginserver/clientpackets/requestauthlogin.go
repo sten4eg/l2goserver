@@ -33,6 +33,21 @@ func NewRequestAuthLogin(request []byte, client *models.Client, db *pgx.Conn, l 
 	return result.validate(db, client, l)
 }
 
+func CreateAccount(request []byte, client *models.Client, db *pgx.Conn) error {
+	payload := request[:128]
+	c := new(big.Int).SetBytes(payload)
+	decodeData := c.Exp(c, client.PrivateKey.D, client.PrivateKey.N).Bytes()
+	trimLogin := bytes.Trim(decodeData[1:14], string(rune(0)))
+	trimPassword := bytes.Trim(decodeData[14:28], string(rune(0)))
+	password, err := bcrypt.GenerateFromPassword(trimPassword, 10)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("INSERT INTO accounts (login, password, access_level) VALUES ($1, $2, 0) ",
+		string(trimLogin), password)
+	return err
+}
+
 func (r *RequestAuthLogin) validate(db *pgx.Conn, client *models.Client, l []*models.Client) (byte, error) {
 	var account models.Account
 	row := db.QueryRow("SELECT * FROM accounts WHERE login = $1", r.Login)
@@ -40,7 +55,6 @@ func (r *RequestAuthLogin) validate(db *pgx.Conn, client *models.Client, l []*mo
 	if err != nil {
 		return serverpackets.REASON_USER_OR_PASS_WRONG, err
 	}
-
 	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(r.Password))
 	if err != nil {
 		return serverpackets.REASON_USER_OR_PASS_WRONG, err
