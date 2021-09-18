@@ -2,9 +2,10 @@ package clientpackets
 
 import (
 	"bytes"
+	"context"
 	"errors"
-	"github.com/jackc/pgx"
 	"golang.org/x/crypto/bcrypt"
+	"l2goserver/db"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/serverpackets"
 	"math/big"
@@ -16,7 +17,7 @@ type RequestAuthLogin struct {
 	Password string
 }
 
-func NewRequestAuthLogin(request []byte, client *models.Client, db *pgx.Conn, l []*models.Client) (byte, error) {
+func NewRequestAuthLogin(request []byte, client *models.Client, l []*models.Client) (byte, error) {
 	var result RequestAuthLogin
 
 	payload := request[:128]
@@ -30,10 +31,10 @@ func NewRequestAuthLogin(request []byte, client *models.Client, db *pgx.Conn, l 
 	result.Login = string(trimLogin)
 	result.Password = string(trimPassword)
 
-	return result.validate(db, client, l)
+	return result.validate(client, l)
 }
 
-func CreateAccount(request []byte, client *models.Client, db *pgx.Conn) error {
+func CreateAccount(request []byte, client *models.Client) error {
 	payload := request[:128]
 	c := new(big.Int).SetBytes(payload)
 	decodeData := c.Exp(c, client.PrivateKey.D, client.PrivateKey.N).Bytes()
@@ -43,15 +44,23 @@ func CreateAccount(request []byte, client *models.Client, db *pgx.Conn) error {
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("INSERT INTO accounts (login, password, access_level) VALUES ($1, $2, 0) ",
+	dbConn, err := db.GetConn()
+	if err != nil {
+		panic(err.Error())
+	}
+	_, err = dbConn.Exec(context.Background(), "INSERT INTO accounts (login, password, access_level) VALUES ($1, $2, 0) ",
 		string(trimLogin), password)
 	return err
 }
 
-func (r *RequestAuthLogin) validate(db *pgx.Conn, client *models.Client, l []*models.Client) (byte, error) {
+func (r *RequestAuthLogin) validate(client *models.Client, l []*models.Client) (byte, error) {
 	var account models.Account
-	row := db.QueryRow("SELECT * FROM accounts WHERE login = $1", r.Login)
-	err := row.Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer)
+	dbConn, err := db.GetConn()
+	if err != nil {
+		panic(err.Error())
+	}
+	row := dbConn.QueryRow(context.Background(), "SELECT * FROM accounts WHERE login = $1", r.Login)
+	err = row.Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer)
 	if err != nil {
 		return serverpackets.REASON_USER_OR_PASS_WRONG, err
 	}
@@ -68,7 +77,7 @@ func (r *RequestAuthLogin) validate(db *pgx.Conn, client *models.Client, l []*mo
 			return serverpackets.REASON_ACCOUNT_IN_USE, errors.New("account used")
 		}
 	}
-	_, err = db.Exec("UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3", client.Socket.RemoteAddr().String(), time.Now(), r.Login)
+	_, err = dbConn.Exec(context.Background(), "UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3", client.Socket.RemoteAddr().String(), time.Now(), r.Login)
 	if err != nil {
 		return serverpackets.REASON_INFO_WRONG, err
 	}

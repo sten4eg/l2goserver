@@ -1,36 +1,38 @@
 package accounts
 
 import (
-	"github.com/jackc/pgx"
+	"context"
+	"l2goserver/db"
 	"log"
 )
 
-/**
-Имеем массив с данными аккаунтов и кол-во персонажей на данном аккаунте.
-Требуется на форме при выбора сервера
-Условно пусть кол-во персонажей обновляется раз в N минут
-*/
-
+// List Имеем массив с данными аккаунтов и кол-во персонажей на данном аккаунте.
+// Требуется на форме при выборе сервера
+// Условно пусть кол-во персонажей обновляется раз в N минут
 type List struct {
 	ID      int    //ServerID
 	Account string //Название аккаунта
 	Count   int    //Кол-во персов
 }
 
-var AccountCount []List
+var accountCount []List
 
-/*
-Чтение всех аккаунтов и персонажей
-*/
-func Get(db *pgx.Conn, ConnGS []*pgx.Conn) {
-	accountList := getAccounts(db)
-	getCharacters(ConnGS, accountList)
+// Get Чтение всех аккаунтов и персонажей
+func Get() {
+	accountList := getAccounts()
+	getCharacters(accountList)
 }
 
-func getAccounts(db *pgx.Conn) []string {
+func getAccounts() []string {
+	dbConn, err := db.GetConn()
+	if err != nil {
+		panic(err.Error())
+	}
+	defer dbConn.Release()
+
 	var accounts []string
 	sql := `SELECT login FROM "accounts"`
-	rows, err := db.Query(sql)
+	rows, err := dbConn.Query(context.Background(), sql)
 	if err != nil {
 		log.Println(err)
 	}
@@ -46,7 +48,11 @@ func getAccounts(db *pgx.Conn) []string {
 	return accounts
 }
 
-func getCharacters(conndb []*pgx.Conn, accountList []string) {
+func getCharacters(accountList []string) {
+	dbConn, err := db.GetConn()
+	if err != nil {
+		panic(err.Error())
+	}
 	sql := `SELECT login FROM "characters"`
 	for id, db := range conndb {
 		rows, err := db.Query(sql)
@@ -63,16 +69,16 @@ func getCharacters(conndb []*pgx.Conn, accountList []string) {
 			for _, login := range accountList {
 				if login == loginChar {
 					var isFindAccount = false
-					for idacc, acc := range AccountCount {
+					for idacc, acc := range accountCount {
 						if acc.Account == login {
 							if acc.ID == id {
-								AccountCount[idacc].Count = AccountCount[idacc].Count + 1
+								accountCount[idacc].Count = accountCount[idacc].Count + 1
 								isFindAccount = true
 							}
 						}
 					}
 					if isFindAccount == false {
-						AccountCount = append(AccountCount, List{
+						accountCount = append(accountCount, List{
 							ID:      id,
 							Account: loginChar,
 							Count:   1,
@@ -85,11 +91,9 @@ func getCharacters(conndb []*pgx.Conn, accountList []string) {
 
 }
 
-/**
-Кол-во аккаунтов на персонаже
-*/
+// CountCharacterInAccount Кол-во аккаунтов на персонаже
 func CountCharacterInAccount(sid int, login string) int {
-	for _, account := range AccountCount {
+	for _, account := range accountCount {
 		if account.ID == sid && account.Account == login {
 			return account.Count
 		}

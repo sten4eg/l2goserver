@@ -17,11 +17,13 @@ type GameServerConfigObject struct {
 }
 
 type DatabaseType struct {
-	Name     string
-	Host     string
-	Port     uint16
-	User     string
-	Password string
+	Name         string `json:"name"`
+	Host         string `json:"host"`
+	Port         string `json:"port"`
+	User         string `json:"user"`
+	Password     string `json:"password"`
+	SSLMode      string `json:"sslmode"`
+	PoolMaxConns string `json:"pool_max_conns"`
 }
 
 type CacheType struct {

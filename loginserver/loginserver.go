@@ -2,9 +2,7 @@ package loginserver
 
 import (
 	"fmt"
-	"github.com/jackc/pgx"
 	"l2goserver/config"
-	"l2goserver/data/accounts"
 	"l2goserver/loginserver/clientpackets"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
@@ -19,11 +17,9 @@ type charactersAccount struct {
 }
 
 type LoginServer struct {
-	clients     []*models.Client
-	gameservers []*models.GameServer
-	database    *pgx.Conn
-	config      config.Config
-
+	clients         []*models.Client
+	gameservers     []*models.GameServer
+	config          config.Config
 	clientsListener net.Listener
 }
 
@@ -33,47 +29,6 @@ func New(cfg config.Config) *LoginServer {
 
 func (l *LoginServer) Init() {
 	var err error
-	dbConfig := pgx.ConnConfig{
-		Host:              l.config.LoginServer.Database.Host,
-		Port:              l.config.LoginServer.Database.Port,
-		Database:          l.config.LoginServer.Database.Name,
-		User:              l.config.LoginServer.Database.User,
-		Password:          l.config.LoginServer.Database.Password,
-		TLSConfig:         nil,
-		FallbackTLSConfig: nil,
-	}
-	l.database, err = pgx.Connect(dbConfig)
-	//toDO need ping to table
-	if err != nil {
-		log.Fatal("Failed to connect to database: ", err.Error())
-	} else {
-		log.Println("Successful login database connection")
-	}
-
-	var ConnGS []*pgx.Conn
-	for i, gameserver := range l.config.GameServers {
-		dbConfig = pgx.ConnConfig{
-			Host:              gameserver.Database.Host,
-			Port:              gameserver.Database.Port,
-			Database:          gameserver.Database.Name,
-			User:              gameserver.Database.User,
-			Password:          gameserver.Database.Password,
-			TLSConfig:         nil,
-			FallbackTLSConfig: nil,
-		}
-		s, err := pgx.Connect(dbConfig)
-		if err != nil {
-			log.Fatal("Failed to connect to database: ", err.Error())
-		} else {
-			log.Printf("Successful gameserver database connection #%d", i)
-		}
-		ConnGS = append(ConnGS, s)
-	}
-
-	accounts.Get(l.database, ConnGS)
-
-	// Select the appropriate database
-
 	// Listen for client connections
 	l.clientsListener, err = net.Listen("tcp", ":2106")
 	if err != nil {
@@ -86,7 +41,6 @@ func (l *LoginServer) Init() {
 }
 
 func (l *LoginServer) Start() {
-	defer l.database.Close()
 	defer l.clientsListener.Close()
 
 	for {
@@ -173,12 +127,12 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 				log.Println(err)
 			}
 		case 00:
-			requestAuthLogin, err := clientpackets.NewRequestAuthLogin(data, client, l.database, l.clients)
+			requestAuthLogin, err := clientpackets.NewRequestAuthLogin(data, client, l.clients)
 			var loginResult []byte
 			if err != nil {
 				if l.config.LoginServer.AutoCreate {
 					log.Println("Авторегистрация нового аккаунта")
-					err = clientpackets.CreateAccount(data, client, l.database)
+					err = clientpackets.CreateAccount(data, client)
 					if err != nil {
 						loginResult = serverpackets.NewLoginFailPacket(requestAuthLogin)
 					} else {

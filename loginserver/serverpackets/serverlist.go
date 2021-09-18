@@ -53,7 +53,7 @@ func NewServerListPacket(account *models.Client, gameServers []config.GameServer
 //Проверка соединения с гейм-сервером
 //Возращает 0x00 - выключен серв, 0x01 включен
 func checkConnect(host string, port int) byte {
-	timeout := time.Second / 3
+	timeout := time.Millisecond * 500
 	strPort := strconv.Itoa(port)
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, strPort), timeout)
 	if err != nil {
