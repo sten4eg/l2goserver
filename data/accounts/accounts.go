@@ -53,6 +53,7 @@ func getCharacters(accountList []string) {
 	if err != nil {
 		panic(err.Error())
 	}
+	defer dbConn.Release()
 	sql := `SELECT login FROM "characters"`
 	for id, db := range conndb {
 		rows, err := db.Query(sql)
