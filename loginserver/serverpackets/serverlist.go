@@ -39,9 +39,9 @@ func NewServerListPacket(account *models.Client, gameServers []config.GameServer
 		buffer.WriteSingleByte(0x01)         // Is pvp allowed?
 		buffer.WriteH(0)                     // How many players are online Unused In client
 		buffer.WriteH(gameserver.MaxPlayers) // Maximum allowed players
-		buffer.WriteSingleByte(checkConnect(gameserver.InternalIp, port))
-		buffer.WriteD(0x40)          // Display a green clock (what is this for?)
-		buffer.WriteSingleByte(0x00) // bracket [NULL]Bartz
+		buffer.WriteSingleByte(0x01)         // checkConnect(gameserver.InternalIp, port)
+		buffer.WriteD(0x40)                  // Display a green clock (what is this for?)
+		buffer.WriteSingleByte(0x00)         // bracket [NULL]Bartz
 	}
 
 	buffer.WriteH(0x00)
@@ -54,6 +54,7 @@ func NewServerListPacket(account *models.Client, gameServers []config.GameServer
 	return buffer.Bytes()
 }
 
+// todo времено офф , пока не придумал другой способ так как при коннекте создается персонаж в гейм сервере и это фейк персонаж
 //Проверка соединения с гейм-сервером
 //Возращает 0x00 - выключен серв, 0x01 включен
 func checkConnect(host string, port int) byte {

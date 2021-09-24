@@ -33,7 +33,7 @@ func (l *LoginServer) Init() {
 	accounts.Get()
 
 	// Listen for client connections
-	l.clientsListener, err = net.Listen("tcp", ":2106")
+	l.clientsListener, err = net.Listen("tcp4", ":2106")
 	if err != nil {
 		log.Fatal("Failed to connect to port 2106:", err.Error())
 	} else {
@@ -133,6 +133,7 @@ func (l *LoginServer) handleClientPackets(client *models.Client) {
 			requestAuthLogin, err := clientpackets.NewRequestAuthLogin(data, client, l.clients)
 			var loginResult []byte
 			if err != nil {
+				log.Println(err.Error())
 				if l.config.LoginServer.AutoCreate {
 					log.Println("Авторегистрация нового аккаунта")
 					err = clientpackets.CreateAccount(data, client)
