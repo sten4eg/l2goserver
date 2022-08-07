@@ -1,19 +1,25 @@
 package clientpackets
 
 import (
+	"errors"
+	"l2goserver/loginserver/models"
+	"l2goserver/loginserver/serverpackets"
+	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
-	"log"
 )
 
-func NewAuthGameGuard(request []byte, clientSessionId uint32) uint32 {
+var wrongSession = errors.New("sessionId не совпал")
+
+func NewAuthGameGuard(request []byte, ctx *models.ClientCtx) error {
 	var sessionId uint32
 	var packet = packets.NewReader(request)
 
 	sessionId = packet.ReadUInt32()
 
-	if clientSessionId != sessionId {
-		log.Fatal("wrong sessionId") // Todo kick clienta
+	if ctx.SessionID != sessionId {
+		return wrongSession
 	}
-	return clientSessionId
+	ctx.State = state.AuthedGameGuard
+	return ctx.Send(serverpackets.Newggauth(ctx.SessionID))
 
 }

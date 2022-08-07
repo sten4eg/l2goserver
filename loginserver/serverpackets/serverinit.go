@@ -5,7 +5,7 @@ import (
 	"l2goserver/packets"
 )
 
-func NewInitPacket(c models.Client) []byte {
+func NewInitPacket(c *models.ClientCtx) []byte {
 
 	buffer := new(packets.Buffer)
 	buffer.WriteSingleByte(0x00)

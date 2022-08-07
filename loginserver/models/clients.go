@@ -6,13 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"l2goserver/loginserver/crypt"
+	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
+	"l2goserver/utils"
 	"math/rand"
 	"net"
 	"strconv"
 )
 
-type Client struct {
+type ClientCtx struct {
+	noCopy          utils.NoCopy //nolint:unused,structcheck
 	Account         Account
 	SessionID       uint32
 	Socket          net.Conn
@@ -20,7 +23,10 @@ type Client struct {
 	SessionKey      *SessionKey
 	PrivateKey      *rsa.PrivateKey
 	BlowFish        []byte
+	State           state.GameState
+	JoinedGS        bool
 }
+
 type SessionKey struct {
 	PlayOk1  uint32
 	PlayOk2  uint32
@@ -28,7 +34,7 @@ type SessionKey struct {
 	LoginOk2 uint32
 }
 
-func NewClient() *Client {
+func NewClient() *ClientCtx {
 	id := rand.Uint32()
 
 	sk := SessionKey{
@@ -46,37 +52,43 @@ func NewClient() *Client {
 	}
 	scrambleModulus := crypt.ScrambleModulus(privateKey.PublicKey.N.Bytes())
 
-	return &Client{SessionID: id, SessionKey: &sk, BlowFish: blowfish, PrivateKey: privateKey, ScrambleModulus: scrambleModulus}
+	return &ClientCtx{
+		SessionID:       id,
+		SessionKey:      &sk,
+		BlowFish:        blowfish,
+		PrivateKey:      privateKey,
+		ScrambleModulus: scrambleModulus,
+		State:           state.NoState,
+		JoinedGS:        false,
+	}
 }
 
-func (c *Client) Receive() (uint8, []byte, error) {
-	// Read the first two bytes to define the packet size
+func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	header := make([]byte, 2)
 	n, err := c.Socket.Read(header)
-	if n != 2 {
-		return 0, nil, errors.New("Ожидалось 2 байта длинны, получено: " + strconv.Itoa(n))
-	}
 	if err != nil {
 		return 0, nil, err
 	}
-
-	// Calculate the packet size
-	size := 0
-	size += int(header[0])
-	size += int(header[1]) * 256
-
-	// Allocate the appropriate size for our data (size - 2 bytes used for the length
-	data := make([]byte, size-2)
-
-	// Read the encrypted part of the packet
-	n, err = c.Socket.Read(data)
-
-	if n != size-2 || err != nil {
-		return 0, nil, errors.New("An error occured while reading the packet data.")
+	if n != 2 {
+		return 0, nil, errors.New("Ожидалось 2 байта длинны, получено: " + strconv.Itoa(n))
 	}
 
-	fullPackage := header
+	// длинна пакета
+	dataSize := (int(header[0]) | int(header[1])<<8) - 2
+
+	// аллокация требуемого массива байт для входящего пакета
+	data := make([]byte, dataSize)
+
+	n, err = c.Socket.Read(data)
+
+	if n != dataSize || err != nil {
+		return 0, nil, errors.New("длинна прочитанного пакета не соответствует требуемому размеру")
+	}
+
+	fullPackage := make([]byte, 0, len(header)+len(data))
+	fullPackage = append(fullPackage, header...)
 	fullPackage = append(fullPackage, data...)
+
 	fullPackage = crypt.DecodeData(fullPackage, c.BlowFish)
 
 	opcode := fullPackage[0]
@@ -84,8 +96,7 @@ func (c *Client) Receive() (uint8, []byte, error) {
 	return opcode, fullPackage[1:], nil
 }
 
-func (c *Client) Send(data []byte) error {
-
+func (c *ClientCtx) Send(data []byte) error {
 	data = crypt.EncodeData(data, c.BlowFish)
 	// Calculate the packet length
 	length := uint16(len(data) + 2)

@@ -168,3 +168,16 @@ func (r *Reader) ReadString() string {
 
 	return string(result)
 }
+
+func (r *Reader) ReadInt32() int32 {
+	buffer := make([]byte, 4)
+	n, err := r.Read(buffer)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if n < 4 {
+		return 0
+	}
+
+	return int32(binary.LittleEndian.Uint32(buffer))
+}

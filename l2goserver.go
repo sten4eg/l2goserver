@@ -15,6 +15,6 @@ func main() {
 
 	db.ConfigureDB()
 	loginServer.Init()
-	loginServer.Start()
+	loginServer.Run()
 
 }

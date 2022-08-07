@@ -5,7 +5,7 @@ import (
 	"l2goserver/packets"
 )
 
-func NewLoginOkPacket(client *models.Client) []byte {
+func NewLoginOkPacket(client *models.ClientCtx) []byte {
 	buffer := new(packets.Buffer)
 	buffer.WriteSingleByte(0x03)              // Packet type: LoginOk
 	buffer.WriteD(client.SessionKey.LoginOk1) // SessionKey1_FistPart

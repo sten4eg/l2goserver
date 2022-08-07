@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func NewServerListPacket(account *models.Client, gameServers []config.GameServerType, remoteAddr string) []byte {
+func NewServerListPacket(account *models.ClientCtx, gameServers []config.GameServerType, remoteAddr string) []byte {
 	lastServer := account.Account.LastServer
 	buffer := new(packets.Buffer)
 	buffer.WriteSingleByte(0x04)
@@ -55,8 +55,8 @@ func NewServerListPacket(account *models.Client, gameServers []config.GameServer
 }
 
 // todo времено офф , пока не придумал другой способ так как при коннекте создается персонаж в гейм сервере и это фейк персонаж
-//Проверка соединения с гейм-сервером
-//Возращает 0x00 - выключен серв, 0x01 включен
+// Проверка соединения с гейм-сервером
+// Возращает 0x00 - выключен серв, 0x01 включен
 func checkConnect(host string, port int) byte {
 	timeout := time.Millisecond * 500
 	strPort := strconv.Itoa(port)
