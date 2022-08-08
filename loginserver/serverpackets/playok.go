@@ -5,11 +5,10 @@ import (
 	"l2goserver/packets"
 )
 
-func NewPlayOkPacket(client *models.ClientCtx) []byte {
-	buffer := new(packets.Buffer)
+func NewPlayOkPacket(client *models.ClientCtx, buffer *packets.Buffer) *packets.Buffer {
 	buffer.WriteSingleByte(0x07)
-	buffer.WriteDU(uint32(client.SessionKey.PlayOk1)) // Session Key
-	buffer.WriteDU(uint32(client.SessionKey.PlayOk2)) // Session Key
+	buffer.WriteDU(client.SessionKey.PlayOk1) // Session Key
+	buffer.WriteDU(client.SessionKey.PlayOk2) // Session Key
 
-	return buffer.Bytes()
+	return buffer
 }

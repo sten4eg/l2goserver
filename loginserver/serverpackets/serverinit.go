@@ -5,9 +5,8 @@ import (
 	"l2goserver/packets"
 )
 
-func NewInitPacket(c *models.ClientCtx) []byte {
+func NewInitPacket(c *models.ClientCtx, buffer *packets.Buffer) *packets.Buffer {
 
-	buffer := new(packets.Buffer)
 	buffer.WriteSingleByte(0x00)
 
 	buffer.WriteDU(c.SessionID)          // SessionId
@@ -22,5 +21,5 @@ func NewInitPacket(c *models.ClientCtx) []byte {
 
 	buffer.WriteSlice(c.BlowFish)
 	buffer.WriteSingleByte(0x00)
-	return buffer.Bytes()
+	return buffer
 }

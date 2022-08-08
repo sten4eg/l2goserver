@@ -11,6 +11,7 @@ import (
 	"l2goserver/loginserver/serverpackets"
 	reasons "l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
+	"l2goserver/packets"
 	"math/big"
 	"time"
 )
@@ -20,7 +21,7 @@ type RequestAuthLogin struct {
 	Password string
 }
 
-func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l []*models.ClientCtx, enableAutoCreateAccount bool) error {
+func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l *models.Clients, enableAutoCreateAccount bool) error {
 	var result RequestAuthLogin
 
 	payload := request[:128]
@@ -41,25 +42,27 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l []*models.C
 		}
 	}
 
+	buff := packets.Get()
+
 	//TODO есть еще проверки на то подключен ли он к гейм серверу
 
 	// есть ли причина кикать?
 	switch reason {
 	default:
-		err = client.Send(serverpackets.NewLoginFailPacket(reasons.SystemError))
+		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.SystemError, buff))
 	case reasons.NoReason:
-		err = client.Send(serverpackets.NewLoginOkPacket(client))
+		err = client.SendBuf(serverpackets.NewLoginOkPacket(client, buff))
 	case reasons.InfoWrong, reasons.Ban, reasons.AccountInUse:
-		err = client.Send(serverpackets.NewLoginFailPacket(reason))
+		err = client.SendBuf(serverpackets.NewLoginFailPacket(reason, buff))
 	case reasons.LoginOrPassWrong:
 		if enableAutoCreateAccount {
 			err = createAccount(request, client)
 			if err != nil {
 				return err
 			}
-			err = client.Send(serverpackets.NewLoginOkPacket(client))
+			err = client.SendBuf(serverpackets.NewLoginOkPacket(client, buff))
 		} else {
-			err = client.Send(serverpackets.NewLoginFailPacket(reason))
+			err = client.SendBuf(serverpackets.NewLoginFailPacket(reason, buff))
 		}
 	}
 
@@ -71,7 +74,7 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l []*models.C
 	return nil
 }
 
-func (r *RequestAuthLogin) validate(client *models.ClientCtx, l []*models.ClientCtx) (reasons.Reason, error) {
+func (r *RequestAuthLogin) validate(client *models.ClientCtx, l *models.Clients) (reasons.Reason, error) {
 	var account models.Account
 	dbConn, err := db.GetConn()
 	if err != nil {
@@ -93,13 +96,16 @@ func (r *RequestAuthLogin) validate(client *models.ClientCtx, l []*models.Client
 		return reasons.Ban, nil
 	}
 
-	for _, v := range l {
+	l.Mu.Lock()
+	for _, v := range l.C {
 		if v.State != state.AuthedLogin {
 			if v.Account.Login == account.Login {
 				return reasons.AccountInUse, nil
 			}
 		}
 	}
+	l.Mu.Unlock()
+
 	_, err = dbConn.Exec(context.Background(), "UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3", client.Socket.RemoteAddr().String(), time.Now(), r.Login)
 	if err != nil {
 		return reasons.InfoWrong, err

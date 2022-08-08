@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-func NewServerListPacket(account *models.ClientCtx, gameServers []config.GameServerType, remoteAddr string) []byte {
+func NewServerListPacket(account *models.ClientCtx, gameServers []config.GameServerType, remoteAddr string) *packets.Buffer {
+	buffer := packets.Get()
 	lastServer := account.Account.LastServer
-	buffer := new(packets.Buffer)
 	buffer.WriteSingleByte(0x04)
 	buffer.WriteSingleByte(uint8(len(gameServers))) // Servers count
 	buffer.WriteSingleByte(byte(lastServer))        // Last Picked Server
@@ -51,7 +51,7 @@ func NewServerListPacket(account *models.ClientCtx, gameServers []config.GameSer
 		buffer.WriteSingleByte(byte(accounts.CountCharacterInAccount(servId, account.Account.Login)))
 		buffer.WriteSingleByte(0)
 	}
-	return buffer.Bytes()
+	return buffer
 }
 
 // todo времено офф , пока не придумал другой способ так как при коннекте создается персонаж в гейм сервере и это фейк персонаж

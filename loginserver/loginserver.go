@@ -7,6 +7,7 @@ import (
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/serverpackets"
 	"l2goserver/loginserver/types/state"
+	"l2goserver/packets"
 	"net"
 )
 
@@ -16,14 +17,14 @@ type charactersAccount struct {
 }
 
 type LoginServer struct {
-	clients         []*models.ClientCtx
+	clients         *models.Clients
 	gameservers     []*models.GameServer
 	config          config.Conf
 	clientsListener net.Listener
 }
 
 func New(cfg config.Conf) *LoginServer {
-	return &LoginServer{config: cfg}
+	return &LoginServer{config: cfg, clients: new(models.Clients)}
 }
 
 func (l *LoginServer) Init() {
@@ -47,7 +48,9 @@ func (l *LoginServer) Run() {
 		var err error
 		client := models.NewClient()
 		client.Socket, err = l.clientsListener.Accept()
-		l.clients = append(l.clients, client)
+		l.clients.Mu.Lock()
+		l.clients.C = append(l.clients.C, client)
+		l.clients.Mu.Unlock()
 		client.State = state.Connected
 		if err != nil {
 			//	log.Println("Couldn't accept the incoming connection.")
@@ -63,14 +66,16 @@ func (l *LoginServer) kickClient(client *models.ClientCtx) {
 	if err != nil {
 		//	log.Fatal(err)
 	}
-	for i, item := range l.clients {
+	l.clients.Mu.Lock()
+	for i, item := range l.clients.C {
 		if item.SessionID == client.SessionID {
-			copy(l.clients[i:], l.clients[i+1:])
-			l.clients[len(l.clients)-1] = nil
-			l.clients = l.clients[:len(l.clients)-1]
+			copy(l.clients.C[i:], l.clients.C[i+1:])
+			l.clients.C[len(l.clients.C)-1] = nil
+			l.clients.C = l.clients.C[:len(l.clients.C)-1]
 			break
 		}
 	}
+	l.clients.Mu.Unlock()
 	//	log.Println("The client has been successfully kicked from the server.")
 }
 
@@ -100,9 +105,10 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	var err error
 
 	crypt.IsStatic = true // todo костыль?
-	initPacket := serverpackets.NewInitPacket(client)
+	bufToInit := packets.Get()
+	initPacket := serverpackets.NewInitPacket(client, bufToInit)
 
-	err = client.Send(initPacket)
+	err = client.SendBuf(initPacket)
 	if err != nil {
 		//		log.Println(err)
 		return
@@ -160,7 +166,7 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 				}
 			case 05:
 				requestServerList := serverpackets.NewServerListPacket(client, l.config.GameServers, client.Socket.RemoteAddr().String())
-				err := client.Send(requestServerList)
+				err := client.SendBuf(requestServerList)
 				if err != nil {
 					//		log.Println(err)
 					return

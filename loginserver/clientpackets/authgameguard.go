@@ -20,6 +20,6 @@ func NewAuthGameGuard(request []byte, ctx *models.ClientCtx) error {
 		return wrongSession
 	}
 	ctx.State = state.AuthedGameGuard
-	return ctx.Send(serverpackets.Newggauth(ctx.SessionID))
+	return ctx.SendBuf(serverpackets.Newggauth(ctx.SessionID))
 
 }

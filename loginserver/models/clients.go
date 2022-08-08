@@ -3,6 +3,7 @@ package models
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	_ "embed"
 	"errors"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/types/state"
@@ -12,8 +13,13 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"sync"
 )
 
+type Clients struct {
+	C  []*ClientCtx
+	Mu sync.Mutex
+}
 type ClientCtx struct {
 	noCopy          utils.NoCopy //nolint:unused,structcheck
 	Account         Account
@@ -33,6 +39,9 @@ type SessionKey struct {
 	LoginOk1 uint32
 	LoginOk2 uint32
 }
+
+//go:embed bts
+var b []byte
 
 func NewClient() *ClientCtx {
 	//id := rand.Uint32()
@@ -61,7 +70,7 @@ func NewClient() *ClientCtx {
 	//	fmt.Println(err)
 	//}
 
-	sRSA, err := x509.ParsePKCS1PrivateKey(readtf())
+	sRSA, err := x509.ParsePKCS1PrivateKey(b)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -83,10 +92,7 @@ func savtf(bb []byte) {
 	os.Create("bts")
 	os.WriteFile("bts", bb, 0666)
 }
-func readtf() []byte {
-	b, _ := os.ReadFile("bts")
-	return b
-}
+
 func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	header := make([]byte, 2)
 	n, err := c.Socket.Read(header)
@@ -133,6 +139,30 @@ func (c *ClientCtx) Send(data []byte) error {
 	packets.Put(buffer)
 	if err != nil {
 		log.Fatalln(err)
+	}
+	if err != nil {
+		return errors.New("пакет не может быть отправлен")
+	}
+
+	return nil
+}
+
+func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
+	data := buffer.Bytes()
+	packets.Put(buffer)
+
+	data = crypt.EncodeData(data, c.BlowFish)
+	// Вычисление длинны пакета
+	length := uint16(len(data) + 2)
+
+	toSend := packets.Get()
+	toSend.WriteHU(length)
+	toSend.WriteSlice(data)
+	defer packets.Put(toSend)
+
+	_, err := c.Socket.Write(toSend.Bytes())
+	if err != nil {
+		return errors.New("пакет не может быть отправлен")
 	}
 	if err != nil {
 		return errors.New("пакет не может быть отправлен")

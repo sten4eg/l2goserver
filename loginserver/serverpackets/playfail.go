@@ -5,10 +5,9 @@ import (
 	"l2goserver/packets"
 )
 
-func NewPlayFailPacket(reason reason.Reason) []byte {
-	buffer := new(packets.Buffer)
+func NewPlayFailPacket(reason reason.Reason, buffer *packets.Buffer) *packets.Buffer {
 	buffer.WriteSingleByte(0x06) // Packet type: PlayFail
 	buffer.WriteDU(uint32(reason))
 
-	return buffer.Bytes()
+	return buffer
 }

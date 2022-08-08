@@ -5,10 +5,10 @@ import (
 	"l2goserver/packets"
 )
 
-func NewLoginFailPacket(reason reason.Reason) []byte {
-	buffer := new(packets.Buffer)
+func NewLoginFailPacket(reason reason.Reason, buffer *packets.Buffer) *packets.Buffer {
+
 	buffer.WriteSingleByte(0x01) // Packet type: LoginFail
 	buffer.WriteSingleByte(byte(reason))
 
-	return buffer.Bytes()
+	return buffer
 }

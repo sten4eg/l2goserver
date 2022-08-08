@@ -23,19 +23,22 @@ func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 	_ = key1
 	_ = err
 
+	buff := packets.Get()
+
 	if !(key1 == client.SessionKey.LoginOk1 && key2 == client.SessionKey.LoginOk2) {
-		err = client.Send(serverpackets.NewLoginFailPacket(reason.AccessFailed))
+		err = client.SendBuf(serverpackets.NewLoginFailPacket(reason.AccessFailed, buff))
 		if err != nil {
 			return err
 		}
+		return serverOverload
 	}
 
 	//TODO коннект к гейм серверу и проверка можно ли к нему подконектиться
 	if true {
-		client.Send(serverpackets.NewPlayOkPacket(client))
+		client.SendBuf(serverpackets.NewPlayOkPacket(client, buff))
 		client.JoinedGS = true
 	} else {
-		client.Send(serverpackets.NewPlayFailPacket(reason.ServerOverloaded))
+		client.SendBuf(serverpackets.NewPlayFailPacket(reason.ServerOverloaded, buff))
 		return serverOverload
 	}
 
