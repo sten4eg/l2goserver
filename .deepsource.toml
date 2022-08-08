@@ -1,0 +1,12 @@
+version = 1
+
+[[analyzers]]
+name = "sql"
+enabled = true
+
+[[analyzers]]
+name = "go"
+enabled = true
+
+  [analyzers.meta]
+  import_root = "github.com/sten4eg/l2goserver"
