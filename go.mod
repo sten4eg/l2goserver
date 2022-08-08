@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v4 v4.16.1
+	github.com/pkg/profile v1.6.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 )
 

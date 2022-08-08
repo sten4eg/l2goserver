@@ -157,8 +157,6 @@ func ScrambleModulus(modulus []byte) []byte {
 	scrambledMod := modulus
 	var temp []byte
 	copy(temp, scrambledMod)
-	//	System.arraycopy(scrambledMod, 1, temp, 0, 0x80)
-	//	scrambledMod = temp
 
 	// step 1 : 0x4d-0x50 <-> 0x00-0x04
 

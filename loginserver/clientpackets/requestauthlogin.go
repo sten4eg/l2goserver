@@ -3,6 +3,8 @@ package clientpackets
 import (
 	"bytes"
 	"context"
+	"errors"
+	"github.com/jackc/pgx/v4"
 	"golang.org/x/crypto/bcrypt"
 	"l2goserver/db"
 	"l2goserver/loginserver/models"
@@ -34,7 +36,9 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l []*models.C
 
 	reason, err := result.validate(client, l)
 	if err != nil {
-		return err
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
 	}
 
 	//TODO есть еще проверки на то подключен ли он к гейм серверу

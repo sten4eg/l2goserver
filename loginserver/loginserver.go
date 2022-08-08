@@ -1,15 +1,12 @@
 package loginserver
 
 import (
-	"fmt"
 	"l2goserver/config"
 	"l2goserver/loginserver/clientpackets"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
-
 	"l2goserver/loginserver/serverpackets"
 	"l2goserver/loginserver/types/state"
-	"log"
 	"net"
 )
 
@@ -35,9 +32,9 @@ func (l *LoginServer) Init() {
 	// Listen for client connections
 	l.clientsListener, err = net.Listen("tcp4", ":2106")
 	if err != nil {
-		log.Fatal("Failed to connect to port 2106:", err.Error())
+		//log.Fatal("Failed to connect to port 2106:", err.Error())
 	} else {
-		log.Println("Login server is listening on port 2106")
+		//log.Println("Login server is listening on port 2106")
 	}
 
 	// Listen for game servers connections
@@ -53,7 +50,7 @@ func (l *LoginServer) Run() {
 		l.clients = append(l.clients, client)
 		client.State = state.Connected
 		if err != nil {
-			log.Println("Couldn't accept the incoming connection.")
+			//	log.Println("Couldn't accept the incoming connection.")
 			continue
 		} else {
 			go l.handleClientPackets(client)
@@ -64,7 +61,7 @@ func (l *LoginServer) Run() {
 func (l *LoginServer) kickClient(client *models.ClientCtx) {
 	err := client.Socket.Close()
 	if err != nil {
-		log.Fatal(err)
+		//	log.Fatal(err)
 	}
 	for i, item := range l.clients {
 		if item.SessionID == client.SessionID {
@@ -74,7 +71,7 @@ func (l *LoginServer) kickClient(client *models.ClientCtx) {
 			break
 		}
 	}
-	log.Println("The client has been successfully kicked from the server.")
+	//	log.Println("The client has been successfully kicked from the server.")
 }
 
 //func (l *LoginServer) handleGameServerPackets(gameserver *models.GameServer) {
@@ -107,65 +104,65 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 
 	err = client.Send(initPacket)
 	if err != nil {
-		log.Println(err)
+		//		log.Println(err)
 		return
 	} else {
-		log.Println("Init packet send")
+		//		log.Println("Init packet send")
 	}
 
 	for {
 		opcode, data, err := client.Receive()
 		if err != nil {
-			log.Println(err)
-			log.Println("Closing a connection")
+			//			log.Println(err)
+			//			log.Println("Closing a connection")
 			break
 		}
-		log.Println("Опкод", opcode)
+		//		log.Println("Опкод", opcode)
 		switch client.State {
 		default:
-			log.Println("Неопознаный опкод")
-			fmt.Printf("opcode: %X, state %X", opcode, client.State)
+			//			log.Println("Неопознаный опкод")
+			//			fmt.Printf("opcode: %X, state %X", opcode, client.State)
 			return
 
 		case state.Connected:
 			if opcode == 7 {
 				err := clientpackets.NewAuthGameGuard(data, client)
 				if err != nil {
-					log.Println(err)
+					//	log.Println(err)
 					return
 				}
 			} else {
-				log.Println(opcode, client.State)
+				//	log.Println(opcode, client.State)
 				return
 			}
 		case state.AuthedGameGuard:
 			if opcode == 0 {
 				err = clientpackets.NewRequestAuthLogin(data, client, l.clients, l.config.LoginServer.AutoCreate)
 				if err != nil {
-					log.Println(err)
+					//	log.Println(err)
 					return
 				}
 			} else {
-				log.Println(opcode, client.State)
+				//	log.Println(opcode, client.State)
 				return
 			}
 		case state.AuthedLogin:
 			switch opcode {
 			default:
-				log.Println("Неопознаный опкод")
-				fmt.Printf("opcode: %X, state %X", opcode, client.State)
+				//	log.Println("Неопознаный опкод")
+				//	fmt.Printf("opcode: %X, state %X", opcode, client.State)
 				return
 			case 02:
 				err = clientpackets.NewRequestPlay(data, client)
 				if err != nil {
-					log.Println(err)
+					//	log.Println(err)
 					return
 				}
 			case 05:
 				requestServerList := serverpackets.NewServerListPacket(client, l.config.GameServers, client.Socket.RemoteAddr().String())
 				err := client.Send(requestServerList)
 				if err != nil {
-					log.Println(err)
+					//		log.Println(err)
 					return
 				}
 			}
