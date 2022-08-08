@@ -8,8 +8,8 @@ import (
 func NewPlayOkPacket(client *models.ClientCtx) []byte {
 	buffer := new(packets.Buffer)
 	buffer.WriteSingleByte(0x07)
-	buffer.WriteD(uint32(client.SessionKey.PlayOk1)) // Session Key
-	buffer.WriteD(uint32(client.SessionKey.PlayOk2)) // Session Key
+	buffer.WriteDU(uint32(client.SessionKey.PlayOk1)) // Session Key
+	buffer.WriteDU(uint32(client.SessionKey.PlayOk2)) // Session Key
 
 	return buffer.Bytes()
 }

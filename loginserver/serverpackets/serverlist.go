@@ -34,14 +34,14 @@ func NewServerListPacket(account *models.ClientCtx, gameServers []config.GameSer
 		if err != nil {
 			panic(err.Error())
 		}
-		buffer.WriteD(uint32(port))          // GameServer port number
-		buffer.WriteSingleByte(0x00)         // Age Limit 0, 15, 18
-		buffer.WriteSingleByte(0x01)         // Is pvp allowed?
-		buffer.WriteH(0)                     // How many players are online Unused In client
-		buffer.WriteH(gameserver.MaxPlayers) // Maximum allowed players
-		buffer.WriteSingleByte(0x01)         // checkConnect(gameserver.InternalIp, port)
-		buffer.WriteD(0x40)                  // Display a green clock (what is this for?)
-		buffer.WriteSingleByte(0x00)         // bracket [NULL]Bartz
+		buffer.WriteDU(uint32(port))          // GameServer port number
+		buffer.WriteSingleByte(0x00)          // Age Limit 0, 15, 18
+		buffer.WriteSingleByte(0x01)          // Is pvp allowed?
+		buffer.WriteH(0)                      // How many players are online Unused In client
+		buffer.WriteHU(gameserver.MaxPlayers) // Maximum allowed players
+		buffer.WriteSingleByte(0x01)          // checkConnect(gameserver.InternalIp, port)
+		buffer.WriteD(0x40)                   // Display a green clock (what is this for?)
+		buffer.WriteSingleByte(0x00)          // bracket [NULL]Bartz
 	}
 
 	buffer.WriteH(0x00)

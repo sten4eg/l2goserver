@@ -104,7 +104,6 @@ func encXORPass(raw []byte, size, key int) []byte {
 }
 
 func EncodeData(raw []byte, blowfishKey []byte) []byte {
-
 	size := len(raw) + 4 // reserve checksum
 	data := make([]byte, 200)
 	copy(data, raw)

@@ -122,19 +122,20 @@ func (c *ClientCtx) Receive() (uint8, []byte, error) {
 
 func (c *ClientCtx) Send(data []byte) error {
 	data = crypt.EncodeData(data, c.BlowFish)
-	// Calculate the packet length
+	// Вычисление длинны пакета
 	length := uint16(len(data) + 2)
-	// Put everything together
-	buffer := packets.NewBuffer()
-	buffer.WriteH(length)
-	_, err := buffer.Write(data)
-	if err != nil {
-		return errors.New("The packet couldn't be sent.(write in buffer)")
-	}
-	_, err = c.Socket.Write(buffer.Bytes())
 
+	buffer := packets.Get()
+	buffer.WriteHU(length)
+	buffer.WriteSlice(data)
+
+	_, err := c.Socket.Write(buffer.Bytes())
+	packets.Put(buffer)
 	if err != nil {
-		return errors.New("The packet couldn't be sent.")
+		log.Fatalln(err)
+	}
+	if err != nil {
+		return errors.New("пакет не может быть отправлен")
 	}
 
 	return nil

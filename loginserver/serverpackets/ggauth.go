@@ -7,8 +7,7 @@ import (
 func Newggauth(sessionID uint32) []byte {
 	buffer := new(packets.Buffer)
 	buffer.WriteSingleByte(0x0b)
-	buffer.WriteD(sessionID)
-
+	buffer.WriteDU(sessionID)
 	buffer.WriteD(0x00)
 	buffer.WriteD(0x00)
 	buffer.WriteD(0x00)

@@ -4,42 +4,87 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
+	"math"
+	"unicode/utf16"
 )
 
 type Buffer struct {
-	bytes.Buffer
+	B []byte
 }
 
-func NewBuffer() *Buffer {
-	return &Buffer{}
+func (b *Buffer) Len() int {
+	return len(b.B)
 }
 
-func (b *Buffer) WriteH(value uint16) {
-	err := binary.Write(b, binary.LittleEndian, value)
-	if err != nil {
-		log.Fatal(err)
-	}
+func (b *Buffer) Bytes() []byte {
+	return b.B
 }
 
-func (b *Buffer) WriteD(value uint32) {
-	err := binary.Write(b, binary.LittleEndian, value)
-	if err != nil {
-		log.Fatal(err)
-	}
+func (b *Buffer) Reset() {
+	b.B = b.B[:0]
 }
 
-func (b *Buffer) WriteSlice(val []byte) {
-	err := binary.Write(b, binary.LittleEndian, val)
-	if err != nil {
-		log.Fatal(err)
-	}
+func float64ToByte(f float64) []byte {
+	var buf [8]byte
+	binary.LittleEndian.PutUint64(buf[:], math.Float64bits(f))
+	return buf[:]
+}
+
+func (b *Buffer) WriteF(value float64) {
+	b.B = append(b.B, float64ToByte(value)...)
+}
+
+func (b *Buffer) WriteH(value int16) {
+	b.B = append(b.B, byte(value&0xff), byte(value>>8))
+}
+
+func (b *Buffer) WriteHU(value uint16) {
+	b.B = append(b.B, byte(value&0xff), byte(value>>8))
+}
+
+func (b *Buffer) WriteQ(value int64) {
+	var buf [8]byte
+	binary.LittleEndian.PutUint64(buf[:], uint64(value))
+	b.B = append(b.B, buf[:]...)
+}
+
+func (b *Buffer) WriteD(value int32) {
+	var buf [4]byte
+	binary.LittleEndian.PutUint32(buf[:], uint32(value))
+	b.B = append(b.B, buf[:]...)
+}
+func (b *Buffer) WriteDU(value uint32) {
+	var buf [4]byte
+	binary.LittleEndian.PutUint32(buf[:], value)
+	b.B = append(b.B, buf[:]...)
+}
+
+func (b *Buffer) WriteSlice(value []byte) {
+	b.B = append(b.B, value...)
 }
 
 func (b *Buffer) WriteSingleByte(value byte) {
-	err := b.WriteByte(value)
-	if err != nil {
-		log.Fatal(err)
+	b.B = append(b.B, value)
+}
+
+const EmptyByte byte = 0
+
+func (b *Buffer) WriteS(value string) {
+	utf16Slice := utf16.Encode([]rune(value))
+
+	var buf []byte
+	for _, v := range utf16Slice {
+		if v < math.MaxInt8 {
+			buf = append(buf, byte(v), 0)
+		} else {
+			f, s := uint8(v&0xff), uint8(v>>8)
+			buf = append(buf, f, s)
+		}
 	}
+
+	buf = append(buf, EmptyByte, EmptyByte)
+
+	b.B = append(b.B, buf...)
 }
 
 type Reader struct {

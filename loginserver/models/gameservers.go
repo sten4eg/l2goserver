@@ -55,11 +55,11 @@ func (g *GameServer) Send(data []byte) error {
 	length := uint16(len(data) + 2)
 
 	// Put everything together
-	buffer := packets.NewBuffer()
-	buffer.WriteH(length)
-	buffer.Write(data)
-
+	buffer := packets.Get()
+	buffer.WriteHU(length)
+	buffer.WriteSlice(data)
 	_, err := g.Socket.Write(buffer.Bytes())
+	packets.Put(buffer)
 
 	if err != nil {
 		return errors.New("The packet couldn't be sent.")

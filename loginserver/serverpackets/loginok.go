@@ -7,9 +7,9 @@ import (
 
 func NewLoginOkPacket(client *models.ClientCtx) []byte {
 	buffer := new(packets.Buffer)
-	buffer.WriteSingleByte(0x03)              // Packet type: LoginOk
-	buffer.WriteD(client.SessionKey.LoginOk1) // SessionKey1_FistPart
-	buffer.WriteD(client.SessionKey.LoginOk2) // SessionKey1_SecondPart
+	buffer.WriteSingleByte(0x03)               // Packet type: LoginOk
+	buffer.WriteDU(client.SessionKey.LoginOk1) // SessionKey1_FistPart
+	buffer.WriteDU(client.SessionKey.LoginOk2) // SessionKey1_SecondPart
 	buffer.WriteD(0x00)
 	buffer.WriteD(0x00)
 	buffer.WriteD(0x000003ea)
