@@ -52,6 +52,10 @@ func Read() {
 	globalConfig = config
 }
 
+func AutoCreateAccounts() bool {
+	return globalConfig.LoginServer.AutoCreate
+}
+
 func GetConfig() Conf {
 	return globalConfig
 }

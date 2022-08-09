@@ -6,40 +6,27 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v4"
 	"golang.org/x/crypto/bcrypt"
+	"l2goserver/config"
 	"l2goserver/db"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/serverpackets"
 	reasons "l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
+	"l2goserver/utils"
 	"math/big"
+	"sync"
 	"time"
 )
 
-type RequestAuthLogin struct {
-	Login    string
-	Password string
-}
+const UserInfoSelect = "SELECT * FROM accounts WHERE login = $1"
+const UserLastInfo = "UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3"
+const AccountsInsert = "INSERT INTO accounts (login, password) VALUES ($1, $2)"
 
-func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l *models.Clients, enableAutoCreateAccount bool) error {
-	var result RequestAuthLogin
-
-	payload := request[:128]
-
-	c := new(big.Int).SetBytes(payload)
-	decodeData := c.Exp(c, client.PrivateKey.D, client.PrivateKey.N).Bytes()
-
-	trimLogin := bytes.Trim(decodeData[1:14], string(rune(0)))
-	trimPassword := bytes.Trim(decodeData[14:28], string(rune(0)))
-
-	result.Login = string(trimLogin)
-	result.Password = string(trimPassword)
-
-	reason, err := result.validate(client, l)
-	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
+func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l *sync.Map) error {
+	reason, err := validate(request, client, l)
+	if err != nil && reason == reasons.NoReason {
+		return err
 	}
 
 	buff := packets.Get()
@@ -52,18 +39,8 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l *models.Cli
 		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.SystemError, buff))
 	case reasons.NoReason:
 		err = client.SendBuf(serverpackets.NewLoginOkPacket(client, buff))
-	case reasons.InfoWrong, reasons.Ban, reasons.AccountInUse:
+	case reasons.InfoWrong, reasons.Ban, reasons.AccountInUse, reasons.LoginOrPassWrong:
 		err = client.SendBuf(serverpackets.NewLoginFailPacket(reason, buff))
-	case reasons.LoginOrPassWrong:
-		if enableAutoCreateAccount {
-			err = createAccount(request, client)
-			if err != nil {
-				return err
-			}
-			err = client.SendBuf(serverpackets.NewLoginOkPacket(client, buff))
-		} else {
-			err = client.SendBuf(serverpackets.NewLoginFailPacket(reason, buff))
-		}
 	}
 
 	if err != nil {
@@ -74,7 +51,25 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l *models.Cli
 	return nil
 }
 
-func (r *RequestAuthLogin) validate(client *models.ClientCtx, l *models.Clients) (reasons.Reason, error) {
+func validate(request []byte, client *models.ClientCtx, l *sync.Map) (reasons.Reason, error) {
+	if cap(request) < 128 {
+		return reasons.InfoWrong, nil
+	}
+	payload := request[:128]
+
+	c := new(big.Int).SetBytes(payload)
+	decodeData := c.Exp(c, client.PrivateKey.D, client.PrivateKey.N).Bytes()
+
+	if cap(decodeData) < 28 {
+		return reasons.InfoWrong, nil
+	}
+
+	trimLogin := bytes.Trim(decodeData[1:14], string(rune(0)))
+	trimPassword := bytes.Trim(decodeData[14:28], string(rune(0)))
+
+	login := utils.B2s(trimLogin)
+	password := utils.B2s(trimPassword)
+
 	var account models.Account
 	dbConn, err := db.GetConn()
 	if err != nil {
@@ -83,12 +78,20 @@ func (r *RequestAuthLogin) validate(client *models.ClientCtx, l *models.Clients)
 
 	defer dbConn.Release()
 
-	row := dbConn.QueryRow(context.Background(), "SELECT * FROM accounts WHERE login = $1", r.Login)
+	row := dbConn.QueryRow(context.Background(), UserInfoSelect, login)
 	err = row.Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) && config.AutoCreateAccounts() {
+			err = createAccount(login, password)
+			if err != nil {
+				panic(err)
+			}
+			return validate(request, client, l)
+		}
+
 		return reasons.LoginOrPassWrong, err
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(r.Password))
+	err = bcrypt.CompareHashAndPassword(utils.S2b(account.Password), utils.S2b(password))
 	if err != nil {
 		return reasons.LoginOrPassWrong, err
 	}
@@ -96,17 +99,7 @@ func (r *RequestAuthLogin) validate(client *models.ClientCtx, l *models.Clients)
 		return reasons.Ban, nil
 	}
 
-	l.Mu.Lock()
-	for _, v := range l.C {
-		if v.State != state.AuthedLogin {
-			if v.Account.Login == account.Login {
-				return reasons.AccountInUse, nil
-			}
-		}
-	}
-	l.Mu.Unlock()
-
-	_, err = dbConn.Exec(context.Background(), "UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3", client.Socket.RemoteAddr().String(), time.Now(), r.Login)
+	_, err = dbConn.Exec(context.Background(), UserLastInfo, client.Socket.RemoteAddr().String(), time.Now(), login)
 	if err != nil {
 		return reasons.InfoWrong, err
 	}
@@ -115,23 +108,18 @@ func (r *RequestAuthLogin) validate(client *models.ClientCtx, l *models.Clients)
 	return reasons.NoReason, nil
 }
 
-func createAccount(request []byte, client *models.ClientCtx) error {
-	payload := request[:128]
-	c := new(big.Int).SetBytes(payload)
-	decodeData := c.Exp(c, client.PrivateKey.D, client.PrivateKey.N).Bytes()
-	trimLogin := bytes.Trim(decodeData[1:14], string(rune(0)))
-	trimPassword := bytes.Trim(decodeData[14:28], string(rune(0)))
-	password, err := bcrypt.GenerateFromPassword(trimPassword, 10)
+func createAccount(clearLogin, clearPassword string) error {
+	password, err := bcrypt.GenerateFromPassword(utils.S2b(clearPassword), 10)
 	if err != nil {
 		return err
 	}
 	dbConn, err := db.GetConn()
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 	defer dbConn.Release()
 
-	_, err = dbConn.Exec(context.Background(), "INSERT INTO accounts (login, password) VALUES ($1, $2)",
-		string(trimLogin), password)
+	_, err = dbConn.Exec(context.Background(), AccountsInsert,
+		clearLogin, password)
 	return err
 }

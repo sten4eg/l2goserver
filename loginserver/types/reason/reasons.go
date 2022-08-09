@@ -19,3 +19,9 @@ const (
 const (
 	ServerOverloaded Reason = 0x0F
 )
+
+type AccountKickedReason int32
+
+const (
+	PERMANENTLY_BANNED AccountKickedReason = 0x20
+)

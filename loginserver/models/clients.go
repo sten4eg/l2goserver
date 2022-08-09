@@ -10,6 +10,7 @@ import (
 	"l2goserver/packets"
 	"l2goserver/utils"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
@@ -31,6 +32,7 @@ type ClientCtx struct {
 	BlowFish        []byte
 	State           state.GameState
 	JoinedGS        bool
+	Uid             uint64
 }
 
 type SessionKey struct {
@@ -86,6 +88,7 @@ func NewClient() *ClientCtx {
 		ScrambleModulus: scrambleModulus,
 		State:           state.NoState,
 		JoinedGS:        false,
+		Uid:             rand.Uint64(),
 	}
 }
 func savtf(bb []byte) {

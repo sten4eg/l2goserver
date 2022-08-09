@@ -108,7 +108,6 @@ func EncodeData(raw []byte, blowfishKey []byte) []byte {
 	data := make([]byte, 200)
 	copy(data, raw)
 	if IsStatic {
-
 		size += 4                      // reserve for XOR "key"
 		size = (size + 8) - (size % 8) // padding
 

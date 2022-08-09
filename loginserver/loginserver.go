@@ -6,25 +6,27 @@ import (
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/serverpackets"
+	"l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 	"net"
+	"net/netip"
+	"sync"
 )
 
 type charactersAccount struct {
 	account string
 	count   int
 }
-
 type LoginServer struct {
-	clients         *models.Clients
+	clients         sync.Map
 	gameservers     []*models.GameServer
 	config          config.Conf
 	clientsListener net.Listener
 }
 
 func New(cfg config.Conf) *LoginServer {
-	return &LoginServer{config: cfg, clients: new(models.Clients)}
+	return &LoginServer{config: cfg}
 }
 
 func (l *LoginServer) Init() {
@@ -46,11 +48,25 @@ func (l *LoginServer) Run() {
 
 	for {
 		var err error
+		crypt.IsStatic = true // todo костыль?
+
 		client := models.NewClient()
 		client.Socket, err = l.clientsListener.Accept()
-		l.clients.Mu.Lock()
-		l.clients.C = append(l.clients.C, client)
-		l.clients.Mu.Unlock()
+
+		clientAddrPort := netip.MustParseAddrPort(client.Socket.LocalAddr().String())
+
+		if !clientAddrPort.IsValid() {
+			continue
+		}
+
+		if IsBannedIp(clientAddrPort.Addr()) {
+			_ = client.SendBuf(serverpackets.AccountKicked(reason.PERMANENTLY_BANNED))
+			l.kickClient(client)
+			continue
+		}
+
+		l.clients.Store(client.Uid, client)
+
 		client.State = state.Connected
 		if err != nil {
 			//	log.Println("Couldn't accept the incoming connection.")
@@ -66,16 +82,8 @@ func (l *LoginServer) kickClient(client *models.ClientCtx) {
 	if err != nil {
 		//	log.Fatal(err)
 	}
-	l.clients.Mu.Lock()
-	for i, item := range l.clients.C {
-		if item.SessionID == client.SessionID {
-			copy(l.clients.C[i:], l.clients.C[i+1:])
-			l.clients.C[len(l.clients.C)-1] = nil
-			l.clients.C = l.clients.C[:len(l.clients.C)-1]
-			break
-		}
-	}
-	l.clients.Mu.Unlock()
+	l.clients.Delete(client.Uid)
+
 	//	log.Println("The client has been successfully kicked from the server.")
 }
 
@@ -104,7 +112,6 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	defer l.kickClient(client)
 	var err error
 
-	crypt.IsStatic = true // todo костыль?
 	bufToInit := packets.Get()
 	initPacket := serverpackets.NewInitPacket(client, bufToInit)
 
@@ -143,7 +150,7 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 			}
 		case state.AuthedGameGuard:
 			if opcode == 0 {
-				err = clientpackets.NewRequestAuthLogin(data, client, l.clients, l.config.LoginServer.AutoCreate)
+				err = clientpackets.NewRequestAuthLogin(data, client, &l.clients)
 				if err != nil {
 					//	log.Println(err)
 					return
