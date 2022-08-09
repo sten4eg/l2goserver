@@ -47,7 +47,7 @@ func verifyChecksum(raw []byte, size int) bool {
 	return ecx == checksum
 }
 
-func appendchecksum(raw []byte, size int) []byte {
+func AppendCheckSum(raw []byte, size int) []byte {
 	var chksum int64
 	var count = size - 4
 	var i int
@@ -116,7 +116,7 @@ func EncodeData(raw []byte, blowfishKey []byte) []byte {
 		IsStatic = false
 	} else {
 		size = (size + 8) - (size % 8) // padding
-		appendchecksum(data, size)
+		AppendCheckSum(data, size)
 		crypt(&data, size, blowfishKey)
 	}
 

@@ -26,6 +26,7 @@ type DatabaseType struct {
 type LoginServerType struct {
 	Host       string       `json:"host"`
 	AutoCreate bool         `json:"autoCreate"`
+	PortForGS  string       `json:"portForGS"`
 	Database   DatabaseType `json:"database"`
 }
 
@@ -56,6 +57,9 @@ func AutoCreateAccounts() bool {
 	return globalConfig.LoginServer.AutoCreate
 }
 
+func GetLoginPortForGameServer() string {
+	return globalConfig.LoginServer.PortForGS
+}
 func GetConfig() Conf {
 	return globalConfig
 }

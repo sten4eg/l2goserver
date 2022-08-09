@@ -23,16 +23,19 @@ const UserInfoSelect = "SELECT * FROM accounts WHERE login = $1"
 const UserLastInfo = "UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3"
 const AccountsInsert = "INSERT INTO accounts (login, password) VALUES ($1, $2)"
 
+var errNoData = errors.New("errNoData")
+
 func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l *sync.Map) error {
-	reason, err := validate(request, client, l)
-	if err != nil && reason == reasons.NoReason {
+	buff := packets.Get()
+
+	err := validate(request, client, l)
+	if err != nil {
+		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.LoginOrPassWrong, buff))
 		return err
 	}
 
-	buff := packets.Get()
-
 	//TODO есть еще проверки на то подключен ли он к гейм серверу
-
+	reason := reasons.NoReason
 	// есть ли причина кикать?
 	switch reason {
 	default:
@@ -51,9 +54,18 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l *sync.Map) 
 	return nil
 }
 
-func validate(request []byte, client *models.ClientCtx, l *sync.Map) (reasons.Reason, error) {
+func tryCheckinAccount(client *models.ClientCtx) reasons.AuthLoginResult {
+	if client.Account.AccessLevel < 0 {
+		return reasons.ACCOUNT_BANNED
+	}
+
+	ret := reasons.ALREADY_ON_GS
+	return ret
+}
+
+func validate(request []byte, client *models.ClientCtx, l *sync.Map) error {
 	if cap(request) < 128 {
-		return reasons.InfoWrong, nil
+		return errNoData
 	}
 	payload := request[:128]
 
@@ -61,7 +73,7 @@ func validate(request []byte, client *models.ClientCtx, l *sync.Map) (reasons.Re
 	decodeData := c.Exp(c, client.PrivateKey.D, client.PrivateKey.N).Bytes()
 
 	if cap(decodeData) < 28 {
-		return reasons.InfoWrong, nil
+		return errNoData
 	}
 
 	trimLogin := bytes.Trim(decodeData[1:14], string(rune(0)))
@@ -73,7 +85,7 @@ func validate(request []byte, client *models.ClientCtx, l *sync.Map) (reasons.Re
 	var account models.Account
 	dbConn, err := db.GetConn()
 	if err != nil {
-		return reasons.NoReason, err
+		return err
 	}
 
 	defer dbConn.Release()
@@ -89,23 +101,24 @@ func validate(request []byte, client *models.ClientCtx, l *sync.Map) (reasons.Re
 			return validate(request, client, l)
 		}
 
-		return reasons.LoginOrPassWrong, err
+		return err
 	}
 	err = bcrypt.CompareHashAndPassword(utils.S2b(account.Password), utils.S2b(password))
 	if err != nil {
-		return reasons.LoginOrPassWrong, err
+		return err
 	}
-	if account.AccessLevel < 0 {
-		return reasons.Ban, nil
-	}
+
+	//if account.AccessLevel < 0 {
+	//	return reasons.Ban, nil
+	//}
 
 	_, err = dbConn.Exec(context.Background(), UserLastInfo, client.Socket.RemoteAddr().String(), time.Now(), login)
 	if err != nil {
-		return reasons.InfoWrong, err
+		return err
 	}
 
 	client.Account = account
-	return reasons.NoReason, nil
+	return nil
 }
 
 func createAccount(clearLogin, clearPassword string) error {

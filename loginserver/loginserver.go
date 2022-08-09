@@ -29,11 +29,11 @@ func New(cfg config.Conf) *LoginServer {
 	return &LoginServer{config: cfg}
 }
 
-func (l *LoginServer) Init() {
+func (l *LoginServer) Initialize() {
 	var err error
 
 	// Listen for client connections
-	l.clientsListener, err = net.Listen("tcp4", ":2106")
+	l.clientsListener, err = net.Listen("tcp4", ":2105")
 	if err != nil {
 		//log.Fatal("Failed to connect to port 2106:", err.Error())
 	} else {
@@ -60,7 +60,7 @@ func (l *LoginServer) Run() {
 		}
 
 		if IsBannedIp(clientAddrPort.Addr()) {
-			_ = client.SendBuf(serverpackets.AccountKicked(reason.PERMANENTLY_BANNED))
+			_ = client.SendBuf(serverpackets.AccountKicked(reason.PermanentlyBanned))
 			l.kickClient(client)
 			continue
 		}

@@ -23,5 +23,14 @@ const (
 type AccountKickedReason int32
 
 const (
-	PERMANENTLY_BANNED AccountKickedReason = 0x20
+	PermanentlyBanned AccountKickedReason = 0x20
+)
+
+type AuthLoginResult byte
+
+const (
+	ACCOUNT_BANNED AuthLoginResult = iota
+	ALREADY_ON_LS
+	ALREADY_ON_GS
+	AUTH_SUCCESS
 )

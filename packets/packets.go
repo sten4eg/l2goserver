@@ -19,7 +19,11 @@ func (b *Buffer) Len() int {
 func (b *Buffer) Bytes() []byte {
 	return b.B
 }
-
+func (b *Buffer) CopyBytes() []byte {
+	m := make([]byte, b.Len()+1)
+	_ = copy(m, b.B)
+	return m
+}
 func (b *Buffer) Reset() {
 	b.B = b.B[:0]
 }
