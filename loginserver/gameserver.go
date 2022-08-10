@@ -18,7 +18,7 @@ import (
 type GS struct {
 	utils.NoCopy
 	Connection net.Listener
-	privateKet *rsa.PrivateKey
+	privateKey *rsa.PrivateKey
 	blowfish   *blowfish.Cipher
 }
 type gsCtx struct {
@@ -31,7 +31,7 @@ func (gs *GS) initRSAKeys() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	gs.privateKet = privateKey
+	gs.privateKey = privateKey
 
 }
 func GSInitialize() {
@@ -41,8 +41,6 @@ func GSInitialize() {
 	port := config.GetLoginPortForGameServer()
 
 	blowfishKey := []byte{95, 59, 118, 46, 93, 48, 53, 45, 51, 49, 33, 124, 43, 45, 37, 120, 84, 33, 94, 91, 36, 0}
-	//blowfishKey = []byte("_;v.]05-31!|+-%xT!^[$\\00")
-	// "_;v.]05-31!|+-%xT!^[$\00"
 
 	cipher, err := blowfish.NewCipher(blowfishKey)
 	if err != nil {
@@ -69,10 +67,10 @@ func (gs *GS) Run() {
 			continue
 		}
 
-		tmp := gs.privateKet.PublicKey.N.Bytes()
-		tmp = append([]byte{0}, tmp...)
+		pubKey := make([]byte, 1, 65)
+		pubKey = append(pubKey, gs.privateKey.PublicKey.N.Bytes()...)
 
-		buf := loginserverpackets.InitLS(tmp)
+		buf := loginserverpackets.InitLS(pubKey)
 
 		gs.Send(client, buf)
 		go gs.GsPackageHandler(client)
