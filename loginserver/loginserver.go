@@ -20,7 +20,6 @@ type charactersAccount struct {
 }
 type LoginServer struct {
 	clients         sync.Map
-	gameservers     []*models.GameServer
 	config          config.Conf
 	clientsListener net.Listener
 }

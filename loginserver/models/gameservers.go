@@ -1,69 +1,150 @@
 package models
 
 import (
-	"errors"
+	"crypto/rand"
+	"crypto/rsa"
 	"fmt"
+	"l2goserver/loginserver/crypt"
+	"l2goserver/loginserver/crypt/blowfish"
+	"l2goserver/loginserver/gameserverpackets"
+	"l2goserver/loginserver/loginserverpackets"
+	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
+	"log"
 	"net"
+	"sync"
 )
 
-type GameServer struct {
-	Id     uint8
-	Socket net.Conn
+type GS struct {
+	Connection net.Listener
+	privateKey *rsa.PrivateKey
+	blowfish   *blowfish.Cipher
+	mu         sync.Mutex
+	conn       net.Conn
+	state      state.GameServerState
 }
 
-func NewGameServer() *GameServer {
-	return &GameServer{}
+func (gs *GS) InitRSAKeys() {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
+	if err != nil {
+		panic(err)
+	}
+	gs.privateKey = privateKey
+
 }
 
-func (g *GameServer) Receive() (opcode byte, data []byte, e error) {
-	// Read the first two bytes to define the packet size
-	header := make([]byte, 2)
-	n, err := g.Socket.Read(header)
+func (gs *GS) Run() {
+	for {
 
-	if n != 2 || err != nil {
-		return 0x00, nil, errors.New("12An error occured while reading the packet header.")
+		var err error
+
+		gs.conn, err = gs.Connection.Accept()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		gs.state = state.CONNECTED
+
+		pubKey := make([]byte, 1, 65)
+		pubKey = append(pubKey, gs.privateKey.PublicKey.N.Bytes()...)
+
+		buf := loginserverpackets.InitLS(pubKey)
+
+		gs.Send(buf)
+		go gs.Listen()
+	}
+}
+
+func (gs *GS) Send(buf *packets.Buffer) {
+	size := buf.Len() + 4
+	size = (size + 8) - (size % 8) // padding
+
+	data := make([]byte, 200)
+	copy(data, buf.Bytes())
+	packets.Put(buf)
+
+	rs := crypt.AppendCheckSum(data, size)
+
+	for i := 0; i < size; i += 8 {
+		gs.blowfish.Encrypt(rs, rs, i, i)
 	}
 
-	// Calculate the packet size
-	size := 0
-	size += int(header[0])
-	size += int(header[1]) * 256
+	rs = rs[:size]
+	leng := len(rs) + 2
 
-	// Allocate the appropriate size for our data (size - 2 bytes used for the length
-	data = make([]byte, size-2)
+	s, f := byte(leng>>8), byte(leng&0xff)
+	res := append([]byte{f, s}, rs...)
 
-	// Read the encrypted part of the packet
-	n, err = g.Socket.Read(data)
-
-	if n != size-2 || err != nil {
-		return 0x00, nil, errors.New("An error occured while reading the packet data.")
-	}
-
-	// Print the raw packet
-	fmt.Printf("Raw packet : %X%X\n", header, data)
-
-	// Extract the op code
-	opcode = data[0]
-	data = data[1:]
-	e = nil
-	return
-}
-
-func (g *GameServer) Send(data []byte) error {
-	// Calculate the packet length
-	length := uint16(len(data) + 2)
-
-	// Put everything together
-	buffer := packets.Get()
-	buffer.WriteHU(length)
-	buffer.WriteSlice(data)
-	_, err := g.Socket.Write(buffer.Bytes())
-	packets.Put(buffer)
+	gs.mu.Lock()
+	_, err := gs.conn.Write(res)
+	gs.mu.Unlock()
 
 	if err != nil {
-		return errors.New("The packet couldn't be sent.")
+		panic(err)
 	}
+}
 
-	return nil
+func (gs *GS) Listen() {
+	for {
+		header := make([]byte, 2)
+
+		n, err := gs.conn.Read(header)
+		if err != nil {
+			panic(err)
+		}
+		dataSize := (int(header[0]) | int(header[1])<<8) - 2
+
+		data := make([]byte, dataSize)
+		n, err = gs.conn.Read(data)
+		if err != nil {
+			panic(err)
+		}
+		if n != dataSize {
+			panic("qweqwedsaasdcg")
+		}
+
+		for i := 0; i < dataSize; i += 8 {
+			gs.blowfish.Decrypt(data, data, i, i)
+		}
+
+		ok := crypt.VerifyCheckSum(data, dataSize)
+		if !ok {
+			fmt.Println("Неверная контрольная сумма пакета, закрытие соединения.")
+			gs.conn.Close()
+			return
+		}
+		gs.HandlePackage(data)
+	}
+}
+func (gs *GS) HandlePackage(data []byte) {
+
+	switch gs.state {
+	case state.CONNECTED:
+		if data[0] == 0 {
+			gameserverpackets.BlowFishKey(data, gs)
+		}
+	case state.BF_CONNECTED:
+		if data[0] == 1 {
+			gameserverpackets.GameServerAuth(data)
+		}
+	}
+}
+
+func (gs *GS) GetPrivKey() *rsa.PrivateKey {
+	return gs.privateKey
+}
+func (gs *GS) SetBlowFishKey(key []byte) {
+	cipher, err := blowfish.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+	gs.blowfish = cipher
+}
+func (gs *GS) SetState(state state.GameServerState) {
+	gs.state = state
+}
+
+func (gs *GS) ForceClose(reason state.LoginServerFail) {
+	gs.Send(loginserverpackets.LoginServerFail(reason))
+	_ = gs.conn.Close()
 }

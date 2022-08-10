@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"golang.org/x/exp/constraints"
 	"reflect"
 	"unsafe"
 )
@@ -16,4 +17,13 @@ func S2b(s string) (b []byte) {
 	bh.Cap = sh.Len
 	bh.Len = sh.Len
 	return b
+}
+
+func Contains[T constraints.Integer](slice []T, need T) bool {
+	for i := range slice {
+		if slice[i] == need {
+			return true
+		}
+	}
+	return false
 }

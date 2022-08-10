@@ -24,10 +24,11 @@ type DatabaseType struct {
 }
 
 type LoginServerType struct {
-	Host       string       `json:"host"`
-	AutoCreate bool         `json:"autoCreate"`
-	PortForGS  string       `json:"portForGS"`
-	Database   DatabaseType `json:"database"`
+	Host                 string       `json:"host"`
+	AutoCreate           bool         `json:"autoCreate"`
+	PortForGS            string       `json:"portForGS"`
+	Database             DatabaseType `json:"database"`
+	AllowedServerVersion []byte       `json:"allowedServerVersion"`
 }
 
 type GameServerType struct {
@@ -62,4 +63,8 @@ func GetLoginPortForGameServer() string {
 }
 func GetConfig() Conf {
 	return globalConfig
+}
+
+func GetAllowedServerVersion() []byte {
+	return globalConfig.LoginServer.AllowedServerVersion
 }

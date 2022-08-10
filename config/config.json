@@ -11,7 +11,10 @@
       "password": "postgres",
       "sslMode": "disable",
       "poolMaxConn": "100"
-    }
+    },
+    "allowedServerVersion": [
+      6,14
+    ]
   },
   "gameservers": [
     {

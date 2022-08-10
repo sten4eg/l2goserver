@@ -27,7 +27,7 @@ var StaticBlowfish = []byte{
 
 var IsStatic = true
 
-func verifyChecksum(raw []byte, size int) bool {
+func VerifyCheckSum(raw []byte, size int) bool {
 	var checksum int64
 	count := size - 4
 	var i int
@@ -129,7 +129,7 @@ func DecodeData(raw []byte, blowfishKey []byte) []byte {
 	copy(data, raw[2:])
 	decrypt(&data, size, blowfishKey)
 
-	valid := verifyChecksum(data, size)
+	valid := VerifyCheckSum(data, size)
 	if !valid {
 		log.Println("not verifiedCheckSum")
 	}
