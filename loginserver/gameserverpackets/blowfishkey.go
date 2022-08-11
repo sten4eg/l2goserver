@@ -8,7 +8,7 @@ import (
 )
 
 type GsInterfaceBF interface {
-	GetPrivKey() *rsa.PrivateKey
+	GetPrivateKey() *rsa.PrivateKey
 	SetBlowFishKey([]byte)
 	SetState(state.GameServerState)
 }
@@ -22,7 +22,7 @@ func BlowFishKey(data []byte, client GsInterfaceBF) {
 
 	c := new(big.Int).SetBytes(tempKey)
 
-	decodeData := c.Exp(c, client.GetPrivKey().D, client.GetPrivKey().N).Bytes()
+	decodeData := c.Exp(c, client.GetPrivateKey().D, client.GetPrivateKey().N).Bytes()
 
 	client.SetBlowFishKey(decodeData)
 	client.SetState(state.BF_CONNECTED)

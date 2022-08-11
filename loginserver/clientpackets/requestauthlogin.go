@@ -50,7 +50,7 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l *sync.Map) 
 		return err
 	}
 
-	client.State = state.AuthedLogin
+	client.SetState(state.AuthedLogin)
 	return nil
 }
 

@@ -20,5 +20,6 @@ require (
 	github.com/jackc/puddle v1.2.1 // indirect
 	github.com/lib/pq v1.10.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/quasilyte/go-ruleguard/dsl v0.3.21 // indirect
 	golang.org/x/text v0.3.7 // indirect
 )

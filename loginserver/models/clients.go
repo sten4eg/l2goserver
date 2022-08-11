@@ -30,7 +30,7 @@ type ClientCtx struct {
 	SessionKey      *SessionKey
 	PrivateKey      *rsa.PrivateKey
 	BlowFish        []byte
-	State           state.GameState
+	state           state.GameState
 	JoinedGS        bool
 	Uid             uint64
 }
@@ -86,7 +86,7 @@ func NewClient() *ClientCtx {
 		BlowFish:        blowfish,
 		PrivateKey:      sRSA,
 		ScrambleModulus: scrambleModulus,
-		State:           state.NoState,
+		state:           state.NoState,
 		JoinedGS:        false,
 		Uid:             rand.Uint64(),
 	}
@@ -172,4 +172,12 @@ func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 	}
 
 	return nil
+}
+
+func (c *ClientCtx) SetState(state state.GameState) {
+	c.state = state
+}
+
+func (c *ClientCtx) GetState() state.GameState {
+	return c.state
 }

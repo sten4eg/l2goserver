@@ -19,7 +19,7 @@ func NewAuthGameGuard(request []byte, ctx *models.ClientCtx) error {
 	if ctx.SessionID != sessionId {
 		return wrongSession
 	}
-	ctx.State = state.AuthedGameGuard
+	ctx.SetState(state.AuthedGameGuard)
 	return ctx.SendBuf(serverpackets.Newggauth(ctx.SessionID))
 
 }

@@ -66,7 +66,7 @@ func (l *LoginServer) Run() {
 
 		l.clients.Store(client.Uid, client)
 
-		client.State = state.Connected
+		client.SetState(state.Connected)
 		if err != nil {
 			//	log.Println("Couldn't accept the incoming connection.")
 			continue
@@ -130,7 +130,7 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 			break
 		}
 		//		log.Println("Опкод", opcode)
-		switch client.State {
+		switch client.GetState() {
 		default:
 			//			log.Println("Неопознаный опкод")
 			//			fmt.Printf("opcode: %X, state %X", opcode, client.State)
