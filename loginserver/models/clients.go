@@ -25,7 +25,7 @@ type ClientCtx struct {
 	noCopy          utils.NoCopy //nolint:unused,structcheck
 	Account         Account
 	SessionID       uint32
-	Socket          net.Conn
+	Conn            net.Conn
 	ScrambleModulus []byte
 	SessionKey      *SessionKey
 	PrivateKey      *rsa.PrivateKey
@@ -98,7 +98,7 @@ func savtf(bb []byte) {
 
 func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	header := make([]byte, 2)
-	n, err := c.Socket.Read(header)
+	n, err := c.Conn.Read(header)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -112,7 +112,7 @@ func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	// аллокация требуемого массива байт для входящего пакета
 	data := make([]byte, dataSize)
 
-	n, err = c.Socket.Read(data)
+	n, err = c.Conn.Read(data)
 
 	if n != dataSize || err != nil {
 		return 0, nil, errors.New("длинна прочитанного пакета не соответствует требуемому размеру")
@@ -138,7 +138,7 @@ func (c *ClientCtx) Send(data []byte) error {
 	buffer.WriteHU(length)
 	buffer.WriteSlice(data)
 
-	_, err := c.Socket.Write(buffer.Bytes())
+	_, err := c.Conn.Write(buffer.Bytes())
 	packets.Put(buffer)
 	if err != nil {
 		log.Fatalln(err)
@@ -163,7 +163,7 @@ func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 	toSend.WriteSlice(data)
 	defer packets.Put(toSend)
 
-	_, err := c.Socket.Write(toSend.Bytes())
+	_, err := c.Conn.Write(toSend.Bytes())
 	if err != nil {
 		return errors.New("пакет не может быть отправлен")
 	}
@@ -180,4 +180,11 @@ func (c *ClientCtx) SetState(state state.GameState) {
 
 func (c *ClientCtx) GetState() state.GameState {
 	return c.state
+}
+
+func (c *ClientCtx) CloseConnection() {
+	_ = c.Conn.Close()
+}
+func (c *ClientCtx) GetRemoteAddr() net.Addr {
+	return c.Conn.RemoteAddr()
 }

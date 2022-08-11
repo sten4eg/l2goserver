@@ -3,7 +3,7 @@ package clientpackets
 import (
 	"errors"
 	"l2goserver/loginserver/models"
-	"l2goserver/loginserver/serverpackets"
+	serverpackets2 "l2goserver/loginserver/network/serverpackets"
 	"l2goserver/loginserver/types/reason"
 	"l2goserver/packets"
 )
@@ -23,10 +23,8 @@ func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 	_ = key1
 	_ = err
 
-	buff := packets.Get()
-
 	if !(key1 == client.SessionKey.LoginOk1 && key2 == client.SessionKey.LoginOk2) {
-		err = client.SendBuf(serverpackets.NewLoginFailPacket(reason.AccessFailed, buff))
+		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reason.AccessFailed))
 		if err != nil {
 			return err
 		}
@@ -35,10 +33,10 @@ func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 
 	//TODO коннект к гейм серверу и проверка можно ли к нему подконектиться
 	if true {
-		client.SendBuf(serverpackets.NewPlayOkPacket(client, buff))
+		client.SendBuf(serverpackets2.NewPlayOkPacket(client))
 		client.JoinedGS = true
 	} else {
-		client.SendBuf(serverpackets.NewPlayFailPacket(reason.ServerOverloaded, buff))
+		client.SendBuf(serverpackets2.NewPlayFailPacket(reason.ServerOverloaded))
 		return serverOverload
 	}
 

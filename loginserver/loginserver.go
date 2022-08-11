@@ -2,37 +2,49 @@ package loginserver
 
 import (
 	"l2goserver/config"
-	"l2goserver/loginserver/clientpackets"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/models"
-	"l2goserver/loginserver/serverpackets"
+	clientpackets2 "l2goserver/loginserver/network/clientpackets"
+	serverpackets2 "l2goserver/loginserver/network/serverpackets"
 	"l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 	"net"
 	"net/netip"
 	"sync"
+	"sync/atomic"
 )
 
-type charactersAccount struct {
-	account string
-	count   int
-}
 type LoginServer struct {
 	clients         sync.Map
 	config          config.Conf
 	clientsListener net.Listener
+	accounts        map[string]bool
 }
+
+var Atom atomic.Int64
 
 func New(cfg config.Conf) *LoginServer {
-	return &LoginServer{config: cfg}
+	return &LoginServer{config: cfg, accounts: make(map[string]bool, 1000)}
 }
 
-func (l *LoginServer) Initialize() {
+func (l *LoginServer) IsAccountInLoginAndAddIfNot(account string) bool {
+	inLogin, ok := l.accounts[account]
+	if !ok {
+		l.accounts[account] = true
+		return false
+	}
+	if !inLogin {
+		l.accounts[account] = true
+		return false
+	}
+	return true
+}
+func (l *LoginServer) StartListen() {
 	var err error
 
 	// Listen for client connections
-	l.clientsListener, err = net.Listen("tcp4", ":2105")
+	l.clientsListener, err = net.Listen("tcp4", ":2106")
 	if err != nil {
 		//log.Fatal("Failed to connect to port 2106:", err.Error())
 	} else {
@@ -50,16 +62,16 @@ func (l *LoginServer) Run() {
 		crypt.IsStatic = true // todo костыль?
 
 		client := models.NewClient()
-		client.Socket, err = l.clientsListener.Accept()
+		client.Conn, err = l.clientsListener.Accept()
 
-		clientAddrPort := netip.MustParseAddrPort(client.Socket.LocalAddr().String())
+		clientAddrPort := netip.MustParseAddrPort(client.Conn.LocalAddr().String())
 
 		if !clientAddrPort.IsValid() {
 			continue
 		}
 
 		if IsBannedIp(clientAddrPort.Addr()) {
-			_ = client.SendBuf(serverpackets.AccountKicked(reason.PermanentlyBanned))
+			_ = client.SendBuf(serverpackets2.AccountKicked(reason.PermanentlyBanned))
 			l.kickClient(client)
 			continue
 		}
@@ -77,7 +89,7 @@ func (l *LoginServer) Run() {
 
 }
 func (l *LoginServer) kickClient(client *models.ClientCtx) {
-	err := client.Socket.Close()
+	err := client.Conn.Close()
 	if err != nil {
 		//	log.Fatal(err)
 	}
@@ -86,33 +98,12 @@ func (l *LoginServer) kickClient(client *models.ClientCtx) {
 	//	log.Println("The client has been successfully kicked from the server.")
 }
 
-//func (l *LoginServer) handleGameServerPackets(gameserver *models.GameServer) {
-//	defer gameserver.Socket.Close()
-//
-//	for {
-//		opcode, _, err := gameserver.Receive()
-//
-//		if err != nil {
-//			log.Println(err)
-//			log.Println("Closing the connection...")
-//			break
-//		}
-//
-//		switch opcode {
-//		case 00:
-//			log.Println("A game server sent a request to register")
-//		default:
-//			log.Println("Can't recognize the packet sent by the gameserver")
-//		}
-//	}
-//}
-
 func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	defer l.kickClient(client)
 	var err error
 
 	bufToInit := packets.Get()
-	initPacket := serverpackets.NewInitPacket(client, bufToInit)
+	initPacket := serverpackets2.NewInitPacket(client, bufToInit)
 
 	err = client.SendBuf(initPacket)
 	if err != nil {
@@ -123,6 +114,7 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	}
 
 	for {
+		Atom.Add(1)
 		opcode, data, err := client.Receive()
 		if err != nil {
 			//			log.Println(err)
@@ -138,7 +130,7 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 
 		case state.Connected:
 			if opcode == 7 {
-				err := clientpackets.NewAuthGameGuard(data, client)
+				err := clientpackets2.NewAuthGameGuard(data, client)
 				if err != nil {
 					//	log.Println(err)
 					return
@@ -149,7 +141,7 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 			}
 		case state.AuthedGameGuard:
 			if opcode == 0 {
-				err = clientpackets.NewRequestAuthLogin(data, client, &l.clients)
+				err = clientpackets2.NewRequestAuthLogin(data, client, l)
 				if err != nil {
 					//	log.Println(err)
 					return
@@ -165,14 +157,15 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 				//	fmt.Printf("opcode: %X, state %X", opcode, client.State)
 				return
 			case 02:
-				err = clientpackets.NewRequestPlay(data, client)
+				err = clientpackets2.NewRequestPlay(data, client)
 				if err != nil {
 					//	log.Println(err)
 					return
 				}
 			case 05:
-				requestServerList := serverpackets.NewServerListPacket(client, l.config.GameServers, client.Socket.RemoteAddr().String())
-				err := client.SendBuf(requestServerList)
+				client.CloseConnection()
+				//requestServerList := serverpackets.NewServerListPacket(client, l.config.GameServers, client.conn.RemoteAddr().String())
+				//err := client.SendBuf(requestServerList)
 				if err != nil {
 					//		log.Println(err)
 					return

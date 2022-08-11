@@ -8,14 +8,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"l2goserver/config"
 	"l2goserver/db"
+	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
-	"l2goserver/loginserver/serverpackets"
+	serverpackets2 "l2goserver/loginserver/network/serverpackets"
 	reasons "l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
-	"l2goserver/packets"
 	"l2goserver/utils"
 	"math/big"
-	"sync"
 	"time"
 )
 
@@ -25,45 +24,58 @@ const AccountsInsert = "INSERT INTO accounts (login, password) VALUES ($1, $2)"
 
 var errNoData = errors.New("errNoData")
 
-func NewRequestAuthLogin(request []byte, client *models.ClientCtx, l *sync.Map) error {
-	buff := packets.Get()
+type isInLoginInterface interface {
+	IsAccountInLoginAndAddIfNot(string) bool
+}
 
-	err := validate(request, client, l)
+func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface) error {
+	err := validate(request, client)
 	if err != nil {
-		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.LoginOrPassWrong, buff))
+		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.LoginOrPassWrong))
 		return err
 	}
+	reason := tryCheckinAccount(client, server)
 
-	//TODO есть еще проверки на то подключен ли он к гейм серверу
-	reason := reasons.NoReason
-	// есть ли причина кикать?
 	switch reason {
 	default:
-		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.SystemError, buff))
-	case reasons.NoReason:
-		err = client.SendBuf(serverpackets.NewLoginOkPacket(client, buff))
-	case reasons.InfoWrong, reasons.Ban, reasons.AccountInUse, reasons.LoginOrPassWrong:
-		err = client.SendBuf(serverpackets.NewLoginFailPacket(reason, buff))
+		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.SystemError))
+	case reasons.AUTH_SUCCESS:
+		err = client.SendBuf(serverpackets2.NewLoginOkPacket(client))
+		client.SetState(state.AuthedLogin)
+		// todo assignSessionKeyToClient()
+	case reasons.ACCOUNT_BANNED:
+		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.Ban))
+		client.CloseConnection()
+	case reasons.ALREADY_ON_LS:
+		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.AccountInUse)) //TODO тут надо искать аккаунт который в ЛС и кикать его
+	case reasons.ALREADY_ON_GS:
+		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.AccountInUse)) //TODO тут надо искать аккаунт который в ЛС и кикать его
 	}
 
 	if err != nil {
 		return err
 	}
 
-	client.SetState(state.AuthedLogin)
 	return nil
 }
 
-func tryCheckinAccount(client *models.ClientCtx) reasons.AuthLoginResult {
+func tryCheckinAccount(client *models.ClientCtx, server isInLoginInterface) reasons.AuthLoginResult {
 	if client.Account.AccessLevel < 0 {
 		return reasons.ACCOUNT_BANNED
 	}
 
 	ret := reasons.ALREADY_ON_GS
-	return ret
+	if gameserver.IsAccountInGameServer(client.Account.Login) {
+		return ret
+	}
+	ret = reasons.ALREADY_ON_LS
+	if server.IsAccountInLoginAndAddIfNot(client.Account.Login) {
+		return ret
+	}
+	return reasons.AUTH_SUCCESS
 }
 
-func validate(request []byte, client *models.ClientCtx, l *sync.Map) error {
+func validate(request []byte, client *models.ClientCtx) error {
 	if cap(request) < 128 {
 		return errNoData
 	}
@@ -98,7 +110,7 @@ func validate(request []byte, client *models.ClientCtx, l *sync.Map) error {
 			if err != nil {
 				panic(err)
 			}
-			return validate(request, client, l)
+			return validate(request, client)
 		}
 
 		return err
@@ -108,11 +120,7 @@ func validate(request []byte, client *models.ClientCtx, l *sync.Map) error {
 		return err
 	}
 
-	//if account.AccessLevel < 0 {
-	//	return reasons.Ban, nil
-	//}
-
-	_, err = dbConn.Exec(context.Background(), UserLastInfo, client.Socket.RemoteAddr().String(), time.Now(), login)
+	_, err = dbConn.Exec(context.Background(), UserLastInfo, client.GetRemoteAddr().String(), time.Now(), login)
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,7 @@ package clientpackets
 import (
 	"errors"
 	"l2goserver/loginserver/models"
-	"l2goserver/loginserver/serverpackets"
+	"l2goserver/loginserver/network/serverpackets"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 )

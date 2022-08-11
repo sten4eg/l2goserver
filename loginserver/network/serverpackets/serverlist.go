@@ -7,7 +7,6 @@ import (
 	"l2goserver/packets"
 	"net"
 	"strconv"
-	"time"
 )
 
 func NewServerListPacket(account *models.ClientCtx, gameServers []config.GameServerType, remoteAddr string) *packets.Buffer {
@@ -52,22 +51,4 @@ func NewServerListPacket(account *models.ClientCtx, gameServers []config.GameSer
 		buffer.WriteSingleByte(0)
 	}
 	return buffer
-}
-
-// todo времено офф , пока не придумал другой способ так как при коннекте создается персонаж в гейм сервере и это фейк персонаж
-// Проверка соединения с гейм-сервером
-// Возращает 0x00 - выключен серв, 0x01 включен
-func checkConnect(host string, port int) byte {
-	timeout := time.Millisecond * 500
-	strPort := strconv.Itoa(port)
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, strPort), timeout)
-	if err != nil {
-		return 0x00
-	}
-	//defer conn.Close()
-	if conn != nil {
-
-		return 0x01
-	}
-	return 0x00
 }

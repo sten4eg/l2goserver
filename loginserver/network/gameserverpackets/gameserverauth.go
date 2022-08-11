@@ -1,7 +1,9 @@
 package gameserverpackets
 
 import (
+	"bytes"
 	"l2goserver/config"
+	"l2goserver/loginserver/network/loginserverpackets"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 	"l2goserver/utils"
@@ -11,7 +13,12 @@ import (
 type gsInterfaceGSA interface {
 	ForceClose(state.LoginServerFail)
 	Send(*packets.Buffer)
+	GetGameServersInfoHexId() []byte
+	SetInfoGameServerInfo(string, []byte, byte, int16, int32, bool)
+	GetServerInfoId() byte
+	SetState(state.GameServerState)
 }
+
 type gameServerAuthData struct {
 	hexId               []byte
 	hosts               string
@@ -45,10 +52,10 @@ func GameServerAuth(data []byte, server gsInterfaceGSA) {
 	gsa.hosts = sb.String()
 
 	if handleRegProcess(server, gsa) {
-		//server.Send()
+		server.Send(loginserverpackets.AuthedResponse(server.GetServerInfoId()))
+		server.SetState(state.AUTHED)
 	}
-	var q = 32
-	_ = q
+
 }
 
 func handleRegProcess(server gsInterfaceGSA, data gameServerAuthData) bool {
@@ -57,5 +64,11 @@ func handleRegProcess(server gsInterfaceGSA, data gameServerAuthData) bool {
 		return false
 	}
 
+	if 0 == bytes.Compare(data.hexId, config.GetGameServerHexId()) {
+		server.SetInfoGameServerInfo(data.hosts, data.hexId, data.desiredId, data.port, data.maxPlayers, true)
+	} else {
+		server.ForceClose(state.REASON_ALREADY_LOGGED_IN)
+		return false
+	}
 	return true
 }

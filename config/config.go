@@ -9,8 +9,8 @@ import (
 var globalConfig Conf
 
 type Conf struct {
-	LoginServer LoginServerType  `json:"loginserver"`
-	GameServers []GameServerType `json:"gameservers"`
+	LoginServer LoginServerType `json:"loginserver"`
+	GameServer  GameServerType  `json:"gameserver"`
 }
 
 type DatabaseType struct {
@@ -32,11 +32,11 @@ type LoginServerType struct {
 }
 
 type GameServerType struct {
-	Name       string       `json:"name"`
-	InternalIp string       `json:"internalIp"`
-	Port       string       `json:"port"`
-	MaxPlayers uint16       `json:"maxPlayers"`
-	Database   DatabaseType `json:"database"`
+	Name       string `json:"name"`
+	InternalIp string `json:"internalIp"`
+	Port       string `json:"port"`
+	MaxPlayers uint16 `json:"maxPlayers"`
+	HexId      []byte `json:"hexId"`
 }
 
 func Read() {
@@ -67,4 +67,7 @@ func GetConfig() Conf {
 
 func GetAllowedServerVersion() []byte {
 	return globalConfig.LoginServer.AllowedServerVersion
+}
+func GetGameServerHexId() []byte {
+	return globalConfig.GameServer.HexId
 }

@@ -13,26 +13,16 @@
       "poolMaxConn": "100"
     },
     "allowedServerVersion": [
-      6,14
+      6,
+      14
     ]
   },
-  "gameservers": [
-    {
-      "name": "Bartz",
-      "secret": "CHANGE_ME_PLEASE",
-      "internalIp": "127.0.0.1",
-      "port": "7777",
-      "maxPlayers": 10000,
-      "database": {
-        "name": "postgres",
-        "host": "127.0.0.1",
-        "port": "5432",
-        "user": "postgres",
-        "password": "postgres",
-        "sslMode": "disable",
-        "poolMaxConn": "1"
-      }
-    }
-
-  ]
+  "gameserver": {
+    "name": "Bartz",
+    "secret": "CHANGE_ME_PLEASE",
+    "internalIp": "127.0.0.1",
+    "port": "7777",
+    "maxPlayers": 10000,
+    "hexId": [104,179,1,203,176,237,249,109,32,250,254,154,206,166,16,126]
+  }
 }
