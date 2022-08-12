@@ -19,7 +19,8 @@ type LoginServer struct {
 	clients         sync.Map
 	config          config.Conf
 	clientsListener net.Listener
-	accounts        map[string]bool
+	mu              sync.Mutex
+	accounts        map[string]bool //TODO Ну шо опять мютекс
 }
 
 var Atom atomic.Int64
@@ -39,6 +40,15 @@ func (l *LoginServer) IsAccountInLoginAndAddIfNot(account string) bool {
 		return false
 	}
 	return true
+}
+
+func (l *LoginServer) AssignSessionKeyToClient(account string, client *models.ClientCtx) *models.SessionKey {
+	sessionKey := new(models.SessionKey)
+
+	l.mu.Lock()
+	l.accounts[account] = true
+	l.mu.Unlock()
+	return sessionKey
 }
 func (l *LoginServer) StartListen() {
 	var err error

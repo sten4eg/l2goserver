@@ -188,3 +188,6 @@ func (c *ClientCtx) CloseConnection() {
 func (c *ClientCtx) GetRemoteAddr() net.Addr {
 	return c.Conn.RemoteAddr()
 }
+func (c *ClientCtx) SetSessionKey(sessionKey *SessionKey) {
+	c.SessionKey = sessionKey
+}

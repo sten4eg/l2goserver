@@ -7,7 +7,6 @@ import (
 	"l2goserver/loginserver"
 	"l2goserver/loginserver/gameserver"
 	"log"
-	"time"
 )
 
 func main() {
@@ -34,8 +33,8 @@ func main() {
 }
 
 func F() {
-	for {
-		time.Sleep(time.Second * 1)
-		log.Println(loginserver.Atom.Load())
-	}
+	//for {
+	//	time.Sleep(time.Second * 1)
+	//	log.Println(loginserver.Atom.Load())
+	//}
 }

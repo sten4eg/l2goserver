@@ -10,7 +10,7 @@ import (
 	"l2goserver/db"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
-	serverpackets2 "l2goserver/loginserver/network/serverpackets"
+	"l2goserver/loginserver/network/serverpackets"
 	reasons "l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/utils"
@@ -26,30 +26,32 @@ var errNoData = errors.New("errNoData")
 
 type isInLoginInterface interface {
 	IsAccountInLoginAndAddIfNot(string) bool
+	AssignSessionKeyToClient(string, *models.ClientCtx) *models.SessionKey
 }
 
 func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface) error {
 	err := validate(request, client)
 	if err != nil {
-		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.LoginOrPassWrong))
+		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.LoginOrPassWrong))
 		return err
 	}
 	reason := tryCheckinAccount(client, server)
 
 	switch reason {
 	default:
-		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.SystemError))
+		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.SystemError))
 	case reasons.AUTH_SUCCESS:
-		err = client.SendBuf(serverpackets2.NewLoginOkPacket(client))
+		err = client.SendBuf(serverpackets.NewLoginOkPacket(client))
 		client.SetState(state.AuthedLogin)
-		// todo assignSessionKeyToClient()
+		client.SetSessionKey(server.AssignSessionKeyToClient(client.Account.Login, client))
+		err = client.SendBuf(serverpackets.NewLoginOkPacket(client))
 	case reasons.ACCOUNT_BANNED:
-		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.Ban))
+		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.Ban))
 		client.CloseConnection()
 	case reasons.ALREADY_ON_LS:
-		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.AccountInUse)) //TODO тут надо искать аккаунт который в ЛС и кикать его
+		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.AccountInUse)) //TODO тут надо искать аккаунт который в ЛС и кикать его
 	case reasons.ALREADY_ON_GS:
-		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reasons.AccountInUse)) //TODO тут надо искать аккаунт который в ЛС и кикать его
+		err = client.SendBuf(serverpackets.NewLoginFailPacket(reasons.AccountInUse)) //TODO тут надо искать аккаунт который в ЛС и кикать его
 	}
 
 	if err != nil {
