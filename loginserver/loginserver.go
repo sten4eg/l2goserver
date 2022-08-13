@@ -80,14 +80,16 @@ func (l *LoginServer) RemoveAuthedLoginClient(account string) {
 	delete(l.accounts, account)
 	l.mu.Unlock()
 }
-func (l *LoginServer) StartListen() {
+
+func (l *LoginServer) StartListen() error {
 	var err error
 
 	l.clientsListener, err = net.Listen("tcp4", ":2106")
 	if err != nil {
-		log.Fatal("Не удалось подключиться к порту 2106: ", err.Error())
+		return err
 	}
 
+	return nil
 }
 
 func (l *LoginServer) Run() {

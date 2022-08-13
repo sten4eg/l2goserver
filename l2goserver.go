@@ -7,24 +7,13 @@ import (
 	"l2goserver/loginserver"
 	"l2goserver/loginserver/gameserver"
 	"log"
-	"net"
 	"runtime/debug"
 	"time"
 )
 
-type cli struct {
-	con net.Conn
-}
-
-func (c *cli) Clos() {
-	if c.con != nil {
-		_ = c.con.Close()
-	}
-}
 func main() {
-	var cl cli
-	cl.Clos()
-	debug.SetGCPercent(20000)
+	debug.SetGCPercent(200000)
+
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfileAllocs, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
@@ -44,7 +33,10 @@ func main() {
 
 	db.ConfigureDB()
 	loginserver.LoadBannedIp()
-	loginServer.StartListen()
+	err = loginServer.StartListen()
+	if err != nil {
+		log.Fatal(err)
+	}
 	loginServer.Run()
 
 }
