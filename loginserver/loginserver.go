@@ -76,6 +76,10 @@ func (l *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *models
 
 func (l *LoginServer) RemoveAuthedLoginClient(account string) {
 	l.mu.Lock()
+	client, ok := l.accounts[account]
+	if ok && client != nil {
+		client.CloseConnection()
+	}
 	delete(l.accounts, account)
 	l.mu.Unlock()
 }
@@ -97,9 +101,14 @@ func (l *LoginServer) Run() {
 		crypt.IsStatic = true // todo костыль?
 
 		client := models.NewClient()
-		client.Conn, err = l.clientsListener.Accept()
+		conn, err := l.clientsListener.Accept()
+		if err != nil {
+			log.Println("Accept() error", err)
+			continue
+		}
+		client.SetConn(conn)
 
-		clientAddrPort := netip.MustParseAddrPort(client.Conn.LocalAddr().String())
+		clientAddrPort := netip.MustParseAddrPort(client.GetLocalAddr().String())
 
 		if !clientAddrPort.IsValid() {
 			continue
@@ -107,34 +116,20 @@ func (l *LoginServer) Run() {
 
 		if IsBannedIp(clientAddrPort.Addr()) {
 			_ = client.SendBuf(ls2c.AccountKicked(reason.PermanentlyBanned))
-			l.kickClient(client)
+			client.CloseConnection()
 			continue
 		}
-
-		l.clients.Store(client.Uid, client)
 
 		client.SetState(state.Connected)
-		if err != nil {
-			//	log.Println("Couldn't accept the incoming connection.")
-			continue
-		} else {
-			go l.handleClientPackets(client)
-		}
+
+		go l.handleClientPackets(client)
+
 	}
 
-}
-func (l *LoginServer) kickClient(client *models.ClientCtx) {
-	err := client.Conn.Close()
-	if err != nil {
-		//	log.Fatal(err)
-	}
-	l.clients.Delete(client.Uid)
-
-	//	log.Println("The client has been successfully kicked from the server.")
 }
 
 func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
-	defer l.kickClient(client)
+	defer client.CloseConnection()
 	var err error
 
 	bufToInit := packets.Get()

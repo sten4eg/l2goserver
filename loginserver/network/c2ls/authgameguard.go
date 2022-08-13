@@ -8,7 +8,7 @@ import (
 	"l2goserver/packets"
 )
 
-var wrongSession = errors.New("sessionId не совпал")
+var errWrongSession = errors.New("sessionId не совпал")
 
 func NewAuthGameGuard(request []byte, ctx *models.ClientCtx) error {
 	var sessionId uint32
@@ -17,7 +17,7 @@ func NewAuthGameGuard(request []byte, ctx *models.ClientCtx) error {
 	sessionId = packet.ReadUInt32()
 
 	if ctx.SessionID != sessionId {
-		return wrongSession
+		return errWrongSession
 	}
 	ctx.SetState(state.AuthedGameGuard)
 	return ctx.SendBuf(ls2c.Newggauth(ctx.SessionID))

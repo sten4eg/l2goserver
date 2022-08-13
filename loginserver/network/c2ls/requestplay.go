@@ -8,7 +8,7 @@ import (
 	"l2goserver/packets"
 )
 
-var serverOverload = errors.New("serverOverload")
+var errServerOverload = errors.New("serverOverload")
 
 func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 	var packet = packets.NewReader(request)
@@ -28,7 +28,7 @@ func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 		if err != nil {
 			return err
 		}
-		return serverOverload
+		return errServerOverload
 	}
 
 	//TODO коннект к гейм серверу и проверка можно ли к нему подконектиться
@@ -37,7 +37,7 @@ func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 		client.JoinedGS = true
 	} else {
 		_ = client.SendBuf(serverpackets2.NewPlayFailPacket(reason.ServerOverloaded))
-		return serverOverload
+		return errServerOverload
 	}
 
 	return err

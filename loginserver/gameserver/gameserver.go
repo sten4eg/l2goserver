@@ -128,7 +128,7 @@ func (gs *GS) Listen() {
 		ok := crypt.VerifyCheckSum(data, dataSize)
 		if !ok {
 			fmt.Println("Неверная контрольная сумма пакета, закрытие соединения.")
-			gs.conn.Close()
+			_ = gs.conn.Close()
 			return
 		}
 		gs.HandlePackage(data)

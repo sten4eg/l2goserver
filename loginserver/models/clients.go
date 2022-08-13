@@ -24,7 +24,7 @@ type ClientCtx struct {
 	noCopy          utils.NoCopy //nolint:unused,structcheck
 	Account         Account
 	SessionID       uint32
-	Conn            net.Conn
+	conn            net.Conn
 	ScrambleModulus []byte
 	SessionKey      *SessionKey
 	PrivateKey      *rsa.PrivateKey
@@ -91,9 +91,12 @@ func NewClient() *ClientCtx {
 	}
 }
 
+func (c *ClientCtx) SetConn(conn net.Conn) {
+
+}
 func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	header := make([]byte, 2)
-	n, err := c.Conn.Read(header)
+	n, err := c.conn.Read(header)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -107,7 +110,7 @@ func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	// аллокация требуемого массива байт для входящего пакета
 	data := make([]byte, dataSize)
 
-	n, err = c.Conn.Read(data)
+	n, err = c.conn.Read(data)
 
 	if n != dataSize || err != nil {
 		return 0, nil, errors.New("длинна прочитанного пакета не соответствует требуемому размеру")
@@ -133,7 +136,7 @@ func (c *ClientCtx) Send(data []byte) error {
 	buffer.WriteHU(length)
 	buffer.WriteSlice(data)
 
-	_, err := c.Conn.Write(buffer.Bytes())
+	_, err := c.conn.Write(buffer.Bytes())
 	packets.Put(buffer)
 	if err != nil {
 		log.Fatalln(err)
@@ -158,7 +161,7 @@ func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 	toSend.WriteSlice(data)
 	defer packets.Put(toSend)
 
-	_, err := c.Conn.Write(toSend.Bytes())
+	_, err := c.conn.Write(toSend.Bytes())
 	if err != nil {
 		return errors.New("пакет не может быть отправлен")
 	}
@@ -178,11 +181,18 @@ func (c *ClientCtx) GetState() state.GameState {
 }
 
 func (c *ClientCtx) CloseConnection() {
-	_ = c.Conn.Close()
-}
-func (c *ClientCtx) GetRemoteAddr() net.Addr {
-	return c.Conn.RemoteAddr()
+	if c.conn != nil {
+		_ = c.conn.Close()
+	}
 }
 func (c *ClientCtx) SetSessionKey(sessionKey *SessionKey) {
 	c.SessionKey = sessionKey
+}
+
+func (c *ClientCtx) GetRemoteAddr() net.Addr {
+	return c.conn.RemoteAddr()
+}
+
+func (c *ClientCtx) GetLocalAddr() net.Addr {
+	return c.conn.LocalAddr()
 }

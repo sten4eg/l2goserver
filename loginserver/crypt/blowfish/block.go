@@ -68,7 +68,7 @@ func ExpandKey(key []byte, c *Cipher) {
 // schedule. While ExpandKey is essentially expandKeyWithSalt with an all-zero
 // salt passed in, reusing ExpandKey turns out to be a place of inefficiency
 // and specializing it here is useful.
-func expandKeyWithSalt(key []byte, salt []byte, c *Cipher) {
+func expandKeyWithSalt(key, salt []byte, c *Cipher) {
 	j := 0
 	for i := 0; i < 18; i++ {
 		c.p[i] ^= getNextWord(key, &j)
