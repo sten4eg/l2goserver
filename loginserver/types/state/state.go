@@ -12,15 +12,19 @@ const (
 type GameServerState byte
 
 const (
-	CONNECTED    GameServerState = 0
-	BF_CONNECTED GameServerState = 1
-	AUTHED       GameServerState = 2
+	CONNECTED   GameServerState = 0
+	BfConnected GameServerState = 1
+	AUTHED      GameServerState = 2
 )
 
 type LoginServerFail byte
 
 const (
-	REASON_INVALID_GAME_SERVER_VERSION LoginServerFail = 0
-	REASON_WRONG_HEXID                 LoginServerFail = 3
-	REASON_ALREADY_LOGGED_IN           LoginServerFail = 7
+	ReasonInvalidGameServerVersion LoginServerFail = 0
+	REASON_WRONG_HEXID             LoginServerFail = 3
+	ReasonAlreadyLoggedIn          LoginServerFail = 7
 )
+
+type GameServerStatus byte
+
+const StatusDown GameServerStatus = 0x04

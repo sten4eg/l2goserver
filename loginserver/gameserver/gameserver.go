@@ -9,8 +9,9 @@ import (
 	"l2goserver/config"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/crypt/blowfish"
-	gameserverpackets2 "l2goserver/loginserver/network/gameserverpackets"
-	loginserverpackets2 "l2goserver/loginserver/network/loginserverpackets"
+	"l2goserver/loginserver/models"
+	"l2goserver/loginserver/network/gs2ls"
+	"l2goserver/loginserver/network/ls2gs"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 	"log"
@@ -26,6 +27,7 @@ type GS struct {
 	conn            net.Conn
 	state           state.GameServerState
 	gameServersInfo GameServerInfo
+	ls              LoginServInterface
 }
 
 var gameServerInstance *GS
@@ -50,6 +52,31 @@ type GameServerInfo struct {
 
 func GetGameServerInstance() *GS {
 	return gameServerInstance
+}
+func (gs *GS) GetGameServerConn() net.Conn {
+	return gs.conn
+}
+func (gs *GS) GetGameServerInfoPort() int16 {
+	return gs.gameServersInfo.port
+}
+func (gs *GS) GetGameServerInfoId() byte {
+	return gs.gameServersInfo.Id
+}
+func (gs *GS) GetGameServerInfoMaxPlayer() int32 {
+	return gs.gameServersInfo.maxPlayer
+}
+func (gs *GS) GetGameServerInfoAgeLimit() int32 {
+	return gs.gameServersInfo.ageLimit
+}
+func (gs *GS) GetGameServerInfoType() int32 {
+	return gs.gameServersInfo.serverType
+}
+
+func (gs *GS) GetGameServerInfoStatus() int32 {
+	return gs.gameServersInfo.status
+}
+func (gs *GS) GetGameServerInfoShowBracket() bool {
+	return gs.gameServersInfo.showBracket
 }
 
 func (gs *GS) AddAccountOnGameServer(account string) {
@@ -111,7 +138,7 @@ func (gs *GS) Run() {
 		pubKey := make([]byte, 1, 65)
 		pubKey = append(pubKey, gs.privateKey.PublicKey.N.Bytes()...)
 
-		buf := loginserverpackets2.InitLS(pubKey)
+		buf := ls2gs.InitLS(pubKey)
 
 		gs.Send(buf)
 		go gs.Listen()
@@ -159,19 +186,20 @@ func (gs *GS) HandlePackage(data []byte) {
 	switch gs.state {
 	case state.CONNECTED:
 		if opcode == 0 {
-			gameserverpackets2.BlowFishKey(data, gs)
+			gs2ls.BlowFishKey(data, gs)
 		}
-	case state.BF_CONNECTED:
+	case state.BfConnected:
 		if opcode == 1 {
-			gameserverpackets2.GameServerAuth(data, gs)
+			gs2ls.GameServerAuth(data, gs)
 		}
 	case state.AUTHED:
 		switch opcode {
 		case 0x02:
-			gameserverpackets2.PlayerInGame(data, gs)
+			gs2ls.PlayerInGame(data, gs)
 		case 0x06:
-			gameserverpackets2.ServerStatus(data, gs)
-
+			gs2ls.ServerStatus(data, gs)
+		case 0x05:
+			gs2ls.PlayerAuthRequest(data, gs)
 		}
 
 	}
@@ -219,7 +247,7 @@ func (gs *GS) SetState(state state.GameServerState) {
 	gs.state = state
 }
 func (gs *GS) ForceClose(reason state.LoginServerFail) {
-	gs.Send(loginserverpackets2.LoginServerFail(reason))
+	gs.Send(ls2gs.LoginServerFail(reason))
 	err := gs.conn.Close()
 	if err != nil {
 		log.Println(err)
@@ -255,4 +283,22 @@ func (gs *GS) HasAccountOnGameServer(account string) bool {
 	}
 	gs.gameServersInfo.accounts.mu.Unlock()
 	return inGame
+}
+
+type LoginServInterface interface {
+	IsLoginServer() bool
+	GetSessionKey(string) *models.SessionKey
+	RemoveAuthedLoginClient(string)
+}
+
+func (gs *GS) AttachLS(i LoginServInterface) {
+	gs.ls = i
+}
+
+func (gs *GS) LoginServerGetSessionKey(account string) *models.SessionKey {
+	return gs.ls.GetSessionKey(account)
+}
+
+func (gs *GS) LoginServerRemoveAuthedLoginClient(account string) {
+	gs.ls.RemoveAuthedLoginClient(account)
 }

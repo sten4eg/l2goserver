@@ -1,0 +1,35 @@
+package gs2ls
+
+import (
+	"l2goserver/loginserver/models"
+	"l2goserver/loginserver/network/ls2gs"
+	"l2goserver/packets"
+)
+
+type playerAuthRequestInterface interface {
+	Send(*packets.Buffer)
+	LoginServerGetSessionKey(string) *models.SessionKey
+	LoginServerRemoveAuthedLoginClient(string)
+}
+
+func PlayerAuthRequest(data []byte, gs playerAuthRequestInterface) {
+	packet := packets.NewReader(data)
+	_ = packet.ReadSingleByte() // пропускаем опкод
+	account := packet.ReadString()
+	playerKey1 := packet.ReadUInt32()
+	playerKey2 := packet.ReadUInt32()
+	loginKey1 := packet.ReadUInt32()
+	loginKey2 := packet.ReadUInt32()
+
+	key := gs.LoginServerGetSessionKey(account)
+	var buf *packets.Buffer
+
+	if key != nil || playerKey1 != key.PlayOk1 || playerKey2 != key.PlayOk2 || loginKey1 != key.LoginOk1 || loginKey2 != key.LoginOk2 {
+		gs.LoginServerRemoveAuthedLoginClient(account)
+		buf = ls2gs.PlayerAuthResponse(account, true)
+	} else {
+		buf = ls2gs.PlayerAuthResponse(account, false)
+	}
+
+	gs.Send(buf)
+}

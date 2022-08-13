@@ -6,11 +6,12 @@ import (
 )
 
 type Account struct {
-	Login       string
-	Password    string
-	CreatedAt   pgtype.Timestamp
-	LastActive  pgtype.Timestamp
-	AccessLevel int8
-	LastIp      sql.NullString
-	LastServer  int8
+	Login          string
+	Password       string
+	CreatedAt      pgtype.Timestamp
+	LastActive     pgtype.Timestamp
+	AccessLevel    int8
+	LastIp         sql.NullString
+	LastServer     int8
+	CharacterCount uint8
 }

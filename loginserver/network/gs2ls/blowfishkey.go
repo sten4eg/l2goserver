@@ -1,4 +1,4 @@
-package gameserverpackets
+package gs2ls
 
 import (
 	"crypto/rsa"
@@ -25,5 +25,5 @@ func BlowFishKey(data []byte, client GsInterfaceBF) {
 	decodeData := c.Exp(c, client.GetPrivateKey().D, client.GetPrivateKey().N).Bytes()
 
 	client.SetBlowFishKey(decodeData)
-	client.SetState(state.BF_CONNECTED)
+	client.SetState(state.BfConnected)
 }

@@ -1,4 +1,4 @@
-package gameserverpackets
+package gs2ls
 
 import "l2goserver/packets"
 

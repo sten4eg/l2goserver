@@ -152,7 +152,7 @@ func (c *ClientCtx) Send(data []byte) error {
 
 func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 	data := buffer.Bytes()
-	packets.Put(buffer)
+	defer packets.Put(buffer)
 
 	data = crypt.EncodeData(data, c.BlowFish)
 	// Вычисление длинны пакета

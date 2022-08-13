@@ -1,4 +1,4 @@
-package loginserverpackets
+package ls2gs
 
 import (
 	"l2goserver/loginserver/types/state"

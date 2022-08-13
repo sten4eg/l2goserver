@@ -1,9 +1,9 @@
-package clientpackets
+package c2ls
 
 import (
 	"errors"
 	"l2goserver/loginserver/models"
-	"l2goserver/loginserver/network/serverpackets"
+	"l2goserver/loginserver/network/ls2c"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 )
@@ -20,6 +20,6 @@ func NewAuthGameGuard(request []byte, ctx *models.ClientCtx) error {
 		return wrongSession
 	}
 	ctx.SetState(state.AuthedGameGuard)
-	return ctx.SendBuf(serverpackets.Newggauth(ctx.SessionID))
+	return ctx.SendBuf(ls2c.Newggauth(ctx.SessionID))
 
 }

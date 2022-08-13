@@ -1,9 +1,9 @@
-package gameserverpackets
+package gs2ls
 
 import (
 	"bytes"
 	"l2goserver/config"
-	"l2goserver/loginserver/network/loginserverpackets"
+	"l2goserver/loginserver/network/ls2gs"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 	"l2goserver/utils"
@@ -52,7 +52,7 @@ func GameServerAuth(data []byte, server gsInterfaceGSA) {
 	gsa.hosts = sb.String()
 
 	if handleRegProcess(server, gsa) {
-		server.Send(loginserverpackets.AuthedResponse(server.GetServerInfoId()))
+		server.Send(ls2gs.AuthedResponse(server.GetServerInfoId()))
 		server.SetState(state.AUTHED)
 	}
 
@@ -60,14 +60,14 @@ func GameServerAuth(data []byte, server gsInterfaceGSA) {
 
 func handleRegProcess(server gsInterfaceGSA, data gameServerAuthData) bool {
 	if !utils.Contains(config.GetAllowedServerVersion(), data.serverVersion) {
-		server.ForceClose(state.REASON_INVALID_GAME_SERVER_VERSION)
+		server.ForceClose(state.ReasonInvalidGameServerVersion)
 		return false
 	}
 
 	if 0 == bytes.Compare(data.hexId, config.GetGameServerHexId()) {
 		server.SetInfoGameServerInfo(data.hosts, data.hexId, data.desiredId, data.port, data.maxPlayers, true)
 	} else {
-		server.ForceClose(state.REASON_ALREADY_LOGGED_IN)
+		server.ForceClose(state.ReasonAlreadyLoggedIn)
 		return false
 	}
 	return true

@@ -1,4 +1,4 @@
-package serverpackets
+package ls2c
 
 import (
 	"l2goserver/loginserver/types/reason"

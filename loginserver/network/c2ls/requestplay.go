@@ -1,9 +1,9 @@
-package clientpackets
+package c2ls
 
 import (
 	"errors"
 	"l2goserver/loginserver/models"
-	serverpackets2 "l2goserver/loginserver/network/serverpackets"
+	serverpackets2 "l2goserver/loginserver/network/ls2c"
 	"l2goserver/loginserver/types/reason"
 	"l2goserver/packets"
 )
@@ -33,12 +33,12 @@ func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 
 	//TODO коннект к гейм серверу и проверка можно ли к нему подконектиться
 	if true {
-		client.SendBuf(serverpackets2.NewPlayOkPacket(client))
+		err = client.SendBuf(serverpackets2.NewPlayOkPacket(client))
 		client.JoinedGS = true
 	} else {
-		client.SendBuf(serverpackets2.NewPlayFailPacket(reason.ServerOverloaded))
+		err = client.SendBuf(serverpackets2.NewPlayFailPacket(reason.ServerOverloaded))
 		return serverOverload
 	}
 
-	return nil
+	return err
 }

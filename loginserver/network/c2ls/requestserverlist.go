@@ -1,4 +1,4 @@
-package clientpackets
+package c2ls
 
 import (
 	"l2goserver/packets"

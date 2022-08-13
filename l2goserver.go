@@ -10,6 +10,10 @@ import (
 )
 
 func main() {
+	q := []byte{1, 2, 3, 4}
+	w := q[:]
+	e := q[0:]
+	_, _ = w, e
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	defer log.Println(loginserver.Atom.Load())
 
@@ -22,9 +26,10 @@ func main() {
 	//defer profile.Start(profile.MutexProfile, profile.ProfilePath(".")).Stop()
 	go F()
 	config.Read()
+	gameserver.GameServerHandlerInit()
+
 	loginServer := loginserver.New(config.GetConfig())
 
-	gameserver.GameServerHandlerInit()
 	db.ConfigureDB()
 	loginserver.LoadBannedIp()
 	loginServer.StartListen()
