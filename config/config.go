@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 )
 
@@ -39,19 +38,20 @@ type GameServerType struct {
 	HexId      []byte `json:"hexId"`
 }
 
-func Read() {
+func Read() error {
 	var config Conf
 	file, err := os.Open("./config/config.json")
 	if err != nil {
-		log.Fatal("Failed to load config file")
+		return err
 	}
 
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&config)
 	if err != nil {
-		log.Fatal("Failed to decode config file")
+		return err
 	}
 	globalConfig = config
+	return nil
 }
 
 func AutoCreateAccounts() bool {

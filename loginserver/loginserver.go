@@ -43,9 +43,7 @@ func (l *LoginServer) GetSessionKey(account string) *models.SessionKey {
 	}
 	return q.SessionKey
 }
-func (l *LoginServer) IsLoginServer() bool {
-	return true
-}
+
 func (l *LoginServer) IsAccountInLoginAndAddIfNot(client *models.ClientCtx) bool {
 	inLogin, ok := l.accounts[client.Account.Login]
 	if !ok {
@@ -99,7 +97,12 @@ func (l *LoginServer) Run() {
 		var err error
 		crypt.IsStatic = true // todo костыль?
 
-		client := models.NewClient()
+		client, err := models.NewClient()
+		if err != nil {
+			log.Println("Не создан клиент", err)
+			continue
+		}
+
 		conn, err := l.clientsListener.Accept()
 		if err != nil {
 			log.Println("Accept() error", err)

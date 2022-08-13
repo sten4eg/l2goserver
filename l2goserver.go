@@ -34,7 +34,10 @@ func main() {
 	//defer profile.Start(profile.GoroutineProfile, profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MutexProfile, profile.ProfilePath(".")).Stop()
 	go F()
-	config.Read()
+	err := config.Read()
+	if err != nil {
+		log.Fatal("Ошибка чтения конфига", err)
+	}
 	gameserver.GameServerHandlerInit()
 
 	loginServer := loginserver.New(config.GetConfig())

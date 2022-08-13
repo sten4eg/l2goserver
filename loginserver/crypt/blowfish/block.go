@@ -4,22 +4,6 @@
 
 package blowfish
 
-// getNextWord returns the next big-endian uint32 value from the byte slice
-// at the given position in a circular manner, updating the position.
-func getNextWord(b []byte, pos *int) uint32 {
-	var w uint32
-	j := *pos
-	for i := 0; i < 4; i++ {
-		w = w<<8 | uint32(b[j])
-		j++
-		if j >= len(b) {
-			j = 0
-		}
-	}
-	*pos = j
-	return w
-}
-
 // ExpandKey performs a key expansion on the given *Cipher. Specifically, it
 // performs the Blowfish algorithm's key schedule which sets up the *Cipher's
 // pi and substitution tables for calls to Encrypt. This is used, primarily,
@@ -59,54 +43,6 @@ func ExpandKey(key []byte, c *Cipher) {
 		c.s2[i], c.s2[i+1] = l, r
 	}
 	for i := 0; i < 256; i += 2 {
-		l, r = encryptBlock(l, r, c)
-		c.s3[i], c.s3[i+1] = l, r
-	}
-}
-
-// This is similar to ExpandKey, but folds the salt during the key
-// schedule. While ExpandKey is essentially expandKeyWithSalt with an all-zero
-// salt passed in, reusing ExpandKey turns out to be a place of inefficiency
-// and specializing it here is useful.
-func expandKeyWithSalt(key, salt []byte, c *Cipher) {
-	j := 0
-	for i := 0; i < 18; i++ {
-		c.p[i] ^= getNextWord(key, &j)
-	}
-
-	j = 0
-	var l, r uint32
-	for i := 0; i < 18; i += 2 {
-		l ^= getNextWord(salt, &j)
-		r ^= getNextWord(salt, &j)
-		l, r = encryptBlock(l, r, c)
-		c.p[i], c.p[i+1] = l, r
-	}
-
-	for i := 0; i < 256; i += 2 {
-		l ^= getNextWord(salt, &j)
-		r ^= getNextWord(salt, &j)
-		l, r = encryptBlock(l, r, c)
-		c.s0[i], c.s0[i+1] = l, r
-	}
-
-	for i := 0; i < 256; i += 2 {
-		l ^= getNextWord(salt, &j)
-		r ^= getNextWord(salt, &j)
-		l, r = encryptBlock(l, r, c)
-		c.s1[i], c.s1[i+1] = l, r
-	}
-
-	for i := 0; i < 256; i += 2 {
-		l ^= getNextWord(salt, &j)
-		r ^= getNextWord(salt, &j)
-		l, r = encryptBlock(l, r, c)
-		c.s2[i], c.s2[i+1] = l, r
-	}
-
-	for i := 0; i < 256; i += 2 {
-		l ^= getNextWord(salt, &j)
-		r ^= getNextWord(salt, &j)
 		l, r = encryptBlock(l, r, c)
 		c.s3[i], c.s3[i+1] = l, r
 	}

@@ -3,7 +3,6 @@ package gameserver
 import "l2goserver/loginserver/models"
 
 type LoginServInterface interface {
-	IsLoginServer() bool
 	GetSessionKey(string) *models.SessionKey
 	RemoveAuthedLoginClient(string)
 }

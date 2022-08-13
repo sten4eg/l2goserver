@@ -18,9 +18,6 @@ package blowfish // import "golang.org/x/crypto/blowfish"
 
 import "strconv"
 
-// The Blowfish block size in bytes.
-const BlockSize = 8
-
 // A Cipher is an instance of Blowfish encryption using a particular key.
 type Cipher struct {
 	p              [18]uint32
@@ -44,28 +41,6 @@ func NewCipher(key []byte) (*Cipher, error) {
 	ExpandKey(key, &result)
 	return &result, nil
 }
-
-// NewSaltedCipher creates a returns a Cipher that folds a salt into its key
-// schedule. For most purposes, NewCipher, instead of NewSaltedCipher, is
-// sufficient and desirable. For bcrypt compatibility, the key can be over 56
-// bytes.
-func NewSaltedCipher(key, salt []byte) (*Cipher, error) {
-	if len(salt) == 0 {
-		return NewCipher(key)
-	}
-	var result Cipher
-	if k := len(key); k < 1 {
-		return nil, KeySizeError(k)
-	}
-	initCipher(&result)
-	expandKeyWithSalt(key, salt, &result)
-	return &result, nil
-}
-
-// BlockSize returns the Blowfish block size, 8 bytes.
-// It is necessary to satisfy the Block interface in the
-// package "crypto/cipher".
-func (c *Cipher) BlockSize() int { return BlockSize }
 
 // Encrypt encrypts the 8-byte buffer src using the key k
 // and stores the result in dst.
