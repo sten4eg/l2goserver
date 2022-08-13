@@ -42,7 +42,6 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLo
 	default:
 		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.SystemError))
 	case reasons.AUTH_SUCCESS:
-		err = client.SendBuf(ls2c.NewLoginOkPacket(client))
 		client.SetState(state.AuthedLogin)
 		client.SetSessionKey(server.AssignSessionKeyToClient(client))
 		err = client.SendBuf(ls2c.NewLoginOkPacket(client))

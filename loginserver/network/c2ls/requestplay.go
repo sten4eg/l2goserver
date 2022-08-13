@@ -36,7 +36,7 @@ func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 		err = client.SendBuf(serverpackets2.NewPlayOkPacket(client))
 		client.JoinedGS = true
 	} else {
-		err = client.SendBuf(serverpackets2.NewPlayFailPacket(reason.ServerOverloaded))
+		_ = client.SendBuf(serverpackets2.NewPlayFailPacket(reason.ServerOverloaded))
 		return serverOverload
 	}
 

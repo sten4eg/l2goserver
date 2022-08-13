@@ -3,9 +3,7 @@ package gameserver
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"errors"
 	"fmt"
-	"io"
 	"l2goserver/config"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/crypt/blowfish"
@@ -103,11 +101,14 @@ func (gs *GS) Listen() {
 
 		n, err := gs.conn.Read(header)
 		if err != nil {
-			if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
-				return
-			}
 			log.Println(err)
+			return
 		}
+		if n != 2 {
+			log.Println("Должно быть 2 байта размера")
+			return
+		}
+
 		dataSize := (int(header[0]) | int(header[1])<<8) - 2
 
 		data := make([]byte, dataSize)
@@ -116,7 +117,8 @@ func (gs *GS) Listen() {
 			panic(err)
 		}
 		if n != dataSize {
-			panic("qweqwedsaasdcg")
+			log.Println("Прочитанно байт меньше чем объявлено в размере пакета")
+			return
 		}
 
 		for i := 0; i < dataSize; i += 8 {

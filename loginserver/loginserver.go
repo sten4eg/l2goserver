@@ -10,6 +10,7 @@ import (
 	"l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
+	"log"
 	"math/rand"
 	"net"
 	"net/netip"
@@ -81,15 +82,11 @@ func (l *LoginServer) RemoveAuthedLoginClient(account string) {
 func (l *LoginServer) StartListen() {
 	var err error
 
-	// Listen for client connections
 	l.clientsListener, err = net.Listen("tcp4", ":2106")
 	if err != nil {
-		//log.Fatal("Failed to connect to port 2106:", err.Error())
-	} else {
-		//log.Println("Login server is listening on port 2106")
+		log.Fatal("Не удалось подключиться к порту 2106: ", err.Error())
 	}
 
-	// Listen for game servers connections
 }
 
 func (l *LoginServer) Run() {
@@ -145,10 +142,8 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 
 	err = client.SendBuf(initPacket)
 	if err != nil {
-		//		log.Println(err)
+		log.Println(err)
 		return
-	} else {
-		//		log.Println("Init packet send")
 	}
 
 	for {
