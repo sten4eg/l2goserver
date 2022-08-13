@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 	"l2goserver/config"
 	"l2goserver/db"
+	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/ls2c"
-	"l2goserver/loginserver/tp"
 	reasons "l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/utils"
@@ -68,7 +68,7 @@ func tryCheckinAccount(client *models.ClientCtx, server isInLoginInterface) reas
 	}
 
 	ret := reasons.ALREADY_ON_GS
-	if tp.IsAccountInGameServer(client.Account.Login) {
+	if gameserver.IsAccountInGameServer(client.Account.Login) {
 		return ret
 	}
 	ret = reasons.ALREADY_ON_LS

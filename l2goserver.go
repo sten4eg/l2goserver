@@ -7,16 +7,13 @@ import (
 	"l2goserver/loginserver"
 	"l2goserver/loginserver/gameserver"
 	"log"
+	"runtime/debug"
+	"time"
 )
 
 func main() {
-	q := []byte{1, 2, 3, 4}
-	w := q[:]
-	e := q[0:]
-	_, _ = w, e
+	debug.SetGCPercent(20000)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	defer log.Println(loginserver.Atom.Load())
-
 	defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfileAllocs, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfileHeap, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
@@ -38,8 +35,8 @@ func main() {
 }
 
 func F() {
-	//for {
-	//	time.Sleep(time.Second * 1)
-	//	log.Println(loginserver.Atom.Load())
-	//}
+	for {
+		time.Sleep(time.Second * 1)
+		log.Println(loginserver.Atom.Load())
+	}
 }

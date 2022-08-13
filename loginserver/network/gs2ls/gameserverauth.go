@@ -10,10 +10,9 @@ import (
 	"strings"
 )
 
-type gsInterfaceGSA interface {
+type gsInterfaceForGameServerAuth interface {
 	ForceClose(state.LoginServerFail)
 	Send(*packets.Buffer)
-	GetGameServersInfoHexId() []byte
 	SetInfoGameServerInfo(string, []byte, byte, int16, int32, bool)
 	GetServerInfoId() byte
 	SetState(state.GameServerState)
@@ -30,7 +29,7 @@ type gameServerAuthData struct {
 	hostReserved        bool
 }
 
-func GameServerAuth(data []byte, server gsInterfaceGSA) {
+func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) {
 	packet := packets.NewReader(data)
 	_ = packet.ReadSingleByte() // пропускаем опкод
 
@@ -58,7 +57,7 @@ func GameServerAuth(data []byte, server gsInterfaceGSA) {
 
 }
 
-func handleRegProcess(server gsInterfaceGSA, data gameServerAuthData) bool {
+func handleRegProcess(server gsInterfaceForGameServerAuth, data gameServerAuthData) bool {
 	if !utils.Contains(config.GetAllowedServerVersion(), data.serverVersion) {
 		server.ForceClose(state.ReasonInvalidGameServerVersion)
 		return false

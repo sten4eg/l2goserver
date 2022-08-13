@@ -9,7 +9,6 @@ import (
 	"l2goserver/config"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/crypt/blowfish"
-	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/gs2ls"
 	"l2goserver/loginserver/network/ls2gs"
 	"l2goserver/loginserver/types/state"
@@ -27,57 +26,10 @@ type GS struct {
 	conn            net.Conn
 	state           state.GameServerState
 	gameServersInfo GameServerInfo
-	ls              LoginServInterface
+	loginServerInfo LoginServInterface
 }
 
 var gameServerInstance *GS
-
-type account struct {
-	accounts map[string]bool
-	mu       sync.Mutex
-}
-type GameServerInfo struct {
-	host        string
-	hexId       []byte
-	Id          byte
-	port        int16
-	maxPlayer   int32
-	authed      bool
-	status      int32
-	serverType  int32
-	ageLimit    int32
-	showBracket bool
-	accounts    account
-}
-
-func GetGameServerInstance() *GS {
-	return gameServerInstance
-}
-func (gs *GS) GetGameServerConn() net.Conn {
-	return gs.conn
-}
-func (gs *GS) GetGameServerInfoPort() int16 {
-	return gs.gameServersInfo.port
-}
-func (gs *GS) GetGameServerInfoId() byte {
-	return gs.gameServersInfo.Id
-}
-func (gs *GS) GetGameServerInfoMaxPlayer() int32 {
-	return gs.gameServersInfo.maxPlayer
-}
-func (gs *GS) GetGameServerInfoAgeLimit() int32 {
-	return gs.gameServersInfo.ageLimit
-}
-func (gs *GS) GetGameServerInfoType() int32 {
-	return gs.gameServersInfo.serverType
-}
-
-func (gs *GS) GetGameServerInfoStatus() int32 {
-	return gs.gameServersInfo.status
-}
-func (gs *GS) GetGameServerInfoShowBracket() bool {
-	return gs.gameServersInfo.showBracket
-}
 
 func (gs *GS) AddAccountOnGameServer(account string) {
 	gs.gameServersInfo.accounts.mu.Lock()
@@ -254,9 +206,7 @@ func (gs *GS) ForceClose(reason state.LoginServerFail) {
 	}
 
 }
-func (gs *GS) GetGameServersInfoHexId() []byte {
-	return gs.gameServersInfo.hexId
-}
+
 func (gs *GS) SetStatus(status int32) {
 	gs.gameServersInfo.status = status
 }
@@ -274,31 +224,4 @@ func (gs *GS) SetAgeLimit(ageLimit int32) {
 }
 func (gs *GS) GetServerInfoId() byte {
 	return gs.gameServersInfo.Id
-}
-func (gs *GS) HasAccountOnGameServer(account string) bool {
-	gs.gameServersInfo.accounts.mu.Lock()
-	inGame, ok := gs.gameServersInfo.accounts.accounts[account]
-	if !ok {
-		return false
-	}
-	gs.gameServersInfo.accounts.mu.Unlock()
-	return inGame
-}
-
-type LoginServInterface interface {
-	IsLoginServer() bool
-	GetSessionKey(string) *models.SessionKey
-	RemoveAuthedLoginClient(string)
-}
-
-func (gs *GS) AttachLS(i LoginServInterface) {
-	gs.ls = i
-}
-
-func (gs *GS) LoginServerGetSessionKey(account string) *models.SessionKey {
-	return gs.ls.GetSessionKey(account)
-}
-
-func (gs *GS) LoginServerRemoveAuthedLoginClient(account string) {
-	gs.ls.RemoveAuthedLoginClient(account)
 }

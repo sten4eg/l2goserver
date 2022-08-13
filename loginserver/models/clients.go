@@ -12,7 +12,6 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"os"
 	"strconv"
 	"sync"
 )
@@ -90,10 +89,6 @@ func NewClient() *ClientCtx {
 		JoinedGS:        false,
 		Uid:             rand.Uint64(),
 	}
-}
-func savtf(bb []byte) {
-	os.Create("bts")
-	os.WriteFile("bts", bb, 0666)
 }
 
 func (c *ClientCtx) Receive() (uint8, []byte, error) {

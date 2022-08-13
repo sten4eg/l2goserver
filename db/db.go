@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"l2goserver/config"
 )
 
@@ -19,7 +19,7 @@ func ConfigureDB() {
 	dsnString += " sslmode=" + conf.LoginServer.Database.SSLMode
 	dsnString += " pool_max_conns=" + conf.LoginServer.Database.PoolMaxConn
 
-	pool, err := pgxpool.Connect(context.Background(), dsnString)
+	pool, err := pgxpool.New(context.Background(), dsnString)
 	if err != nil {
 		panic(err)
 	}
@@ -28,13 +28,21 @@ func ConfigureDB() {
 		panic(err)
 	}
 	db = pool
+	go stat()
 
 }
-
+func stat() {
+	//for {
+	//	time.Sleep(time.Second * 1)
+	//	fmt.Println("STAT:" + strconv.Itoa(int(db.Stat().TotalConns())))
+	//
+	//}
+}
 func GetConn() (*pgxpool.Conn, error) {
 	p, err := db.Acquire(context.Background())
 	if err != nil {
 		return nil, err
 	}
+
 	return p, nil
 }
