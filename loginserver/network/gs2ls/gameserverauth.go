@@ -63,7 +63,7 @@ func handleRegProcess(server gsInterfaceForGameServerAuth, data gameServerAuthDa
 		return false
 	}
 
-	if bytes.Compare(data.hexId, config.GetGameServerHexId()) == 0 {
+	if bytes.Equal(data.hexId, config.GetGameServerHexId()) {
 		server.SetInfoGameServerInfo(data.hosts, data.hexId, data.desiredId, data.port, data.maxPlayers, true)
 	} else {
 		server.ForceClose(state.ReasonAlreadyLoggedIn)

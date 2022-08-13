@@ -19,11 +19,10 @@ import (
 )
 
 type LoginServer struct {
-	clients         sync.Map
 	config          config.Conf
 	clientsListener net.Listener
 	mu              sync.Mutex
-	accounts        map[string]*models.ClientCtx //TODO Ну шо опять мютекс
+	accounts        map[string]*models.ClientCtx
 }
 
 var Atom atomic.Int64
