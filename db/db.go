@@ -8,7 +8,7 @@ import (
 
 var db *pgxpool.Pool
 
-func ConfigureDB() {
+func ConfigureDB() error {
 	conf := config.GetConfig()
 
 	dsnString := "user=" + conf.LoginServer.Database.User
@@ -19,17 +19,23 @@ func ConfigureDB() {
 	dsnString += " sslmode=" + conf.LoginServer.Database.SSLMode
 	dsnString += " pool_max_conns=" + conf.LoginServer.Database.PoolMaxConn
 
-	pool, err := pgxpool.New(context.Background(), dsnString)
+	dbConfig, err := pgxpool.ParseConfig(dsnString)
 	if err != nil {
-		panic(err)
+		return err
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), dbConfig)
+	if err != nil {
+		return err
 	}
 	err = pool.Ping(context.Background())
 	if err != nil {
-		panic(err)
+		return err
 	}
 	db = pool
 	go stat()
 
+	return nil
 }
 func stat() {
 	//for {

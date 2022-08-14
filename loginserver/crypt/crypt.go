@@ -25,8 +25,6 @@ var StaticBlowfish = []byte{
 	0x6c,
 }
 
-var IsStatic = true
-
 func VerifyCheckSum(raw []byte, size int) bool {
 	var checksum int64
 	count := size - 4
@@ -103,17 +101,16 @@ func encXORPass(raw []byte, size, key int) []byte {
 	return raw
 }
 
-func EncodeData(raw []byte, blowfishKey []byte) []byte {
+func EncodeData(raw []byte, blowfishKey []byte, isStatic bool) []byte {
 	size := len(raw) + 4 // reserve checksum
 	data := make([]byte, 200)
 	copy(data, raw)
-	if IsStatic {
+	if isStatic {
 		size += 4                      // reserve for XOR "key"
 		size = (size + 8) - (size % 8) // padding
 
 		data = encXORPass(data, size, rand.Int()) // Xor
 		crypt(&data, size, StaticBlowfish)        // blowfish
-		IsStatic = false
 	} else {
 		size = (size + 8) - (size % 8) // padding
 		AppendCheckSum(data, size)

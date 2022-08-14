@@ -15,6 +15,7 @@ import (
 	"l2goserver/loginserver/types/state"
 	"l2goserver/utils"
 	"math/big"
+	"runtime/trace"
 	"time"
 )
 
@@ -104,34 +105,43 @@ func validate(request []byte, client *models.ClientCtx) error {
 
 	defer dbConn.Release()
 
+	reg := trace.StartRegion(context.Background(), "userInfoSelect")
+
 	row := dbConn.QueryRow(context.Background(), UserInfoSelect, login)
 	err = row.Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) && config.AutoCreateAccounts() {
 			err = createAccount(login, password)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			return validate(request, client)
 		}
 
 		return err
 	}
+	reg.End()
+
+	reg = trace.StartRegion(context.Background(), "AccountCharactersCount")
 	err = dbConn.QueryRow(context.Background(), AccountCharactersCount, account.Login).Scan(&account.CharacterCount)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
 	}
+	reg.End()
+
 	err = bcrypt.CompareHashAndPassword(utils.S2b(account.Password), utils.S2b(password))
 	if err != nil {
 		return err
 	}
 
+	reg = trace.StartRegion(context.Background(), "UserLastInfo")
 	_, err = dbConn.Exec(context.Background(), UserLastInfo, client.GetRemoteAddr().String(), time.Now(), login)
 	if err != nil {
 		return err
 	}
+	reg.End()
 
 	client.Account = account
 	return nil

@@ -64,6 +64,9 @@ func (b *Buffer) WriteDU(value uint32) {
 func (b *Buffer) WriteSlice(value []byte) {
 	b.B = append(b.B, value...)
 }
+func (b *Buffer) WriteSliceTest(value []byte) {
+	b.B = append(b.B, value[0:]...)
+}
 
 func (b *Buffer) WriteSingleByte(value byte) {
 	b.B = append(b.B, value)

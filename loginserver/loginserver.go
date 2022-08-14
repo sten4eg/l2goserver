@@ -2,7 +2,6 @@ package loginserver
 
 import (
 	"l2goserver/config"
-	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/c2ls"
@@ -97,7 +96,6 @@ func (l *LoginServer) Run() {
 
 	for {
 		var err error
-		crypt.IsStatic = true // todo костыль?
 
 		client, err := models.NewClient()
 		if err != nil {
@@ -110,6 +108,7 @@ func (l *LoginServer) Run() {
 			log.Println("Accept() error", err)
 			continue
 		}
+
 		client.SetConn(conn)
 
 		clientAddrPort := netip.MustParseAddrPort(client.GetLocalAddr().String())
@@ -144,6 +143,7 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 		log.Println(err)
 		return
 	}
+	client.SetStaticFalse()
 
 	for {
 		Atom.Add(1)

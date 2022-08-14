@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	_ "embed"
@@ -11,6 +12,7 @@ import (
 	"l2goserver/utils"
 	"math/rand"
 	"net"
+	"runtime/trace"
 	"strconv"
 	"sync"
 )
@@ -31,6 +33,7 @@ type ClientCtx struct {
 	state           state.GameState
 	JoinedGS        bool
 	Uid             uint64
+	isStatic        bool
 }
 
 type SessionKey struct {
@@ -87,6 +90,7 @@ func NewClient() (*ClientCtx, error) {
 		state:           state.NoState,
 		JoinedGS:        false,
 		Uid:             rand.Uint64(),
+		isStatic:        true,
 	}, nil
 }
 
@@ -95,6 +99,7 @@ func (c *ClientCtx) SetConn(conn net.Conn) {
 }
 func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	header := make([]byte, 2)
+	reg := trace.StartRegion(context.Background(), "readHeader")
 	n, err := c.conn.Read(header)
 	if err != nil {
 		return 0, nil, err
@@ -102,18 +107,20 @@ func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	if n != 2 {
 		return 0, nil, errors.New("Ожидалось 2 байта длинны, получено: " + strconv.Itoa(n))
 	}
-
+	reg.End()
 	// длинна пакета
 	dataSize := (int(header[0]) | int(header[1])<<8) - 2
 
 	// аллокация требуемого массива байт для входящего пакета
 	data := make([]byte, dataSize)
 
-	n, err = c.conn.Read(data)
+	reg = trace.StartRegion(context.Background(), "readData")
 
+	n, err = c.conn.Read(data)
 	if n != dataSize || err != nil {
 		return 0, nil, errors.New("длинна прочитанного пакета не соответствует требуемому размеру")
 	}
+	reg.End()
 
 	fullPackage := make([]byte, 0, len(header)+len(data))
 	fullPackage = append(fullPackage, header...)
@@ -130,7 +137,7 @@ func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 	data := buffer.Bytes()
 	defer packets.Put(buffer)
 
-	data = crypt.EncodeData(data, c.BlowFish)
+	data = crypt.EncodeData(data, c.BlowFish, c.isStatic)
 	// Вычисление длинны пакета
 	length := uint16(len(data) + 2)
 
@@ -173,4 +180,8 @@ func (c *ClientCtx) GetRemoteAddr() net.Addr {
 
 func (c *ClientCtx) GetLocalAddr() net.Addr {
 	return c.conn.LocalAddr()
+}
+
+func (c *ClientCtx) SetStaticFalse() {
+	c.isStatic = false
 }

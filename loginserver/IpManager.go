@@ -9,23 +9,23 @@ import (
 
 var BannedIp []netip.Addr
 
-func LoadBannedIp() {
+func LoadBannedIp() error {
 	dbConn, err := db.GetConn()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer dbConn.Release()
 
 	rows, err := dbConn.Query(context.Background(), `SELECT * FROM ip_ban`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	var i pgtype.Inet
 
 	for rows.Next() {
 		err = rows.Scan(&i)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		a := netip.MustParseAddr(i.IPNet.IP.String())
 		if a.IsValid() {
@@ -34,6 +34,7 @@ func LoadBannedIp() {
 
 	}
 
+	return nil
 }
 
 func IsBannedIp(clientAddr netip.Addr) bool {
