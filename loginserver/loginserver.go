@@ -19,12 +19,13 @@ import (
 
 type LoginServer struct {
 	config          config.Conf
-	clientsListener net.Listener
+	clientsListener *net.TCPListener
 	mu              sync.Mutex
 	accounts        map[string]*models.ClientCtx
 }
 
 var Atom atomic.Int64
+var AtomKick atomic.Int64
 
 func New(cfg config.Conf) *LoginServer {
 	login := &LoginServer{config: cfg, accounts: make(map[string]*models.ClientCtx, 1000)}
@@ -33,57 +34,13 @@ func New(cfg config.Conf) *LoginServer {
 	return login
 }
 
-func (l *LoginServer) GetSessionKey(account string) *models.SessionKey {
-	l.mu.Lock()
-	q := l.accounts[account]
-	l.mu.Unlock()
-	if q == nil {
-		return nil
-	}
-	return q.SessionKey
-}
-
-func (l *LoginServer) IsAccountInLoginAndAddIfNot(client *models.ClientCtx) bool {
-	inLogin, ok := l.accounts[client.Account.Login]
-	if !ok {
-		l.accounts[client.Account.Login] = client
-		return false
-	}
-	if nil == inLogin {
-		l.accounts[client.Account.Login] = client
-		return false
-	}
-	return true
-}
-
-func (l *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *models.SessionKey {
-	sessionKey := new(models.SessionKey)
-
-	sessionKey.PlayOk1 = rand.Uint32()
-	sessionKey.PlayOk2 = rand.Uint32()
-	sessionKey.LoginOk1 = rand.Uint32()
-	sessionKey.LoginOk2 = rand.Uint32()
-
-	l.mu.Lock()
-	l.accounts[client.Account.Login] = client
-	l.mu.Unlock()
-	return sessionKey
-}
-
-func (l *LoginServer) RemoveAuthedLoginClient(account string) {
-	l.mu.Lock()
-	client, ok := l.accounts[account]
-	if ok && client != nil {
-		client.CloseConnection()
-	}
-	delete(l.accounts, account)
-	l.mu.Unlock()
-}
-
 func (l *LoginServer) StartListen() error {
 	var err error
+	addr := new(net.TCPAddr)
+	addr.Port = 2106
+	addr.IP = net.IP{127, 0, 0, 1}
 
-	l.clientsListener, err = net.Listen("tcp4", ":2106")
+	l.clientsListener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
 		return err
 	}
@@ -103,13 +60,13 @@ func (l *LoginServer) Run() {
 			continue
 		}
 
-		conn, err := l.clientsListener.Accept()
+		tcpConn, err := l.clientsListener.AcceptTCP()
 		if err != nil {
 			log.Println("Accept() error", err)
 			continue
 		}
 
-		client.SetConn(conn)
+		client.SetConn(tcpConn)
 
 		clientAddrPort := netip.MustParseAddrPort(client.GetLocalAddr().String())
 
@@ -140,18 +97,20 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 
 	err = client.SendBuf(initPacket)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return
 	}
 	client.SetStaticFalse()
 
 	for {
-		Atom.Add(1)
 		opcode, data, err := client.Receive()
+		Atom.Add(1)
+
 		if err != nil {
-			//			log.Println(err)
-			//			log.Println("Closing a connection")
-			break
+			//	log.Println(err)
+			//	log.Println("Closing a connection")
+			AtomKick.Add(1)
+			return
 		}
 		//		log.Println("Опкод", opcode)
 		switch client.GetState() {
@@ -203,4 +162,51 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 			}
 		}
 	}
+}
+
+func (l *LoginServer) GetSessionKey(account string) *models.SessionKey {
+	l.mu.Lock()
+	q := l.accounts[account]
+	l.mu.Unlock()
+	if q == nil {
+		return nil
+	}
+	return q.SessionKey
+}
+
+func (l *LoginServer) IsAccountInLoginAndAddIfNot(client *models.ClientCtx) bool {
+	inLogin, ok := l.accounts[client.Account.Login]
+	if !ok {
+		l.accounts[client.Account.Login] = client
+		return false
+	}
+	if nil == inLogin {
+		l.accounts[client.Account.Login] = client
+		return false
+	}
+	return true
+}
+
+func (l *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *models.SessionKey {
+	sessionKey := new(models.SessionKey)
+
+	sessionKey.PlayOk1 = rand.Uint32()
+	sessionKey.PlayOk2 = rand.Uint32()
+	sessionKey.LoginOk1 = rand.Uint32()
+	sessionKey.LoginOk2 = rand.Uint32()
+
+	l.mu.Lock()
+	l.accounts[client.Account.Login] = client
+	l.mu.Unlock()
+	return sessionKey
+}
+
+func (l *LoginServer) RemoveAuthedLoginClient(account string) {
+	l.mu.Lock()
+	client, ok := l.accounts[account]
+	if ok && client != nil {
+		client.CloseConnection()
+	}
+	delete(l.accounts, account)
+	l.mu.Unlock()
 }

@@ -25,7 +25,7 @@ type ClientCtx struct {
 	noCopy          utils.NoCopy //nolint:unused,structcheck
 	Account         Account
 	SessionID       uint32
-	conn            net.Conn
+	conn            *net.TCPConn
 	ScrambleModulus []byte
 	SessionKey      *SessionKey
 	PrivateKey      *rsa.PrivateKey
@@ -94,7 +94,7 @@ func NewClient() (*ClientCtx, error) {
 	}, nil
 }
 
-func (c *ClientCtx) SetConn(conn net.Conn) {
+func (c *ClientCtx) SetConn(conn *net.TCPConn) {
 	c.conn = conn
 }
 func (c *ClientCtx) Receive() (uint8, []byte, error) {

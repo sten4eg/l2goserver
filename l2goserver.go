@@ -8,12 +8,13 @@ import (
 	"l2goserver/loginserver/gameserver"
 	"log"
 	"os"
+	"runtime/debug"
 	"runtime/trace"
 	"time"
 )
 
 func main() {
-	//debug.SetGCPercent(200000)
+	debug.SetGCPercent(200000)
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	//defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
@@ -21,6 +22,7 @@ func main() {
 	//defer profile.Start(profile.MemProfileHeap, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.BlockProfile, profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
+
 	//defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.GoroutineProfile, profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MutexProfile, profile.ProfilePath(".")).Stop()
@@ -68,13 +70,14 @@ func Trace() {
 		log.Fatalf("failed to start trace: %v", err)
 	}
 
-	time.Sleep(time.Second * 100)
+	time.Sleep(time.Second * 20)
 	trace.Stop()
 	fmt.Println("END TRACE")
 }
 func F() {
-	//for {
-	//	time.Sleep(time.Second * 1)
-	//	log.Println(loginserver.Atom.Load())
-	//}
+	for {
+		time.Sleep(time.Second * 1)
+		log.Println("a:", loginserver.Atom.Load())
+		log.Println("k:", loginserver.AtomKick.Load())
+	}
 }

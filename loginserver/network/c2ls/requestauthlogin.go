@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
-	"l2goserver/config"
 	"l2goserver/db"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
@@ -14,15 +12,14 @@ import (
 	reasons "l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/utils"
+	"log"
 	"math/big"
 	"runtime/trace"
-	"time"
 )
 
-const UserInfoSelect = "SELECT * FROM accounts WHERE login = $1"
+const UserInfoSelect = "SELECT accounts.login,accounts.password,accounts.created_at,accounts.last_active,accounts.access_level,accounts.last_ip,accounts.last_server, count(c) FROM accounts LEFT Join characters c on accounts.login = c.login WHERE accounts.login = $1 GROUP BY accounts.login"
 const UserLastInfo = "UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3"
 const AccountsInsert = "INSERT INTO accounts (login, password) VALUES ($1, $2)"
-const AccountCharactersCount = "SELECT count(*) FROM characters WHERE login = $1"
 
 var errNoData = errors.New("errNoData")
 
@@ -98,36 +95,29 @@ func validate(request []byte, client *models.ClientCtx) error {
 	password := utils.B2s(trimPassword)
 
 	var account models.Account
-	dbConn, err := db.GetConn()
+	reg := trace.StartRegion(context.Background(), "GetCONN1")
+	dbConn1, err := db.GetConn()
 	if err != nil {
+		log.Println("errConn1")
 		return err
 	}
-
-	defer dbConn.Release()
-
-	reg := trace.StartRegion(context.Background(), "userInfoSelect")
-
-	row := dbConn.QueryRow(context.Background(), UserInfoSelect, login)
-	err = row.Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) && config.AutoCreateAccounts() {
-			err = createAccount(login, password)
-			if err != nil {
-				return err
-			}
-			return validate(request, client)
-		}
-
-		return err
-	}
+	defer dbConn1.Release()
 	reg.End()
 
-	reg = trace.StartRegion(context.Background(), "AccountCharactersCount")
-	err = dbConn.QueryRow(context.Background(), AccountCharactersCount, account.Login).Scan(&account.CharacterCount)
+	reg = trace.StartRegion(context.Background(), "userInfoSelect")
+	err = dbConn1.QueryRow(context.Background(), UserInfoSelect, login).
+		Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer, &account.CharacterCount)
 	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
+		log.Println("2")
+		//if errors.Is(err, pgx.ErrNoRows) && config.AutoCreateAccounts() {
+		//	err = createAccount(login, password)
+		//	if err != nil {
+		//		return err
+		//	}
+		//	return validate(request, client)
+		//}
+
+		return err
 	}
 	reg.End()
 
@@ -136,12 +126,36 @@ func validate(request []byte, client *models.ClientCtx) error {
 		return err
 	}
 
-	reg = trace.StartRegion(context.Background(), "UserLastInfo")
-	_, err = dbConn.Exec(context.Background(), UserLastInfo, client.GetRemoteAddr().String(), time.Now(), login)
-	if err != nil {
-		return err
-	}
-	reg.End()
+	//reg = trace.StartRegion(context.Background(), "GetCONN2")
+	//dbConn2, err := db.GetConn()
+	//if err != nil {
+	//	log.Println("errConn2")
+	//	return err
+	//}
+	//
+	//reg.End()
+	//
+	//reg = trace.StartRegion(context.Background(), "UserLastInfo")
+	//reg.End()
+	//
+	//tx, err := dbConn2.Begin(context.Background())
+	//if err != nil {
+	//	log.Println(')')
+	//	return err
+	//}
+	//defer tx.Rollback(context.Background())
+	//
+	//_, err = tx.Exec(context.Background(), UserLastInfo, client.GetRemoteAddr().String(), time.Now(), login)
+	//if err != nil {
+	//	log.Println('-')
+	//	return err
+	//}
+	//err = tx.Commit(context.Background())
+	//dbConn2.Close(context.Background())
+	//if err != nil {
+	//	log.Println('(')
+	//	return err
+	//}
 
 	client.Account = account
 	return nil
@@ -156,7 +170,7 @@ func createAccount(clearLogin, clearPassword string) error {
 	if err != nil {
 		return err
 	}
-	defer dbConn.Release()
+	//defer dbConn.Release()
 
 	_, err = dbConn.Exec(context.Background(), AccountsInsert,
 		clearLogin, password)
