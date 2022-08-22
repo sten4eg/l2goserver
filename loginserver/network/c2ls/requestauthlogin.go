@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
+	"l2goserver/config"
 	"l2goserver/db"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
@@ -15,6 +18,7 @@ import (
 	"log"
 	"math/big"
 	"runtime/trace"
+	"time"
 )
 
 const UserInfoSelect = "SELECT accounts.login,accounts.password,accounts.created_at,accounts.last_active,accounts.access_level,accounts.last_ip,accounts.last_server, count(c) FROM accounts LEFT Join characters c on accounts.login = c.login WHERE accounts.login = $1 GROUP BY accounts.login"
@@ -109,13 +113,13 @@ func validate(request []byte, client *models.ClientCtx) error {
 		Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer, &account.CharacterCount)
 	if err != nil {
 		log.Println("2")
-		//if errors.Is(err, pgx.ErrNoRows) && config.AutoCreateAccounts() {
-		//	err = createAccount(login, password)
-		//	if err != nil {
-		//		return err
-		//	}
-		//	return validate(request, client)
-		//}
+		if errors.Is(err, pgx.ErrNoRows) && config.AutoCreateAccounts() {
+			err = createAccount(login, password)
+			if err != nil {
+				return err
+			}
+			return validate(request, client)
+		}
 
 		return err
 	}
@@ -126,36 +130,16 @@ func validate(request []byte, client *models.ClientCtx) error {
 		return err
 	}
 
-	//reg = trace.StartRegion(context.Background(), "GetCONN2")
-	//dbConn2, err := db.GetConn()
-	//if err != nil {
-	//	log.Println("errConn2")
-	//	return err
-	//}
-	//
-	//reg.End()
-	//
-	//reg = trace.StartRegion(context.Background(), "UserLastInfo")
-	//reg.End()
-	//
-	//tx, err := dbConn2.Begin(context.Background())
-	//if err != nil {
-	//	log.Println(')')
-	//	return err
-	//}
-	//defer tx.Rollback(context.Background())
-	//
-	//_, err = tx.Exec(context.Background(), UserLastInfo, client.GetRemoteAddr().String(), time.Now(), login)
-	//if err != nil {
-	//	log.Println('-')
-	//	return err
-	//}
-	//err = tx.Commit(context.Background())
-	//dbConn2.Close(context.Background())
-	//if err != nil {
-	//	log.Println('(')
-	//	return err
-	//}
+	_, err = dbConn1.Exec(context.Background(), UserLastInfo, client.GetRemoteAddr().String(), time.Now(), login)
+	if err != nil {
+		log.Println('-')
+		return err
+	}
+
+	if err != nil {
+		log.Println('(')
+		return err
+	}
 
 	client.Account = account
 	return nil
@@ -170,9 +154,9 @@ func createAccount(clearLogin, clearPassword string) error {
 	if err != nil {
 		return err
 	}
-	//defer dbConn.Release()
-
+	defer dbConn.Release()
+	fmt.Println(len(string(password)))
 	_, err = dbConn.Exec(context.Background(), AccountsInsert,
-		clearLogin, password)
+		clearLogin, string(password))
 	return err
 }

@@ -34,6 +34,11 @@ func (gs *GS) AddAccountOnGameServer(account string) {
 	gs.gameServersInfo.accounts.accounts[account] = true
 	gs.gameServersInfo.accounts.mu.Unlock()
 }
+func (gs *GS) RemoveAccountOnGameServer(account string) {
+	gs.gameServersInfo.accounts.mu.Lock()
+	delete(gs.gameServersInfo.accounts.accounts, account)
+	gs.gameServersInfo.accounts.mu.Unlock()
+}
 func (gs *GS) SetInfoGameServerInfo(host string, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
 	gs.gameServersInfo.host = host
 	gs.gameServersInfo.hexId = hexId
@@ -150,6 +155,8 @@ func (gs *GS) HandlePackage(data []byte) {
 		switch opcode {
 		case 0x02:
 			gs2ls.PlayerInGame(data, gs)
+		case 0x03:
+			gs2ls.PlayerLogout(data, gs)
 		case 0x06:
 			gs2ls.ServerStatus(data, gs)
 		case 0x05:

@@ -18,7 +18,7 @@ func NewServerListPacket(client *models.ClientCtx) error {
 
 	qq := gameserver.GetGameServerIp()
 	ip := net.ParseIP(qq).To4()
-	ip = []byte{0, 0, 0, 127}
+	ip = []byte{127, 0, 0, 1}
 	buffer.WriteSingleByte(gameserver.GetGameServerId()) // Server ID (Bartz)
 	buffer.WriteSingleByte(ip[0])                        // Server IP address 1/4
 	buffer.WriteSingleByte(ip[1])                        // Server IP address 2/4

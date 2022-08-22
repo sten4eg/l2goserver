@@ -28,7 +28,7 @@ func main() {
 	//defer profile.Start(profile.MutexProfile, profile.ProfilePath(".")).Stop()
 
 	go Trace()
-	go F()
+	//go F()
 	err := config.Read()
 	if err != nil {
 		log.Fatal("Ошибка чтения конфига", err)
