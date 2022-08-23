@@ -11,6 +11,7 @@ import (
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/ls2c"
+	"l2goserver/loginserver/network/ls2gs"
 	reasons "l2goserver/loginserver/types/reason"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/utils"
@@ -20,7 +21,7 @@ import (
 	"time"
 )
 
-const UserInfoSelect = "SELECT accounts.login,accounts.password,accounts.created_at,accounts.last_active,accounts.access_level,accounts.last_ip,accounts.last_server, count(c) FROM accounts LEFT Join characters c on accounts.login = c.login WHERE accounts.login = $1 GROUP BY accounts.login"
+const UserInfoSelect = "SELECT accounts.login,accounts.password,accounts.created_at,accounts.last_active,accounts.access_level,accounts.last_ip,accounts.last_server FROM accounts WHERE accounts.login = $1"
 const UserLastInfo = "UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3"
 const AccountsInsert = "INSERT INTO accounts (login, password) VALUES ($1, $2)"
 
@@ -29,6 +30,7 @@ var errNoData = errors.New("errNoData")
 type isInLoginInterface interface {
 	IsAccountInLoginAndAddIfNot(*models.ClientCtx) bool
 	AssignSessionKeyToClient(*models.ClientCtx) *models.SessionKey
+	GetGameServerInfoList() []*gameserver.GameServerInfo
 }
 
 func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface) error {
@@ -46,6 +48,7 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLo
 		client.SetState(state.AuthedLogin)
 		client.SetSessionKey(server.AssignSessionKeyToClient(client))
 		err = client.SendBuf(ls2c.NewLoginOkPacket(client))
+		getCharactersOnAccount(client.Account.Login, server)
 	case reasons.ACCOUNT_BANNED:
 		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.Ban))
 		client.CloseConnection()
@@ -109,7 +112,7 @@ func validate(request []byte, client *models.ClientCtx) error {
 
 	reg = trace.StartRegion(context.Background(), "userInfoSelect")
 	err = dbConn1.QueryRow(context.Background(), UserInfoSelect, login).
-		Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer, &account.CharacterCount)
+		Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer)
 	if err != nil {
 		log.Println("2")
 		if errors.Is(err, pgx.ErrNoRows) && config.AutoCreateAccounts() {
@@ -157,4 +160,13 @@ func createAccount(clearLogin, clearPassword string) error {
 	_, err = dbConn.Exec(context.Background(), AccountsInsert,
 		clearLogin, string(password))
 	return err
+}
+
+func getCharactersOnAccount(account string, server isInLoginInterface) {
+	serverList := server.GetGameServerInfoList()
+	for _, gsi := range serverList {
+		if gsi.IsAuthed() {
+			gsi.Send(ls2gs.RequestCharacter(account))
+		}
+	}
 }

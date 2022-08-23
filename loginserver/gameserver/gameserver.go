@@ -48,6 +48,22 @@ func (gsi *GameServerInfo) SetInfoGameServerInfo(host string, hexId []byte, id b
 	gsi.accounts.mu.Unlock()
 }
 
+func (gsi *GameServerInfo) SetCharactersOnServer(account string, charsNum uint8, timeToDel []int64) {
+	client := gsi.gs.loginServerInfo.GetAccount(account)
+
+	if client == nil {
+		return
+	}
+
+	if charsNum > 0 {
+		client.SetCharsOnServer(gsi.Id, charsNum)
+	}
+
+	if len(timeToDel) > 0 {
+		client.SetCharsWaitingDelOnServer(gsi.Id, timeToDel)
+	}
+}
+
 func GameServerHandlerInit() {
 	gameServerInstance = new(GS)
 
@@ -167,6 +183,8 @@ func (gsi *GameServerInfo) HandlePackage(data []byte) {
 			gs2ls.ServerStatus(data, gsi)
 		case 0x07:
 			gs2ls.PlayerTracert(data)
+		case 0x08:
+			gs2ls.ReplyCharacters(data, gsi)
 		case 0x0A:
 			gs2ls.RequestTempBan(data)
 		}
@@ -244,4 +262,8 @@ func (gsi *GameServerInfo) SetAgeLimit(ageLimit int32) {
 
 func (gsi *GameServerInfo) GetServerInfoId() byte {
 	return gsi.Id
+}
+
+func (gs *GS) GetGameServerInfoList() []*GameServerInfo {
+	return gs.gameServersInfo
 }

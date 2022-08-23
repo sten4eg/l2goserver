@@ -73,3 +73,7 @@ func (gsi *GameServerInfo) hasAccountOnGameServer(account string) bool {
 	}
 	return inGame
 }
+
+func (gsi *GameServerInfo) IsAuthed() bool {
+	return gsi.authed
+}

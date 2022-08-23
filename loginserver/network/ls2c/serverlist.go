@@ -52,9 +52,10 @@ func NewServerListPacket(client *models.ClientCtx) error {
 
 	buffer.WriteSingleByte(1) //
 	for servId := 0; servId < int(serversCount); servId++ {
+		realServerId := gameserver.ConvertIndexToServerId(servId)
 		buffer.WriteSingleByte(gameserver.GetGameServerId(servId))
-		buffer.WriteSingleByte(client.Account.CharacterCount) //todo тут не так
-		buffer.WriteSingleByte(0)                             // количесвто удаленных чаров
+		buffer.WriteSingleByte(client.Account.CharacterCount[realServerId]) //todo тут не так
+		buffer.WriteSingleByte(0)                                           // количесвто удаленных чаров
 	}
 	return client.SendBuf(buffer)
 

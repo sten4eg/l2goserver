@@ -211,3 +211,11 @@ func (l *LoginServer) RemoveAuthedLoginClient(account string) {
 	delete(l.accounts, account)
 	l.mu.Unlock()
 }
+
+func (l *LoginServer) GetAccount(account string) *models.Account {
+	return &l.accounts[account].Account
+}
+
+func (l *LoginServer) GetGameServerInfoList() []*gameserver.GameServerInfo {
+	return gameserver.GetGameServerInstance().GetGameServerInfoList()
+}

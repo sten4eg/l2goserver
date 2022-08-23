@@ -59,3 +59,7 @@ func ShowBracketsInGameServer(id int) byte {
 	}
 	return 0
 }
+
+func ConvertIndexToServerId(index int) byte {
+	return GetGameServerInstance().gameServersInfo[index].GetServerInfoId()
+}

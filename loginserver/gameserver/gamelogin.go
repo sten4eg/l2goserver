@@ -5,6 +5,7 @@ import "l2goserver/loginserver/models"
 type LoginServInterface interface {
 	GetSessionKey(string) *models.SessionKey
 	RemoveAuthedLoginClient(string)
+	GetAccount(string) *models.Account
 }
 
 func (gs *GS) AttachLS(i LoginServInterface) {
