@@ -53,10 +53,11 @@ func (gs *GS) getGameServerInfoShowBracket() bool {
 
 func (gs *GS) hasAccountOnGameServer(account string) bool {
 	gs.gameServersInfo.accounts.mu.Lock()
+	defer gs.gameServersInfo.accounts.mu.Unlock()
 	inGame, ok := gs.gameServersInfo.accounts.accounts[account]
 	if !ok {
+
 		return false
 	}
-	gs.gameServersInfo.accounts.mu.Unlock()
 	return inGame
 }

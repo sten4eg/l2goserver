@@ -8,7 +8,6 @@ type playerInGameInterface interface {
 
 func PlayerInGame(data []byte, server playerInGameInterface) {
 	packet := packets.NewReader(data)
-	_ = packet.ReadSingleByte() // пропускаем опкод
 
 	size := int(packet.ReadInt16())
 

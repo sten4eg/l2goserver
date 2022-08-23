@@ -14,7 +14,6 @@ type playerAuthRequestInterface interface {
 
 func PlayerAuthRequest(data []byte, gs playerAuthRequestInterface) {
 	packet := packets.NewReader(data)
-	_ = packet.ReadSingleByte() // пропускаем опкод
 	account := packet.ReadString()
 	playerKey1 := packet.ReadUInt32()
 	playerKey2 := packet.ReadUInt32()

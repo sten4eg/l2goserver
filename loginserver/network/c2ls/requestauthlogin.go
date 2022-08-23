@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 	"l2goserver/config"
@@ -155,7 +154,6 @@ func createAccount(clearLogin, clearPassword string) error {
 		return err
 	}
 	defer dbConn.Release()
-	fmt.Println(len(string(password)))
 	_, err = dbConn.Exec(context.Background(), AccountsInsert,
 		clearLogin, string(password))
 	return err

@@ -31,7 +31,6 @@ type gameServerAuthData struct {
 
 func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) {
 	packet := packets.NewReader(data)
-	_ = packet.ReadSingleByte() // пропускаем опкод
 
 	var gsa gameServerAuthData
 	gsa.serverVersion = packet.ReadSingleByte()

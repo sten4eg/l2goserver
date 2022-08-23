@@ -5,6 +5,7 @@ import (
 	"l2goserver/config"
 	"l2goserver/db"
 	"l2goserver/loginserver"
+	"l2goserver/loginserver/IpManager"
 	"l2goserver/loginserver/gameserver"
 	"log"
 	"os"
@@ -42,7 +43,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = loginserver.LoadBannedIp()
+	err = IpManager.LoadBannedIp()
 	if err != nil {
 		log.Fatal(err)
 	}

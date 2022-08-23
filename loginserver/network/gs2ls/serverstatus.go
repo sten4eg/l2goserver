@@ -22,7 +22,6 @@ const (
 
 func ServerStatus(data []byte, server ServerStatusInterface) {
 	packet := packets.NewReader(data)
-	_ = packet.ReadSingleByte() // пропускаем опкод
 
 	size := packet.ReadInt32()
 

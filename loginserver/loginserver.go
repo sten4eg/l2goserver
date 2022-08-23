@@ -2,6 +2,7 @@ package loginserver
 
 import (
 	"l2goserver/config"
+	"l2goserver/loginserver/IpManager"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/c2ls"
@@ -74,7 +75,7 @@ func (l *LoginServer) Run() {
 			continue
 		}
 
-		if IsBannedIp(clientAddrPort.Addr()) {
+		if IpManager.IsBannedIp(clientAddrPort.Addr()) {
 			_ = client.SendBuf(ls2c.AccountKicked(reason.PermanentlyBanned))
 			client.CloseConnection()
 			continue

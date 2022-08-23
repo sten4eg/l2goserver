@@ -15,7 +15,6 @@ type GsInterfaceBF interface {
 
 func BlowFishKey(data []byte, client GsInterfaceBF) {
 	packet := packets.NewReader(data)
-	_ = packet.ReadSingleByte() // пропускаем опкод
 
 	size := packet.ReadInt32()
 	tempKey := packet.ReadBytes(int(size))

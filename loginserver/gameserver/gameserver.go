@@ -141,6 +141,7 @@ func (gs *GS) Listen() {
 }
 func (gs *GS) HandlePackage(data []byte) {
 	opcode := data[0]
+	data = data[1:]
 
 	switch gs.state {
 	case state.CONNECTED:
@@ -152,15 +153,22 @@ func (gs *GS) HandlePackage(data []byte) {
 			gs2ls.GameServerAuth(data, gs)
 		}
 	case state.AUTHED:
+		fmt.Println(opcode)
 		switch opcode {
 		case 0x02:
 			gs2ls.PlayerInGame(data, gs)
 		case 0x03:
 			gs2ls.PlayerLogout(data, gs)
-		case 0x06:
-			gs2ls.ServerStatus(data, gs)
+		case 0x04:
+			gs2ls.ChangeAccessLevel(data)
 		case 0x05:
 			gs2ls.PlayerAuthRequest(data, gs)
+		case 0x06:
+			gs2ls.ServerStatus(data, gs)
+		case 0x07:
+			gs2ls.PlayerTracert(data)
+		case 0x0A:
+			gs2ls.RequestTempBan(data)
 		}
 
 	}
