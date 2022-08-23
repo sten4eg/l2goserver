@@ -1,7 +1,11 @@
 package gameserver
 
 import (
-	"l2goserver/loginserver/network/ls2gs"
+	"crypto/rand"
+	"crypto/rsa"
+	"l2goserver/loginserver/crypt/blowfish"
+	"l2goserver/loginserver/types/state"
+	"net"
 	"sync"
 )
 
@@ -20,43 +24,51 @@ type GameServerInfo struct {
 	serverType  int32
 	ageLimit    int32
 	showBracket bool
+	state       state.GameServerState
 	accounts    account
+	privateKey  *rsa.PrivateKey
+	conn        *net.TCPConn
+	blowfish    *blowfish.Cipher
+	mu          sync.Mutex
+	gs          *GS
 }
 
-func SendRequestCharacters(account string) {
-	gameServer := GetGameServerInstance()
-	gameServer.Send(ls2gs.RequestCharacter(account))
+func (gsi *GameServerInfo) InitRSAKeys() {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
+	if err != nil {
+		panic(err)
+	}
+	gsi.privateKey = privateKey
 }
 
-func (gs *GS) getGameServerInfoPort() int16 {
-	return gs.gameServersInfo.port
+func (gsi *GameServerInfo) getGameServerInfoPort() int16 {
+	return gsi.port
 }
-func (gs *GS) getGameServerInfoId() byte {
-	return gs.gameServersInfo.Id
+func (gsi *GameServerInfo) getGameServerInfoId() byte {
+	return gsi.Id
 }
-func (gs *GS) getGameServerInfoMaxPlayer() int32 {
-	return gs.gameServersInfo.maxPlayer
+func (gsi *GameServerInfo) getGameServerInfoMaxPlayer() int32 {
+	return gsi.maxPlayer
 }
-func (gs *GS) getGameServerInfoAgeLimit() int32 {
-	return gs.gameServersInfo.ageLimit
+func (gsi *GameServerInfo) getGameServerInfoAgeLimit() int32 {
+	return gsi.ageLimit
 }
-func (gs *GS) getGameServerInfoType() int32 {
-	return gs.gameServersInfo.serverType
-}
-
-func (gs *GS) getGameServerInfoStatus() int32 {
-	return gs.gameServersInfo.status
-}
-func (gs *GS) getGameServerInfoShowBracket() bool {
-	return gs.gameServersInfo.showBracket
+func (gsi *GameServerInfo) getGameServerInfoType() int32 {
+	return gsi.serverType
 }
 
-func (gs *GS) hasAccountOnGameServer(account string) bool {
-	gs.gameServersInfo.accounts.mu.Lock()
-	defer gs.gameServersInfo.accounts.mu.Unlock()
-	inGame, ok := gs.gameServersInfo.accounts.accounts[account]
+func (gsi *GameServerInfo) getGameServerInfoStatus() int32 {
+	return gsi.status
+}
+func (gsi *GameServerInfo) getGameServerInfoShowBracket() bool {
+	return gsi.showBracket
+}
+
+func (gsi *GameServerInfo) hasAccountOnGameServer(account string) bool {
+	gsi.accounts.mu.Lock()
+	defer gsi.accounts.mu.Unlock()
+	inGame, ok := gsi.accounts.accounts[account]
 	if !ok {
-
 		return false
 	}
 	return inGame

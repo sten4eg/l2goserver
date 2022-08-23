@@ -1,7 +1,6 @@
 package gs2ls
 
 import (
-	"bytes"
 	"l2goserver/config"
 	"l2goserver/loginserver/network/ls2gs"
 	"l2goserver/loginserver/types/state"
@@ -62,7 +61,7 @@ func handleRegProcess(server gsInterfaceForGameServerAuth, data gameServerAuthDa
 		return false
 	}
 
-	if bytes.Equal(data.hexId, config.GetGameServerHexId()) {
+	if utils.CompareHexId(data.hexId, config.GetGameServerHexId()) {
 		server.SetInfoGameServerInfo(data.hosts, data.hexId, data.desiredId, data.port, data.maxPlayers, true)
 	} else {
 		server.ForceClose(state.ReasonAlreadyLoggedIn)

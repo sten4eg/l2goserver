@@ -31,11 +31,11 @@ type LoginServerType struct {
 }
 
 type GameServerType struct {
-	Name       string `json:"name"`
-	InternalIp string `json:"internalIp"`
-	Port       string `json:"port"`
-	MaxPlayers uint16 `json:"maxPlayers"`
-	HexId      []byte `json:"hexId"`
+	Name       string   `json:"name"`
+	InternalIp string   `json:"internalIp"`
+	Port       string   `json:"port"`
+	MaxPlayers uint16   `json:"maxPlayers"`
+	HexIds     [][]byte `json:"hexIds"`
 }
 
 func Read() error {
@@ -68,6 +68,6 @@ func GetConfig() Conf {
 func GetAllowedServerVersion() []byte {
 	return globalConfig.LoginServer.AllowedServerVersion
 }
-func GetGameServerHexId() []byte {
-	return globalConfig.GameServer.HexId
+func GetGameServerHexId() [][]byte {
+	return globalConfig.GameServer.HexIds
 }

@@ -1,7 +1,6 @@
 package gameserver
 
 import (
-	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
 	"l2goserver/config"
@@ -13,64 +12,56 @@ import (
 	"l2goserver/packets"
 	"log"
 	"net"
-	"sync"
+	"strconv"
 )
 
 type GS struct {
-	Connection      net.Listener
-	privateKey      *rsa.PrivateKey
-	blowfish        *blowfish.Cipher
-	mu              sync.Mutex
-	conn            net.Conn
-	state           state.GameServerState
-	gameServersInfo GameServerInfo
+	Connection      *net.TCPListener
+	gameServersInfo []*GameServerInfo
 	loginServerInfo LoginServInterface
 }
 
 var gameServerInstance *GS
+var initBlowfishKey = []byte{95, 59, 118, 46, 93, 48, 53, 45, 51, 49, 33, 124, 43, 45, 37, 120, 84, 33, 94, 91, 36, 0}
 
-func (gs *GS) AddAccountOnGameServer(account string) {
-	gs.gameServersInfo.accounts.mu.Lock()
-	gs.gameServersInfo.accounts.accounts[account] = true
-	gs.gameServersInfo.accounts.mu.Unlock()
-}
-func (gs *GS) RemoveAccountOnGameServer(account string) {
-	gs.gameServersInfo.accounts.mu.Lock()
-	delete(gs.gameServersInfo.accounts.accounts, account)
-	gs.gameServersInfo.accounts.mu.Unlock()
-}
-func (gs *GS) SetInfoGameServerInfo(host string, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
-	gs.gameServersInfo.host = host
-	gs.gameServersInfo.hexId = hexId
-	gs.gameServersInfo.Id = id
-	gs.gameServersInfo.port = port
-	gs.gameServersInfo.maxPlayer = maxPlayer
-	gs.gameServersInfo.authed = authed
-	gs.gameServersInfo.accounts.mu.Lock()
-	gs.gameServersInfo.accounts.accounts = make(map[string]bool, maxPlayer)
-	gs.gameServersInfo.accounts.mu.Unlock()
+func (gsi *GameServerInfo) AddAccountOnGameServer(account string) {
+	gsi.accounts.mu.Lock()
+	gsi.accounts.accounts[account] = true
+	gsi.accounts.mu.Unlock()
 }
 
-func (gs *GS) InitRSAKeys() {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
-	if err != nil {
-		panic(err)
-	}
-	gs.privateKey = privateKey
+func (gsi *GameServerInfo) RemoveAccountOnGameServer(account string) {
+	gsi.accounts.mu.Lock()
+	delete(gsi.accounts.accounts, account)
+	gsi.accounts.mu.Unlock()
+}
 
+func (gsi *GameServerInfo) SetInfoGameServerInfo(host string, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
+	gsi.host = host
+	gsi.hexId = hexId
+	gsi.Id = id
+	gsi.port = port
+	gsi.maxPlayer = maxPlayer
+	gsi.authed = authed
+	gsi.accounts.mu.Lock()
+	gsi.accounts.accounts = make(map[string]bool, maxPlayer)
+	gsi.accounts.mu.Unlock()
 }
 
 func GameServerHandlerInit() {
 	gameServerInstance = new(GS)
-	gameServerInstance.InitRSAKeys()
 
 	port := config.GetLoginPortForGameServer()
+	intPort, err := strconv.Atoi(port)
+	if err != nil {
+		panic(err)
+	}
 
-	blowfishKey := []byte{95, 59, 118, 46, 93, 48, 53, 45, 51, 49, 33, 124, 43, 45, 37, 120, 84, 33, 94, 91, 36, 0}
+	addr := new(net.TCPAddr)
+	addr.Port = intPort
+	addr.IP = net.IP{127, 0, 0, 1}
 
-	gameServerInstance.SetBlowFishKey(blowfishKey)
-
-	listener, err := net.Listen("tcp4", ":"+port)
+	listener, err := net.ListenTCP("tcp4", addr)
 	if err != nil {
 		panic(err)
 	}
@@ -82,29 +73,37 @@ func GameServerHandlerInit() {
 func (gs *GS) Run() {
 	for {
 		var err error
+		gsi := new(GameServerInfo)
+		gsi.gs = gs
 
-		gs.conn, err = gs.Connection.Accept()
+		gsi.SetBlowFishKey(initBlowfishKey)
+
+		gsi.conn, err = gs.Connection.AcceptTCP()
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-		gs.state = state.CONNECTED
+
+		gsi.state = state.CONNECTED
+		gsi.InitRSAKeys()
+
+		gs.gameServersInfo = append(gs.gameServersInfo, gsi)
 
 		pubKey := make([]byte, 1, 65)
-		pubKey = append(pubKey, gs.privateKey.PublicKey.N.Bytes()...)
+		pubKey = append(pubKey, gsi.privateKey.PublicKey.N.Bytes()...)
 
 		buf := ls2gs.InitLS(pubKey)
 
-		gs.Send(buf)
-		go gs.Listen()
+		gsi.Send(buf)
+		go gsi.Listen()
 	}
 }
 
-func (gs *GS) Listen() {
+func (gsi *GameServerInfo) Listen() {
 	for {
 		header := make([]byte, 2)
 
-		n, err := gs.conn.Read(header)
+		n, err := gsi.conn.Read(header)
 		if err != nil {
 			log.Println(err)
 			return
@@ -117,7 +116,7 @@ func (gs *GS) Listen() {
 		dataSize := (int(header[0]) | int(header[1])<<8) - 2
 
 		data := make([]byte, dataSize)
-		n, err = gs.conn.Read(data)
+		n, err = gsi.conn.Read(data)
 		if err != nil {
 			panic(err)
 		}
@@ -127,44 +126,45 @@ func (gs *GS) Listen() {
 		}
 
 		for i := 0; i < dataSize; i += 8 {
-			gs.blowfish.Decrypt(data, data, i, i)
+			gsi.blowfish.Decrypt(data, data, i, i)
 		}
 
 		ok := crypt.VerifyCheckSum(data, dataSize)
 		if !ok {
 			fmt.Println("Неверная контрольная сумма пакета, закрытие соединения.")
-			_ = gs.conn.Close()
+			_ = gsi.conn.Close()
 			return
 		}
-		gs.HandlePackage(data)
+		gsi.HandlePackage(data)
 	}
 }
-func (gs *GS) HandlePackage(data []byte) {
+func (gsi *GameServerInfo) HandlePackage(data []byte) {
 	opcode := data[0]
 	data = data[1:]
+	fmt.Println(opcode)
 
-	switch gs.state {
+	switch gsi.state {
 	case state.CONNECTED:
 		if opcode == 0 {
-			gs2ls.BlowFishKey(data, gs)
+			gs2ls.BlowFishKey(data, gsi)
 		}
 	case state.BfConnected:
 		if opcode == 1 {
-			gs2ls.GameServerAuth(data, gs)
+			gs2ls.GameServerAuth(data, gsi)
 		}
 	case state.AUTHED:
-		fmt.Println(opcode)
+
 		switch opcode {
 		case 0x02:
-			gs2ls.PlayerInGame(data, gs)
+			gs2ls.PlayerInGame(data, gsi)
 		case 0x03:
-			gs2ls.PlayerLogout(data, gs)
+			gs2ls.PlayerLogout(data, gsi)
 		case 0x04:
 			gs2ls.ChangeAccessLevel(data)
 		case 0x05:
-			gs2ls.PlayerAuthRequest(data, gs)
+			gs2ls.PlayerAuthRequest(data, gsi)
 		case 0x06:
-			gs2ls.ServerStatus(data, gs)
+			gs2ls.ServerStatus(data, gsi)
 		case 0x07:
 			gs2ls.PlayerTracert(data)
 		case 0x0A:
@@ -173,7 +173,7 @@ func (gs *GS) HandlePackage(data []byte) {
 
 	}
 }
-func (gs *GS) Send(buf *packets.Buffer) {
+func (gsi *GameServerInfo) Send(buf *packets.Buffer) {
 	size := buf.Len() + 4
 	size = (size + 8) - (size % 8) // padding
 
@@ -184,7 +184,7 @@ func (gs *GS) Send(buf *packets.Buffer) {
 	rs := crypt.AppendCheckSum(data, size)
 
 	for i := 0; i < size; i += 8 {
-		gs.blowfish.Encrypt(rs, rs, i, i)
+		gsi.blowfish.Encrypt(rs, rs, i, i)
 	}
 
 	rs = rs[:size]
@@ -193,52 +193,55 @@ func (gs *GS) Send(buf *packets.Buffer) {
 	s, f := byte(leng>>8), byte(leng&0xff)
 	res := append([]byte{f, s}, rs...)
 
-	gs.mu.Lock()
-	_, err := gs.conn.Write(res)
-	gs.mu.Unlock()
+	gsi.mu.Lock()
+	_, err := gsi.conn.Write(res)
+	gsi.mu.Unlock()
 
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (gs *GS) GetPrivateKey() *rsa.PrivateKey {
-	return gs.privateKey
+func (gsi *GameServerInfo) GetPrivateKey() *rsa.PrivateKey {
+	return gsi.privateKey
 }
-func (gs *GS) SetBlowFishKey(key []byte) {
-	cipher, err := blowfish.NewCipher(key)
+func (gsi *GameServerInfo) SetBlowFishKey(key []byte) {
+	localKey := make([]byte, len(key))
+	copy(localKey, key)
+	cipher, err := blowfish.NewCipher(localKey)
 	if err != nil {
 		panic(err)
 	}
-	gs.blowfish = cipher
+	gsi.blowfish = cipher
 }
-func (gs *GS) SetState(state state.GameServerState) {
-	gs.state = state
+func (gsi *GameServerInfo) SetState(state state.GameServerState) {
+	gsi.state = state
 }
-func (gs *GS) ForceClose(reason state.LoginServerFail) {
-	gs.Send(ls2gs.LoginServerFail(reason))
-	err := gs.conn.Close()
+func (gsi *GameServerInfo) ForceClose(reason state.LoginServerFail) {
+	gsi.Send(ls2gs.LoginServerFail(reason))
+	err := gsi.conn.Close()
 	if err != nil {
 		log.Println(err)
 	}
 
 }
 
-func (gs *GS) SetStatus(status int32) {
-	gs.gameServersInfo.status = status
+func (gsi *GameServerInfo) SetStatus(status int32) {
+	gsi.status = status
 }
-func (gs *GS) SetShowBracket(showBracket bool) {
-	gs.gameServersInfo.showBracket = showBracket
+func (gsi *GameServerInfo) SetShowBracket(showBracket bool) {
+	gsi.showBracket = showBracket
 }
-func (gs *GS) SetMaxPlayer(maxPlayer int32) {
-	gs.gameServersInfo.maxPlayer = maxPlayer
+func (gsi *GameServerInfo) SetMaxPlayer(maxPlayer int32) {
+	gsi.maxPlayer = maxPlayer
 }
-func (gs *GS) SetServerType(serverType int32) {
-	gs.gameServersInfo.serverType = serverType
+func (gsi *GameServerInfo) SetServerType(serverType int32) {
+	gsi.serverType = serverType
 }
-func (gs *GS) SetAgeLimit(ageLimit int32) {
-	gs.gameServersInfo.ageLimit = ageLimit
+func (gsi *GameServerInfo) SetAgeLimit(ageLimit int32) {
+	gsi.ageLimit = ageLimit
 }
-func (gs *GS) GetServerInfoId() byte {
-	return gs.gameServersInfo.Id
+
+func (gsi *GameServerInfo) GetServerInfoId() byte {
+	return gsi.Id
 }

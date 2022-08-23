@@ -8,42 +8,53 @@ import (
 func GetGameServerInstance() *GS {
 	return gameServerInstance
 }
-func (gs *GS) getGameServerConn() net.Conn {
-	return gs.conn
+func (gsi *GameServerInfo) getGameServerConn() net.Conn {
+	return gsi.conn
 }
 
 func IsAccountInGameServer(account string) bool {
 	gameServer := GetGameServerInstance()
-	return gameServer.hasAccountOnGameServer(account)
+
+	for _, v := range gameServer.gameServersInfo {
+		if v.hasAccountOnGameServer(account) {
+			return true
+		}
+	}
+	return false
 }
 
-func GetGameServerIp() string {
+func GetCountGameServer() byte {
 	gameServer := GetGameServerInstance()
-	addr := gameServer.getGameServerConn().RemoteAddr().String()
+	return byte(len(gameServer.gameServersInfo))
+}
+func GetGameServerIp(id int) string {
+	gameServer := GetGameServerInstance()
+	gsi := gameServer.gameServersInfo[id] //todo надо проверка
+	addr := gsi.getGameServerConn().RemoteAddr().String()
 	b, _, _ := strings.Cut(addr, ":")
 	return b
 }
 
-func GetGameServerPort() int16 {
-	return GetGameServerInstance().getGameServerInfoPort()
+func GetGameServerPort(id int) int16 {
+	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoPort()
 }
-func GetGameServerId() byte {
-	return GetGameServerInstance().getGameServerInfoId()
+func GetGameServerId(id int) byte {
+	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoId() //возможна паника если в массиве нету id
 }
-func GetGameServerMaxPlayers() int32 {
-	return GetGameServerInstance().getGameServerInfoMaxPlayer()
+func GetGameServerMaxPlayers(id int) int32 {
+	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoMaxPlayer()
 }
-func GetGameServerAgeLimit() int32 {
-	return GetGameServerInstance().getGameServerInfoAgeLimit()
+func GetGameServerAgeLimit(id int) int32 {
+	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoAgeLimit()
 }
-func GetGameServerServerType() int32 {
-	return GetGameServerInstance().getGameServerInfoType()
+func GetGameServerServerType(id int) int32 {
+	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoType()
 }
-func GetGameServerStatus() byte {
-	return byte(GetGameServerInstance().getGameServerInfoStatus())
+func GetGameServerStatus(id int) byte {
+	return byte(GetGameServerInstance().gameServersInfo[id].getGameServerInfoStatus())
 }
-func ShowBracketsInGameServer() byte {
-	if GetGameServerInstance().getGameServerInfoShowBracket() {
+func ShowBracketsInGameServer(id int) byte {
+	if GetGameServerInstance().gameServersInfo[id].getGameServerInfoShowBracket() {
 		return 1
 	}
 	return 0
