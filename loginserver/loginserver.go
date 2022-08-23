@@ -216,6 +216,6 @@ func (l *LoginServer) GetAccount(account string) *models.Account {
 	return &l.accounts[account].Account
 }
 
-func (l *LoginServer) GetGameServerInfoList() []*gameserver.GameServerInfo {
+func (l *LoginServer) GetGameServerInfoList() []*gameserver.Info {
 	return gameserver.GetGameServerInstance().GetGameServerInfoList()
 }

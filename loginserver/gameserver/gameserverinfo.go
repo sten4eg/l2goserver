@@ -13,7 +13,7 @@ type account struct {
 	accounts map[string]bool
 	mu       sync.Mutex
 }
-type GameServerInfo struct {
+type Info struct {
 	host        string
 	hexId       []byte
 	Id          byte
@@ -33,38 +33,41 @@ type GameServerInfo struct {
 	gs          *GS
 }
 
-func (gsi *GameServerInfo) InitRSAKeys() {
+func (gsi *Info) InitRSAKeys() error {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	gsi.privateKey = privateKey
+	return nil
 }
 
-func (gsi *GameServerInfo) getGameServerInfoPort() int16 {
-	return gsi.port
+func (gsi *Info) IsAuthed() bool {
+	return gsi.authed
 }
-func (gsi *GameServerInfo) getGameServerInfoId() byte {
+func (gsi *Info) GetGameServerInfoId() byte {
 	return gsi.Id
 }
-func (gsi *GameServerInfo) getGameServerInfoMaxPlayer() int32 {
+
+func (gsi *Info) getGameServerInfoPort() int16 {
+	return gsi.port
+}
+func (gsi *Info) getGameServerInfoMaxPlayer() int32 {
 	return gsi.maxPlayer
 }
-func (gsi *GameServerInfo) getGameServerInfoAgeLimit() int32 {
+func (gsi *Info) getGameServerInfoAgeLimit() int32 {
 	return gsi.ageLimit
 }
-func (gsi *GameServerInfo) getGameServerInfoType() int32 {
+func (gsi *Info) getGameServerInfoType() int32 {
 	return gsi.serverType
 }
-
-func (gsi *GameServerInfo) getGameServerInfoStatus() int32 {
+func (gsi *Info) getGameServerInfoStatus() int32 {
 	return gsi.status
 }
-func (gsi *GameServerInfo) getGameServerInfoShowBracket() bool {
+func (gsi *Info) getGameServerInfoShowBracket() bool {
 	return gsi.showBracket
 }
-
-func (gsi *GameServerInfo) hasAccountOnGameServer(account string) bool {
+func (gsi *Info) hasAccountOnGameServer(account string) bool {
 	gsi.accounts.mu.Lock()
 	defer gsi.accounts.mu.Unlock()
 	inGame, ok := gsi.accounts.accounts[account]
@@ -73,7 +76,6 @@ func (gsi *GameServerInfo) hasAccountOnGameServer(account string) bool {
 	}
 	return inGame
 }
-
-func (gsi *GameServerInfo) IsAuthed() bool {
-	return gsi.authed
+func (gsi *Info) getGameServerConn() *net.TCPConn {
+	return gsi.conn
 }

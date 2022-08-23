@@ -34,7 +34,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Ошибка чтения конфига", err)
 	}
-	gameserver.GameServerHandlerInit()
+	err = gameserver.HandlerInit()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	loginServer := loginserver.New(config.GetConfig())
 

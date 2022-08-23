@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-const AccountIpsUpdate = "UPDATE accounts SET pcIp = $1, hop1 = $2, hop2 = $3, hop3 = $4, hop4 = $5 WHERE login = $6"
+const AccountIpsUpdate = `UPDATE accounts SET "pcIp" = $1, hop1 = $2, hop2 = $3, hop3 = $4, hop4 = $5 WHERE login = $6`
 
 func PlayerTracert(data []byte) {
 	packet := packets.NewReader(data)

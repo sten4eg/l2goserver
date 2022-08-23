@@ -30,7 +30,7 @@ var errNoData = errors.New("errNoData")
 type isInLoginInterface interface {
 	IsAccountInLoginAndAddIfNot(*models.ClientCtx) bool
 	AssignSessionKeyToClient(*models.ClientCtx) *models.SessionKey
-	GetGameServerInfoList() []*gameserver.GameServerInfo
+	GetGameServerInfoList() []*gameserver.Info
 }
 
 func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface) error {
@@ -166,7 +166,7 @@ func getCharactersOnAccount(account string, server isInLoginInterface) {
 	serverList := server.GetGameServerInfoList()
 	for _, gsi := range serverList {
 		if gsi.IsAuthed() {
-			gsi.Send(ls2gs.RequestCharacter(account))
+			_ = gsi.Send(ls2gs.RequestCharacter(account))
 		}
 	}
 }

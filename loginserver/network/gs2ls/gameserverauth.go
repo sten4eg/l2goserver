@@ -11,9 +11,9 @@ import (
 
 type gsInterfaceForGameServerAuth interface {
 	ForceClose(state.LoginServerFail)
-	Send(*packets.Buffer)
+	Send(*packets.Buffer) error
 	SetInfoGameServerInfo(string, []byte, byte, int16, int32, bool)
-	GetServerInfoId() byte
+	GetGameServerInfoId() byte
 	SetState(state.GameServerState)
 }
 
@@ -49,7 +49,7 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) {
 	gsa.hosts = sb.String()
 
 	if handleRegProcess(server, gsa) {
-		server.Send(ls2gs.AuthedResponse(server.GetServerInfoId()))
+		_ = server.Send(ls2gs.AuthedResponse(server.GetGameServerInfoId()))
 		server.SetState(state.AUTHED)
 	}
 

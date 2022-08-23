@@ -1,15 +1,11 @@
 package gameserver
 
 import (
-	"net"
 	"strings"
 )
 
 func GetGameServerInstance() *GS {
 	return gameServerInstance
-}
-func (gsi *GameServerInfo) getGameServerConn() net.Conn {
-	return gsi.conn
 }
 
 func IsAccountInGameServer(account string) bool {
@@ -38,8 +34,8 @@ func GetGameServerIp(id int) string {
 func GetGameServerPort(id int) int16 {
 	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoPort()
 }
-func GetGameServerId(id int) byte {
-	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoId() //возможна паника если в массиве нету id
+func GetGameServerId(index int) byte {
+	return GetGameServerInstance().gameServersInfo[index].GetGameServerInfoId() //возможна паника если в массиве нету id
 }
 func GetGameServerMaxPlayers(id int) int32 {
 	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoMaxPlayer()
@@ -58,8 +54,4 @@ func ShowBracketsInGameServer(id int) byte {
 		return 1
 	}
 	return 0
-}
-
-func ConvertIndexToServerId(index int) byte {
-	return GetGameServerInstance().gameServersInfo[index].GetServerInfoId()
 }

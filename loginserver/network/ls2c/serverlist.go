@@ -19,8 +19,8 @@ func NewServerListPacket(client *models.ClientCtx) error {
 
 	for i := 0; i < int(serversCount); i++ {
 
-		qq := gameserver.GetGameServerIp(i)
-		ip := net.ParseIP(qq).To4()
+		gsIp := gameserver.GetGameServerIp(i)
+		ip := net.ParseIP(gsIp).To4()
 
 		buffer.WriteSingleByte(gameserver.GetGameServerId(i)) // Server ID (Bartz)
 		buffer.WriteSingleByte(ip[0])                         // Server IP address 1/4
@@ -50,12 +50,12 @@ func NewServerListPacket(client *models.ClientCtx) error {
 
 	buffer.WriteH(0x00) // unknown
 
-	buffer.WriteSingleByte(1) //
-	for servId := 0; servId < int(serversCount); servId++ {
-		realServerId := gameserver.ConvertIndexToServerId(servId)
-		buffer.WriteSingleByte(gameserver.GetGameServerId(servId))
-		buffer.WriteSingleByte(client.Account.CharacterCount[realServerId]) //todo тут не так
-		buffer.WriteSingleByte(0)                                           // количесвто удаленных чаров
+	buffer.WriteSingleByte(serversCount)
+	for i := 0; i < int(serversCount); i++ {
+		serverId := gameserver.GetGameServerId(i)
+		buffer.WriteSingleByte(serverId)
+		buffer.WriteSingleByte(client.Account.CharacterCount[serverId])
+		buffer.WriteSingleByte(0) // количесвто удаленных чаров
 	}
 	return client.SendBuf(buffer)
 

@@ -7,7 +7,7 @@ import (
 )
 
 type playerAuthRequestInterface interface {
-	Send(*packets.Buffer)
+	Send(*packets.Buffer) error
 	LoginServerGetSessionKey(string) *models.SessionKey
 	LoginServerRemoveAuthedLoginClient(string)
 }
@@ -30,5 +30,5 @@ func PlayerAuthRequest(data []byte, gs playerAuthRequestInterface) {
 		buf = ls2gs.PlayerAuthResponse(account, false)
 	}
 
-	gs.Send(buf)
+	_ = gs.Send(buf)
 }
