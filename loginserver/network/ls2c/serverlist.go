@@ -6,6 +6,7 @@ import (
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 	"net"
+	"time"
 )
 
 func NewServerListPacket(client *models.ClientCtx) error {
@@ -15,7 +16,6 @@ func NewServerListPacket(client *models.ClientCtx) error {
 	buffer.WriteSingleByte(0x04)
 	buffer.WriteSingleByte(serversCount)     // количество серверов
 	buffer.WriteSingleByte(byte(lastServer)) // последний выбранный сервер
-	//	network, _, _ := net.SplitHostPort(remoteAddr)
 
 	for i := 0; i < int(serversCount); i++ {
 
@@ -30,7 +30,7 @@ func NewServerListPacket(client *models.ClientCtx) error {
 
 		buffer.WriteDU(uint32(gameserver.GetGameServerPort(i)))           // GameServer port number
 		buffer.WriteSingleByte(byte(gameserver.GetGameServerAgeLimit(i))) // Age Limit 0, 15, 18
-		buffer.WriteSingleByte(0x01)                                      // Is pvp allowed?
+		buffer.WriteSingleByte(0x01)                                      // Is pvp allowed? default True
 		buffer.WriteH(100)                                                // How many players are online Unused In client
 		buffer.WriteHU(uint16(gameserver.GetGameServerMaxPlayers(i)))     // Maximum allowed players
 
@@ -55,7 +55,15 @@ func NewServerListPacket(client *models.ClientCtx) error {
 		serverId := gameserver.GetGameServerId(i)
 		buffer.WriteSingleByte(serverId)
 		buffer.WriteSingleByte(client.Account.CharacterCount[serverId])
-		buffer.WriteSingleByte(0) // количесвто удаленных чаров
+		charsToDel, ok := client.Account.CharactersToDel[serverId]
+		if ok && len(charsToDel) != 0 {
+			buffer.WriteSingleByte(byte(len(charsToDel)))
+			for j := range charsToDel {
+				buffer.WriteD(int32((charsToDel[j] - time.Now().UnixMilli()) / 1000))
+			}
+		} else {
+			buffer.WriteSingleByte(0)
+		}
 	}
 	return client.SendBuf(buffer)
 
