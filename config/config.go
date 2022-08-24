@@ -15,6 +15,7 @@ type Conf struct {
 type DatabaseType struct {
 	Name        string `json:"name"`
 	Host        string `json:"host"`
+	Schema      string `json:"schema"`
 	Port        string `json:"port"`
 	User        string `json:"user"`
 	Password    string `json:"password"`

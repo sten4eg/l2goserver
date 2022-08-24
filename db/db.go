@@ -19,6 +19,7 @@ func ConfigureDB() error {
 	dsnString += " port=" + conf.LoginServer.Database.Port
 	dsnString += " dbname=" + conf.LoginServer.Database.Name
 	dsnString += " sslmode=" + conf.LoginServer.Database.SSLMode
+	dsnString += " search_path=" + conf.LoginServer.Database.Schema
 	dsnString += " pool_max_conns=" + conf.LoginServer.Database.PoolMaxConn
 
 	//todo лучше использовать unix socket,в БД выставить max_conn в районе 1000 и shared buffer ~ 1.5GB
