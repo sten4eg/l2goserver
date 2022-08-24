@@ -35,13 +35,13 @@ func New(cfg config.Conf) *LoginServer {
 	return login
 }
 
-func (l *LoginServer) StartListen() error {
+func (ls *LoginServer) StartListen() error {
 	var err error
 	addr := new(net.TCPAddr)
 	addr.Port = 2106
 	addr.IP = net.IP{127, 0, 0, 1}
 
-	l.clientsListener, err = net.ListenTCP("tcp4", addr)
+	ls.clientsListener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
 		return err
 	}
@@ -49,8 +49,8 @@ func (l *LoginServer) StartListen() error {
 	return nil
 }
 
-func (l *LoginServer) Run() {
-	defer l.clientsListener.Close()
+func (ls *LoginServer) Run() {
+	defer ls.clientsListener.Close()
 
 	for {
 		var err error
@@ -61,7 +61,7 @@ func (l *LoginServer) Run() {
 			continue
 		}
 
-		tcpConn, err := l.AcceptTCPWithFloodProtection()
+		tcpConn, err := ls.AcceptTCPWithFloodProtection()
 		if err != nil {
 			log.Println("Accept() error", err)
 			continue
@@ -83,13 +83,13 @@ func (l *LoginServer) Run() {
 
 		client.SetState(state.Connected)
 
-		go l.handleClientPackets(client)
+		go ls.handleClientPackets(client)
 
 	}
 
 }
 
-func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
+func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	defer client.CloseConnection()
 	var err error
 
@@ -133,7 +133,7 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 			}
 		case state.AuthedGameGuard:
 			if opcode == 0 {
-				err = c2ls.NewRequestAuthLogin(data, client, l)
+				err = c2ls.NewRequestAuthLogin(data, client, ls)
 				if err != nil {
 					//	log.Println(err)
 					return
@@ -165,30 +165,30 @@ func (l *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	}
 }
 
-func (l *LoginServer) GetSessionKey(account string) *models.SessionKey {
-	l.mu.Lock()
-	q := l.accounts[account]
-	l.mu.Unlock()
+func (ls *LoginServer) GetSessionKey(account string) *models.SessionKey {
+	ls.mu.Lock()
+	q := ls.accounts[account]
+	ls.mu.Unlock()
 	if q == nil {
 		return nil
 	}
 	return q.SessionKey
 }
 
-func (l *LoginServer) IsAccountInLoginAndAddIfNot(client *models.ClientCtx) bool {
-	inLogin, ok := l.accounts[client.Account.Login]
+func (ls *LoginServer) IsAccountInLoginAndAddIfNot(client *models.ClientCtx) bool {
+	inLogin, ok := ls.accounts[client.Account.Login]
 	if !ok {
-		l.accounts[client.Account.Login] = client
+		ls.accounts[client.Account.Login] = client
 		return false
 	}
 	if nil == inLogin {
-		l.accounts[client.Account.Login] = client
+		ls.accounts[client.Account.Login] = client
 		return false
 	}
 	return true
 }
 
-func (l *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *models.SessionKey {
+func (ls *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *models.SessionKey {
 	sessionKey := new(models.SessionKey)
 
 	sessionKey.PlayOk1 = rand.Uint32()
@@ -196,26 +196,26 @@ func (l *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *models
 	sessionKey.LoginOk1 = rand.Uint32()
 	sessionKey.LoginOk2 = rand.Uint32()
 
-	l.mu.Lock()
-	l.accounts[client.Account.Login] = client
-	l.mu.Unlock()
+	ls.mu.Lock()
+	ls.accounts[client.Account.Login] = client
+	ls.mu.Unlock()
 	return sessionKey
 }
 
-func (l *LoginServer) RemoveAuthedLoginClient(account string) {
-	l.mu.Lock()
-	client, ok := l.accounts[account]
+func (ls *LoginServer) RemoveAuthedLoginClient(account string) {
+	ls.mu.Lock()
+	client, ok := ls.accounts[account]
 	if ok && client != nil {
 		client.CloseConnection()
 	}
-	delete(l.accounts, account)
-	l.mu.Unlock()
+	delete(ls.accounts, account)
+	ls.mu.Unlock()
 }
 
-func (l *LoginServer) GetAccount(account string) *models.Account {
-	return &l.accounts[account].Account
+func (ls *LoginServer) GetAccount(account string) *models.Account {
+	return &ls.accounts[account].Account
 }
 
-func (l *LoginServer) GetGameServerInfoList() []*gameserver.Info {
+func (ls *LoginServer) GetGameServerInfoList() []*gameserver.Info {
 	return gameserver.GetGameServerInstance().GetGameServerInfoList()
 }

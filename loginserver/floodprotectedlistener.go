@@ -17,7 +17,7 @@ type connection struct {
 	isFlooding bool
 }
 
-var floodProtection map[netip.Addr]*connection
+var floodProtection map[netip.Addr]connection
 
 func (ls *LoginServer) AcceptTCPWithFloodProtection() (*net.TCPConn, error) {
 	for {
@@ -28,27 +28,29 @@ func (ls *LoginServer) AcceptTCPWithFloodProtection() (*net.TCPConn, error) {
 
 		addr, err := netip.ParseAddrPort(conn.RemoteAddr().String())
 		if err != nil {
-			panic(err)
+			_ = conn.Close()
+			continue
 		}
 
-		fConn := floodProtection[addr.Addr()]
+		fConn, ok := floodProtection[addr.Addr()]
 
-		if fConn == nil {
-			floodProtection[addr.Addr()] = &connection{1, time.Now().UnixMilli(), false}
+		if !ok {
+			floodProtection[addr.Addr()] = connection{1, time.Now().UnixMilli(), false}
 		} else {
 			fConn.connNum++
 			connectionTime := time.Now().UnixMilli() - fConn.lastConn
-			if fConn.connNum > fastConnectionLimit && connectionTime < normalConnectionTime || connectionTime < fastConnectionTime || fConn.connNum > maxConnectionPerIP {
+
+			if (fConn.connNum > fastConnectionLimit && connectionTime < normalConnectionTime) ||
+				connectionTime < fastConnectionTime ||
+				fConn.connNum > maxConnectionPerIP {
 				fConn.lastConn = time.Now().UnixMilli()
-				conn.Close()
+				_ = conn.Close()
 				fConn.connNum--
 				fConn.isFlooding = true
 				continue
 			}
 
-			if fConn.isFlooding {
-				fConn.isFlooding = false
-			}
+			fConn.isFlooding = false
 		}
 		return conn, nil
 	}
@@ -56,5 +58,5 @@ func (ls *LoginServer) AcceptTCPWithFloodProtection() (*net.TCPConn, error) {
 }
 
 func InitializeFloodProtection() {
-	floodProtection = make(map[netip.Addr]*connection, 10)
+	floodProtection = make(map[netip.Addr]connection, 100)
 }
