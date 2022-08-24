@@ -61,7 +61,7 @@ func (l *LoginServer) Run() {
 			continue
 		}
 
-		tcpConn, err := l.clientsListener.AcceptTCP()
+		tcpConn, err := l.AcceptTCPWithFloodProtection()
 		if err != nil {
 			log.Println("Accept() error", err)
 			continue

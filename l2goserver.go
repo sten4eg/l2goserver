@@ -55,7 +55,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	loginserver.InitializeFloodProtection()
 	loginServer.Run()
 
 }
