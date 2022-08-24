@@ -17,14 +17,14 @@ func PlayerTracert(data []byte) {
 	hop2 := packet.ReadString()
 	hop3 := packet.ReadString()
 	hop4 := packet.ReadString()
-	err := SetAccountLastTracert(account, pcIp, hop1, hop2, hop3, hop4)
+	err := setAccountLastTracert(account, pcIp, hop1, hop2, hop3, hop4)
 	if err != nil {
 		log.Println(err.Error())
 	}
 
 }
 
-func SetAccountLastTracert(account string, pcIp string, hop1 string, hop2 string, hop3 string, hop4 string) error {
+func setAccountLastTracert(account string, pcIp string, hop1 string, hop2 string, hop3 string, hop4 string) error {
 	dbConn, err := db.GetConn()
 	if err != nil {
 		return err

@@ -14,14 +14,14 @@ func ChangeAccessLevel(data []byte) {
 	level := packet.ReadInt32()
 	account := packet.ReadString()
 
-	err := SetAccountAccessLevel(account, level)
+	err := setAccountAccessLevel(account, level)
 	if err != nil {
 		log.Println(err.Error())
 	}
 
 }
 
-func SetAccountAccessLevel(account string, level int32) error {
+func setAccountAccessLevel(account string, level int32) error {
 	dbConn, err := db.GetConn()
 	if err != nil {
 		return err

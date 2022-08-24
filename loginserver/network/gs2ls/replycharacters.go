@@ -2,11 +2,11 @@ package gs2ls
 
 import "l2goserver/packets"
 
-type SetCharactersOnServer interface {
+type SetCharactersOnServerInterface interface {
 	SetCharactersOnServer(string, uint8, []int64)
 }
 
-func ReplyCharacters(data []byte, server SetCharactersOnServer) {
+func ReplyCharacters(data []byte, server SetCharactersOnServerInterface) {
 	packet := packets.NewReader(data)
 	account := packet.ReadString()
 	chars := packet.ReadUInt8()

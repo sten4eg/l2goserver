@@ -2,7 +2,6 @@ package IpManager
 
 import (
 	"context"
-	"fmt"
 	"github.com/jackc/pgtype"
 	"l2goserver/db"
 	"net/netip"
@@ -26,7 +25,6 @@ func LoadBannedIp() error {
 
 	for rows.Next() {
 		var value int
-		fmt.Println(value)
 		err = rows.Scan(&i, &value)
 		if err != nil {
 			return err
