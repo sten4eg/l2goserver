@@ -2,45 +2,65 @@
   "loginserver": {
     "host": "127.0.0.1",
     "autoCreate": true,
+    "portForGS": "9014",
     "database": {
       "name": "postgres",
-      "host": "127.0.0.1",
+      "host": "localhost",
+      "schema": "loginserver",
       "port": "5432",
       "user": "postgres",
       "password": "postgres",
-      "sslMode" : "disable",
-      "poolMaxConn" : "100"
-    }
-  },
-  "gameservers": [
-    {
-      "name": "Bartz",
-      "secret": "CHANGE_ME_PLEASE",
-      "internalIp": "127.0.0.1",
-      "port": 7777,
-      "database": {
-        "name": "postgres",
-        "host": "127.0.0.1",
-        "port": "5432",
-        "user": "postgres",
-        "password": "postgres",
-        "sslMode" : "disable",
-        "poolMaxConn" : "1"
-      }
+      "sslMode": "disable",
+      "poolMaxConn": "980"
     },
-    {
-      "name": "Bartzik",
-      "internalIp": "127.0.0.1",
-      "port": 7777,
-      "database": {
-        "name": "postgres",
-        "host": "127.0.0.1",
-        "port": "5432",
-        "user": "postgres",
-        "password": "postgres",
-        "sslMode" : "disable",
-        "poolMaxConn" : "1"
-      }
-    }
-  ]
+    "allowedServerVersion": [
+      6,
+      14
+    ]
+  },
+  "gameserver": {
+    "name": "Bartz",
+    "secret": "CHANGE_ME_PLEASE",
+    "internalIp": "127.0.0.1",
+    "port": "7777",
+    "maxPlayers": 10000,
+    "hexIds": [
+      [
+        104,
+        179,
+        1,
+        203,
+        176,
+        237,
+        249,
+        109,
+        32,
+        250,
+        254,
+        154,
+        206,
+        166,
+        16,
+        126
+      ],
+      [
+        120,
+        179,
+        1,
+        203,
+        176,
+        237,
+        249,
+        109,
+        32,
+        250,
+        254,
+        154,
+        206,
+        166,
+        16,
+        126
+      ]
+    ]
+  }
 }

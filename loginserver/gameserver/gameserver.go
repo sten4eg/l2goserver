@@ -23,11 +23,11 @@ type GS struct {
 
 var gameServerInstance *GS
 var initBlowfishKey = []byte{95, 59, 118, 46, 93, 48, 53, 45, 51, 49, 33, 124, 43, 45, 37, 120, 84, 33, 94, 91, 36, 0}
-var connId byte
+var uniqId byte
 
 func HandlerInit() error {
 	gameServerInstance = new(GS)
-	connId = 1
+	uniqId = 1
 	port := config.GetLoginPortForGameServer()
 	intPort, err := strconv.Atoi(port)
 	if err != nil {
@@ -53,7 +53,8 @@ func (gs *GS) Run() {
 		var err error
 		gsi := new(Info)
 		gsi.gs = gs
-		gsi.ConnId = connId
+		gsi.uniqId = uniqId //atomic?
+		uniqId++
 
 		gsi.SetBlowFishKey(initBlowfishKey)
 
@@ -81,17 +82,17 @@ func (gs *GS) Run() {
 		err = gsi.Send(buf)
 		if err != nil {
 			log.Println("ошибка при отправке в геймсервера")
-			_ = gsi.conn.Close()
+			gameServerInstance.RemoveGsi(gsi.uniqId)
 			continue
 		}
-		connId++
+
 		go gsi.Listen()
 	}
 }
 
-func (gs *GS) RemoveGsi() {
+func (gs *GS) RemoveGsi(connId byte) {
 	for i, gsi := range gs.gameServersInfo {
-		if gsi.ConnId == connId {
+		if gsi.uniqId == connId {
 			gs.gameServersInfo = append(gs.gameServersInfo[:i], gs.gameServersInfo[i+1:]...)
 		}
 	}
@@ -135,6 +136,8 @@ func (gsi *Info) SetCharactersOnServer(account string, charsNum uint8, timeToDel
 }
 
 func (gsi *Info) Listen() {
+	defer gameServerInstance.RemoveGsi(gsi.uniqId)
+
 	for {
 		header := make([]byte, 2)
 
@@ -167,14 +170,12 @@ func (gsi *Info) Listen() {
 		ok := crypt.VerifyCheckSum(data, dataSize)
 		if !ok {
 			fmt.Println("Неверная контрольная сумма пакета, закрытие соединения.")
-			_ = gsi.conn.Close()
-			gameServerInstance.RemoveGsi()
 			return
 		}
-		gsi.HandlePackage(data)
+		gsi.HandlePacket(data)
 	}
 }
-func (gsi *Info) HandlePackage(data []byte) {
+func (gsi *Info) HandlePacket(data []byte) {
 	opcode := data[0]
 	data = data[1:]
 	fmt.Println(opcode)
@@ -215,7 +216,7 @@ func (gsi *Info) Send(buf *packets.Buffer) error {
 	size := buf.Len() + 4
 	size = (size + 8) - (size % 8) // padding
 
-	data := make([]byte, 200)
+	data := make([]byte, size)
 	copy(data, buf.Bytes())
 	packets.Put(buf)
 
