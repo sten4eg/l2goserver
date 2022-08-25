@@ -12,12 +12,12 @@ type ServerStatusInterface interface {
 type serverStatusCodes = int32
 
 const (
-	SERVER_LIST_STATUS serverStatusCodes = 1
-	SERVER_TYPE        serverStatusCodes = 2
+	ServerListStatus serverStatusCodes = 1
+	ServerType       serverStatusCodes = 2
 
-	SERVER_LIST_SQUARE_BRACKET serverStatusCodes = 3
-	MAX_PLAYERS                serverStatusCodes = 4
-	SERVER_AGE                 serverStatusCodes = 6
+	ServerListSquareBracket serverStatusCodes = 3
+	MaxPlayers              serverStatusCodes = 4
+	ServerAge               serverStatusCodes = 6
 )
 
 func ServerStatus(data []byte, server ServerStatusInterface) {
@@ -29,15 +29,15 @@ func ServerStatus(data []byte, server ServerStatusInterface) {
 		code := packet.ReadInt32()
 		value := packet.ReadInt32()
 		switch code {
-		case SERVER_LIST_STATUS:
+		case ServerListStatus:
 			server.SetStatus(value)
-		case SERVER_TYPE:
+		case ServerType:
 			server.SetServerType(value)
-		case SERVER_LIST_SQUARE_BRACKET:
+		case ServerListSquareBracket:
 			server.SetShowBracket(value == 1)
-		case MAX_PLAYERS:
+		case MaxPlayers:
 			server.SetMaxPlayer(value)
-		case SERVER_AGE:
+		case ServerAge:
 			server.SetAgeLimit(value)
 		}
 	}
