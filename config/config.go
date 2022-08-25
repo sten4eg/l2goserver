@@ -1,52 +1,52 @@
 package config
 
 import (
-	"encoding/json"
+	"gopkg.in/yaml.v3"
 	"os"
 )
 
 var globalConfig Conf
 
 type Conf struct {
-	LoginServer LoginServerType `json:"loginserver"`
-	GameServer  GameServerType  `json:"gameserver"`
+	LoginServer LoginServerType `yaml:"loginserver"`
+	GameServer  GameServerType  `yaml:"gameserver"`
 }
 
 type DatabaseType struct {
-	Name        string `json:"name"`
-	Host        string `json:"host"`
-	Schema      string `json:"schema"`
-	Port        string `json:"port"`
-	User        string `json:"user"`
-	Password    string `json:"password"`
-	SSLMode     string `json:"sslMode"`
-	PoolMaxConn string `json:"PoolMaxConn"`
+	Name        string `yaml:"name"`
+	Host        string `yaml:"host"`
+	Schema      string `yaml:"schema"`
+	Port        string `yaml:"port"`
+	User        string `yaml:"user"`
+	Password    string `yaml:"password"`
+	SSLMode     string `yaml:"sslMode"`
+	PoolMaxConn string `yaml:"poolMaxConn"`
 }
 
 type LoginServerType struct {
-	Host                 string       `json:"host"`
-	AutoCreate           bool         `json:"autoCreate"`
-	PortForGS            string       `json:"portForGS"`
-	Database             DatabaseType `json:"database"`
-	AllowedServerVersion []byte       `json:"allowedServerVersion"`
+	Host                 string       `yaml:"host"`
+	AutoCreate           bool         `yaml:"autoCreate"`
+	PortForGS            string       `yaml:"portForGS"`
+	Database             DatabaseType `yaml:"database"`
+	AllowedServerVersion []byte       `yaml:"allowedServerVersion"`
 }
 
 type GameServerType struct {
-	Name       string   `json:"name"`
-	InternalIp string   `json:"internalIp"`
-	Port       string   `json:"port"`
-	MaxPlayers uint16   `json:"maxPlayers"`
-	HexIds     [][]byte `json:"hexIds"`
+	Name       string   `yaml:"name"`
+	InternalIp string   `yaml:"internalIp"`
+	Port       string   `yaml:"port"`
+	MaxPlayers uint16   `yaml:"maxPlayers"`
+	HexIds     [][]byte `yaml:"hexIds"`
 }
 
 func Read() error {
 	var config Conf
-	file, err := os.Open("./config/config.json")
+	file, err := os.Open("./config/config.yaml")
 	if err != nil {
 		return err
 	}
 
-	decoder := json.NewDecoder(file)
+	decoder := yaml.NewDecoder(file)
 	err = decoder.Decode(&config)
 	if err != nil {
 		return err
