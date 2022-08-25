@@ -31,6 +31,7 @@ type Info struct {
 	blowfish    *blowfish.Cipher
 	mu          sync.Mutex
 	gs          *GS
+	ConnId      byte
 }
 
 func (gsi *Info) InitRSAKeys() error {

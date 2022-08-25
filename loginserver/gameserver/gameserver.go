@@ -23,10 +23,11 @@ type GS struct {
 
 var gameServerInstance *GS
 var initBlowfishKey = []byte{95, 59, 118, 46, 93, 48, 53, 45, 51, 49, 33, 124, 43, 45, 37, 120, 84, 33, 94, 91, 36, 0}
+var connId byte
 
 func HandlerInit() error {
 	gameServerInstance = new(GS)
-
+	connId = 1
 	port := config.GetLoginPortForGameServer()
 	intPort, err := strconv.Atoi(port)
 	if err != nil {
@@ -52,6 +53,7 @@ func (gs *GS) Run() {
 		var err error
 		gsi := new(Info)
 		gsi.gs = gs
+		gsi.ConnId = connId
 
 		gsi.SetBlowFishKey(initBlowfishKey)
 
@@ -82,7 +84,16 @@ func (gs *GS) Run() {
 			_ = gsi.conn.Close()
 			continue
 		}
+		connId++
 		go gsi.Listen()
+	}
+}
+
+func (gs *GS) RemoveGsi() {
+	for i, gsi := range gs.gameServersInfo {
+		if gsi.ConnId == connId {
+			gs.gameServersInfo = append(gs.gameServersInfo[:i], gs.gameServersInfo[i+1:]...)
+		}
 	}
 }
 
@@ -157,6 +168,7 @@ func (gsi *Info) Listen() {
 		if !ok {
 			fmt.Println("Неверная контрольная сумма пакета, закрытие соединения.")
 			_ = gsi.conn.Close()
+			gameServerInstance.RemoveGsi()
 			return
 		}
 		gsi.HandlePackage(data)
