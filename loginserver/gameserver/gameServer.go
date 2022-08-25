@@ -99,6 +99,14 @@ func (gs *GS) RemoveGsi(connId byte) {
 	}
 }
 
+func (gs *GS) GetAccountOnGameServer(account string) *Info {
+	for _, gsi := range gs.GetGameServerInfoList() {
+		if gsi.HasAccountOnGameServer(account) {
+			return gsi
+		}
+	}
+	return nil
+}
 func (gsi *Info) AddAccountOnGameServer(account string) {
 	gsi.accounts.mu.Lock()
 	gsi.accounts.accounts[account] = true

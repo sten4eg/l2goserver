@@ -12,7 +12,7 @@ func IsAccountInGameServer(account string) bool {
 	gameServer := GetGameServerInstance()
 
 	for _, v := range gameServer.gameServersInfo {
-		if v.hasAccountOnGameServer(account) {
+		if v.HasAccountOnGameServer(account) {
 			return true
 		}
 	}

@@ -69,7 +69,7 @@ func (gsi *Info) getGameServerInfoStatus() int32 {
 func (gsi *Info) getGameServerInfoShowBracket() bool {
 	return gsi.showBracket
 }
-func (gsi *Info) hasAccountOnGameServer(account string) bool {
+func (gsi *Info) HasAccountOnGameServer(account string) bool {
 	gsi.accounts.mu.Lock()
 	defer gsi.accounts.mu.Unlock()
 	inGame, ok := gsi.accounts.accounts[account]

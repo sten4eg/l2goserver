@@ -14,16 +14,11 @@ const (
 	REASON_CHANGE_TMP_PASS Reason = 0x11
 	REASON_EXPIRED         Reason = 0x12
 	REASON_NO_TIME_LEFT    Reason = 0x13
+	PermanentlyBanned      Reason = 0x20
 )
 
 const (
 	ServerOverloaded Reason = 0x0F
-)
-
-type AccountKickedReason int32
-
-const (
-	PermanentlyBanned AccountKickedReason = 0x20
 )
 
 type AuthLoginResult byte

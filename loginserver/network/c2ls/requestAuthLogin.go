@@ -31,6 +31,8 @@ type isInLoginInterface interface {
 	IsAccountInLoginAndAddIfNot(*models.ClientCtx) bool
 	AssignSessionKeyToClient(*models.ClientCtx) *models.SessionKey
 	GetGameServerInfoList() []*gameserver.Info
+	GetClientCtx(string) *models.ClientCtx
+	RemoveAuthedLoginClient(string)
 }
 
 func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface) error {
@@ -53,9 +55,24 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLo
 		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.Ban))
 		client.CloseConnection()
 	case reasons.ALREADY_ON_LS:
-		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.AccountInUse)) //TODO тут надо искать аккаунт который в ЛС и кикать его
+		account := client.Account.Login
+		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.AccountInUse))
+		oldClient := server.GetClientCtx(account)
+		if oldClient != nil {
+			err = oldClient.SendBuf(ls2c.AccountKicked(reasons.AccountInUse))
+			oldClient.CloseConnection()
+			server.RemoveAuthedLoginClient(account)
+		}
+		client.CloseConnection()
 	case reasons.ALREADY_ON_GS:
-		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.AccountInUse)) //TODO тут надо искать аккаунт который в ЛС и кикать его
+		account := client.Account.Login
+		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.AccountInUse))
+		gsi := gameserver.GetGameServerInstance().GetAccountOnGameServer(account)
+		if gsi != nil {
+			if gsi.IsAuthed() {
+				_ = gsi.Send(ls2gs.KickPlayer(account))
+			}
+		}
 	}
 
 	if err != nil {

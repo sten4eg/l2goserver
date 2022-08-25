@@ -219,3 +219,7 @@ func (ls *LoginServer) GetAccount(account string) *models.Account {
 func (ls *LoginServer) GetGameServerInfoList() []*gameserver.Info {
 	return gameserver.GetGameServerInstance().GetGameServerInfoList()
 }
+
+func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
+	return ls.accounts[account]
+}
