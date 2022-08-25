@@ -45,22 +45,16 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) {
 	sizeSubNetsAndHosts := packet.ReadInt32()
 
 	var subNets []netip.Prefix
-	var hosts []netip.Addr
 
 	for i := 0; i < int(sizeSubNetsAndHosts); i++ {
 		subNetsAddr, err := netip.ParsePrefix(packet.ReadString())
 		if err != nil {
 			log.Println(err.Error())
 		}
-		hostsPrefix, err := netip.ParseAddr(packet.ReadString())
-		if err != nil {
-			log.Println(err.Error())
-		}
+		_ = packet.ReadString() //TODO Убрать получение дублирующегося пакета с ip без маски подсети
 		subNets = append(subNets, subNetsAddr)
-		hosts = append(hosts, hostsPrefix)
 	}
 	gsa.hosts = subNets
-
 	if handleRegProcess(server, gsa) {
 		_ = server.Send(ls2gs.AuthedResponse(server.GetGameServerInfoId()))
 		server.SetState(state.AUTHED)

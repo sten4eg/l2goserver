@@ -30,7 +30,7 @@ func ServerStatus(data []byte, server ServerStatusInterface) {
 		value := packet.ReadInt32()
 		switch code {
 		case SERVER_LIST_STATUS:
-			server.SetServerType(value)
+			server.SetStatus(value)
 		case SERVER_TYPE:
 			server.SetServerType(value)
 		case SERVER_LIST_SQUARE_BRACKET:
