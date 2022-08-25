@@ -109,7 +109,7 @@ func (gsi *Info) RemoveAccountOnGameServer(account string) {
 	gsi.accounts.mu.Unlock()
 }
 func (gsi *Info) SetInfoGameServerInfo(host string, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
-	gsi.host = host
+	gsi.host = host //todo unused?
 	gsi.hexId = hexId
 	gsi.Id = id
 	gsi.port = port

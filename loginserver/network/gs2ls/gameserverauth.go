@@ -38,15 +38,18 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) {
 	gsa.hostReserved = packet.ReadSingleByte() != 0
 	gsa.port = packet.ReadInt16()
 	gsa.maxPlayers = packet.ReadInt32()
-	size := packet.ReadInt32()
-	gsa.hexId = packet.ReadBytes(int(size))
-	size = int32(2 * packet.ReadInt16())
+	sizeHexId := packet.ReadInt32()
+	gsa.hexId = packet.ReadBytes(int(sizeHexId))
 
-	var sb strings.Builder
-	for i := 0; i < int(size); i++ {
-		sb.Write(utils.S2b(packet.ReadString()))
+	sizeSubNetsAndHosts := packet.ReadInt16()
+
+	var subNets strings.Builder
+	var hosts strings.Builder
+	for i := 0; i < int(sizeSubNetsAndHosts); i++ {
+		subNets.Write(utils.S2b(packet.ReadString()))
+		hosts.Write(utils.S2b(packet.ReadString()))
 	}
-	gsa.hosts = sb.String()
+	gsa.hosts = subNets.String()
 
 	if handleRegProcess(server, gsa) {
 		_ = server.Send(ls2gs.AuthedResponse(server.GetGameServerInfoId()))
