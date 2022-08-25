@@ -2,7 +2,7 @@
 loginserver:
   host: 127.0.0.1
   autoCreate: true
-  portForGS: '9014'
+  portForGS: '9014' #порт который выделен для общения с гейм сервером
   database:
     name: postgres
     host: localhost
