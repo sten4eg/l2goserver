@@ -1,8 +1,8 @@
 package gs2ls
 
 import (
+	"l2goserver/loginserver/gameserver/network/ls2gs"
 	"l2goserver/loginserver/models"
-	"l2goserver/loginserver/network/ls2gs"
 	"l2goserver/packets"
 )
 

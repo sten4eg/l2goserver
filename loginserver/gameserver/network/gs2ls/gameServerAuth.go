@@ -2,7 +2,7 @@ package gs2ls
 
 import (
 	"l2goserver/config"
-	"l2goserver/loginserver/network/ls2gs"
+	"l2goserver/loginserver/gameserver/network/ls2gs"
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 	"l2goserver/utils"
