@@ -12,6 +12,7 @@ import (
 	"l2goserver/packets"
 	"log"
 	"net"
+	"net/netip"
 	"strconv"
 )
 
@@ -108,7 +109,7 @@ func (gsi *Info) RemoveAccountOnGameServer(account string) {
 	delete(gsi.accounts.accounts, account)
 	gsi.accounts.mu.Unlock()
 }
-func (gsi *Info) SetInfoGameServerInfo(host string, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
+func (gsi *Info) SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
 	gsi.host = host //todo unused?
 	gsi.hexId = hexId
 	gsi.Id = id

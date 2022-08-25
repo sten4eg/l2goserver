@@ -6,6 +6,7 @@ import (
 	"l2goserver/loginserver/crypt/blowfish"
 	"l2goserver/loginserver/types/state"
 	"net"
+	"net/netip"
 	"sync"
 )
 
@@ -14,7 +15,7 @@ type account struct {
 	mu       sync.Mutex
 }
 type Info struct {
-	host        string
+	host        []netip.Prefix
 	hexId       []byte
 	Id          byte
 	port        int16

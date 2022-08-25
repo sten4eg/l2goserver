@@ -6,20 +6,21 @@ import (
 	"l2goserver/loginserver/types/state"
 	"l2goserver/packets"
 	"l2goserver/utils"
-	"strings"
+	"log"
+	"net/netip"
 )
 
 type gsInterfaceForGameServerAuth interface {
 	ForceClose(state.LoginServerFail)
 	Send(*packets.Buffer) error
-	SetInfoGameServerInfo(string, []byte, byte, int16, int32, bool)
+	SetInfoGameServerInfo([]netip.Prefix, []byte, byte, int16, int32, bool)
 	GetGameServerInfoId() byte
 	SetState(state.GameServerState)
 }
 
 type gameServerAuthData struct {
 	hexId               []byte
-	hosts               string
+	hosts               []netip.Prefix
 	maxPlayers          int32
 	port                int16
 	serverVersion       byte
@@ -41,15 +42,24 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) {
 	sizeHexId := packet.ReadInt32()
 	gsa.hexId = packet.ReadBytes(int(sizeHexId))
 
-	sizeSubNetsAndHosts := packet.ReadInt16()
+	sizeSubNetsAndHosts := packet.ReadInt32()
 
-	var subNets strings.Builder
-	var hosts strings.Builder
+	var subNets []netip.Prefix
+	var hosts []netip.Addr
+
 	for i := 0; i < int(sizeSubNetsAndHosts); i++ {
-		subNets.Write(utils.S2b(packet.ReadString()))
-		hosts.Write(utils.S2b(packet.ReadString()))
+		subNetsAddr, err := netip.ParsePrefix(packet.ReadString())
+		if err != nil {
+			log.Println(err.Error())
+		}
+		hostsPrefix, err := netip.ParseAddr(packet.ReadString())
+		if err != nil {
+			log.Println(err.Error())
+		}
+		subNets = append(subNets, subNetsAddr)
+		hosts = append(hosts, hostsPrefix)
 	}
-	gsa.hosts = subNets.String()
+	gsa.hosts = subNets
 
 	if handleRegProcess(server, gsa) {
 		_ = server.Send(ls2gs.AuthedResponse(server.GetGameServerInfoId()))
