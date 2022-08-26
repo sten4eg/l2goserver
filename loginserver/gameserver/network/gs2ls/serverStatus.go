@@ -1,35 +1,17 @@
 package gs2ls
 
-import "l2goserver/packets"
+import (
+	"l2goserver/loginserver/types/state"
+	"l2goserver/packets"
+)
 
 type ServerStatusInterface interface {
-	SetStatus(status int32)
-	SetShowBracket(showBracket bool)
-	SetMaxPlayer(maxPlayer int32)
-	SetServerType(serverType int32)
-	SetAgeLimit(ageLimit int32)
+	SetStatus(state.ServerStatusValues)
+	SetShowBracket(bool)
+	SetMaxPlayer(int32)
+	SetServerType(int32)
+	SetAgeLimit(int32)
 }
-type serverStatusCodes = int32
-
-const (
-	ServerListStatus serverStatusCodes = 1
-	ServerType       serverStatusCodes = 2
-
-	ServerListSquareBracket serverStatusCodes = 3
-	MaxPlayers              serverStatusCodes = 4
-	ServerAge               serverStatusCodes = 6
-)
-
-type ServerStatusValues = int32
-
-const (
-	StatusAuto   ServerStatusValues = 0x00
-	StatusGood   ServerStatusValues = 0x01
-	StatusNormal ServerStatusValues = 0x02
-	StatusFull   ServerStatusValues = 0x03
-	StatusDown   ServerStatusValues = 0x04
-	StatusGmOnly ServerStatusValues = 0x05
-)
 
 func ServerStatus(data []byte, server ServerStatusInterface) {
 	packet := packets.NewReader(data)
@@ -40,15 +22,15 @@ func ServerStatus(data []byte, server ServerStatusInterface) {
 		code := packet.ReadInt32()
 		value := packet.ReadInt32()
 		switch code {
-		case ServerListStatus:
+		case state.ServerListStatus:
 			server.SetStatus(value)
-		case ServerType:
+		case state.ServerType:
 			server.SetServerType(value)
-		case ServerListSquareBracket:
+		case state.ServerListSquareBracket:
 			server.SetShowBracket(value == 1)
-		case MaxPlayers:
+		case state.MaxPlayers:
 			server.SetMaxPlayer(value)
-		case ServerAge:
+		case state.ServerAge:
 			server.SetAgeLimit(value)
 		}
 	}

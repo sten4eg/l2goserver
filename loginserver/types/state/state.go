@@ -24,7 +24,3 @@ const (
 	REASON_WRONG_HEXID             LoginServerFail = 3
 	ReasonAlreadyLoggedIn          LoginServerFail = 7
 )
-
-type GameServerStatus byte
-
-const StatusDown GameServerStatus = 0x04

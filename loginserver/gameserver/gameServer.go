@@ -283,7 +283,7 @@ func (gsi *Info) ForceClose(reason state.LoginServerFail) {
 
 }
 
-func (gsi *Info) SetStatus(status int32) {
+func (gsi *Info) SetStatus(status state.ServerStatusValues) {
 	gsi.status = status
 }
 func (gsi *Info) SetShowBracket(showBracket bool) {

@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"l2goserver/loginserver/crypt/blowfish"
-	"l2goserver/loginserver/gameserver/network/gs2ls"
 	"l2goserver/loginserver/types/state"
 	"net"
 	"net/netip"
@@ -22,7 +21,7 @@ type Info struct {
 	port        int16
 	maxPlayer   int32
 	authed      bool
-	status      gs2ls.ServerStatusValues
+	status      state.ServerStatusValues
 	serverType  int32
 	ageLimit    int32
 	showBracket bool
@@ -86,6 +85,6 @@ func (gsi *Info) getGameServerConn() *net.TCPConn {
 	return gsi.conn
 }
 
-func (gsi *Info) GetStatus() gs2ls.ServerStatusValues {
+func (gsi *Info) GetStatus() state.ServerStatusValues {
 	return gsi.status
 }
