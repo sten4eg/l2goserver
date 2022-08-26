@@ -8,7 +8,8 @@ import (
 	"l2goserver/loginserver/crypt/blowfish"
 	"l2goserver/loginserver/gameserver/network/gs2ls"
 	"l2goserver/loginserver/gameserver/network/ls2gs"
-	"l2goserver/loginserver/types/state"
+	"l2goserver/loginserver/types/reason/loginServer"
+	"l2goserver/loginserver/types/state/gameServer"
 	"l2goserver/packets"
 	"log"
 	"net"
@@ -65,7 +66,7 @@ func (gs *GS) Run() {
 			continue
 		}
 
-		gsi.state = state.CONNECTED
+		gsi.state = gameServer.Connected
 		err = gsi.InitRSAKeys()
 		if err != nil {
 			log.Println("ошибка при создании ключа для геймсервера")
@@ -107,6 +108,7 @@ func (gs *GS) GetAccountOnGameServer(account string) *Info {
 	}
 	return nil
 }
+
 func (gs *GS) GetGameServerById(serverId byte) *Info {
 	for _, gsi := range gs.gameServersInfo {
 		if gsi.GetId() == serverId {
@@ -115,16 +117,19 @@ func (gs *GS) GetGameServerById(serverId byte) *Info {
 	}
 	return nil
 }
+
 func (gsi *Info) AddAccountOnGameServer(account string) {
 	gsi.accounts.mu.Lock()
 	gsi.accounts.accounts[account] = true
 	gsi.accounts.mu.Unlock()
 }
+
 func (gsi *Info) RemoveAccountOnGameServer(account string) {
 	gsi.accounts.mu.Lock()
 	delete(gsi.accounts.accounts, account)
 	gsi.accounts.mu.Unlock()
 }
+
 func (gsi *Info) SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
 	gsi.host = host //todo unused?
 	gsi.hexId = hexId
@@ -136,6 +141,7 @@ func (gsi *Info) SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byt
 	gsi.accounts.accounts = make(map[string]bool, maxPlayer)
 	gsi.accounts.mu.Unlock()
 }
+
 func (gsi *Info) SetCharactersOnServer(account string, charsNum uint8, timeToDel []int64) {
 	accountInfo := gsi.gs.loginServerInfo.GetAccount(account)
 
@@ -195,24 +201,25 @@ func (gsi *Info) Listen() {
 		}
 	}
 }
+
 func (gsi *Info) HandlePacket(data []byte) error {
 	opcode := data[0]
 	data = data[1:]
 	fmt.Println(opcode)
 
 	switch gsi.state {
-	case state.CONNECTED:
+	case gameServer.Connected:
 		if opcode == 0 {
 			gs2ls.BlowFishKey(data, gsi)
 		}
-	case state.BfConnected:
+	case gameServer.BfConnected:
 		if opcode == 1 {
 			err := gs2ls.GameServerAuth(data, gsi)
 			if err != nil {
 				return err
 			}
 		}
-	case state.AUTHED:
+	case gameServer.Authed:
 
 		switch opcode {
 		case 0x02:
@@ -236,6 +243,7 @@ func (gsi *Info) HandlePacket(data []byte) error {
 	}
 	return nil
 }
+
 func (gsi *Info) Send(buf *packets.Buffer) error {
 	size := buf.Len() + 4
 	size = (size + 8) - (size % 8) // padding
@@ -269,6 +277,7 @@ func (gsi *Info) Send(buf *packets.Buffer) error {
 func (gsi *Info) GetPrivateKey() *rsa.PrivateKey {
 	return gsi.privateKey
 }
+
 func (gsi *Info) SetBlowFishKey(key []byte) {
 	localKey := make([]byte, len(key))
 	copy(localKey, key)
@@ -278,10 +287,12 @@ func (gsi *Info) SetBlowFishKey(key []byte) {
 	}
 	gsi.blowfish = cipher
 }
-func (gsi *Info) SetState(state state.GameServerState) {
+
+func (gsi *Info) SetState(state gameServer.GameServerState) {
 	gsi.state = state
 }
-func (gsi *Info) ForceClose(reason state.LoginServerFail) {
+
+func (gsi *Info) ForceClose(reason loginServer.FailReason) {
 	_ = gsi.Send(ls2gs.LoginServerFail(reason))
 	err := gsi.conn.Close()
 	if err != nil {
@@ -290,21 +301,26 @@ func (gsi *Info) ForceClose(reason state.LoginServerFail) {
 
 }
 
-func (gsi *Info) SetStatus(status state.ServerStatusValues) {
+func (gsi *Info) SetStatus(status gameServer.ServerStatusValues) {
 	gsi.status = status
 }
+
 func (gsi *Info) SetShowBracket(showBracket bool) {
 	gsi.showBracket = showBracket
 }
+
 func (gsi *Info) SetMaxPlayer(maxPlayer int32) {
 	gsi.maxPlayer = maxPlayer
 }
+
 func (gsi *Info) SetServerType(serverType int32) {
 	gsi.serverType = serverType
 }
+
 func (gsi *Info) SetAgeLimit(ageLimit int32) {
 	gsi.ageLimit = ageLimit
 }
+
 func (gs *GS) GetGameServerInfoList() []*Info {
 	return gs.gameServersInfo
 }

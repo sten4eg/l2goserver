@@ -1,11 +1,11 @@
 package ls2c
 
 import (
-	"l2goserver/loginserver/types/reason"
+	"l2goserver/loginserver/types/reason/clientReasons"
 	"l2goserver/packets"
 )
 
-func NewLoginFailPacket(reason reason.Reason) *packets.Buffer {
+func NewLoginFailPacket(reason clientReasons.ClientLoginFailed) *packets.Buffer {
 	buffer := packets.Get()
 	buffer.WriteSingleByte(0x01) // Packet type: LoginFail
 	buffer.WriteSingleByte(byte(reason))

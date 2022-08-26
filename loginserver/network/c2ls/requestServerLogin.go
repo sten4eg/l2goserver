@@ -4,7 +4,7 @@ import (
 	"errors"
 	"l2goserver/loginserver/models"
 	serverpackets2 "l2goserver/loginserver/network/ls2c"
-	"l2goserver/loginserver/types/reason"
+	"l2goserver/loginserver/types/reason/clientReasons"
 	"l2goserver/packets"
 )
 
@@ -25,7 +25,7 @@ func RequestServerLogin(request []byte, client *models.ClientCtx, server IsLogin
 	_ = serverId
 
 	if key1 != client.SessionKey.LoginOk1 || key2 != client.SessionKey.LoginOk2 {
-		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reason.AccessFailed))
+		err = client.SendBuf(serverpackets2.NewLoginFailPacket(clientReasons.AccessFailed))
 		if err != nil {
 			return err
 		}
@@ -39,7 +39,7 @@ func RequestServerLogin(request []byte, client *models.ClientCtx, server IsLogin
 		client.SetJoinedGS(true)
 		err = client.SendBuf(serverpackets2.NewPlayOkPacket(client))
 	} else {
-		_ = client.SendBuf(serverpackets2.NewPlayFailPacket(reason.ServerOverloaded))
+		_ = client.SendBuf(serverpackets2.NewPlayFailPacket(clientReasons.ServerOverloaded))
 		return errServerOverload
 	}
 

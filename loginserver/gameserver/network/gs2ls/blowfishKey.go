@@ -2,7 +2,7 @@ package gs2ls
 
 import (
 	"crypto/rsa"
-	"l2goserver/loginserver/types/state"
+	"l2goserver/loginserver/types/state/gameServer"
 	"l2goserver/packets"
 	"math/big"
 )
@@ -10,7 +10,7 @@ import (
 type GsInterfaceBF interface {
 	GetPrivateKey() *rsa.PrivateKey
 	SetBlowFishKey([]byte)
-	SetState(state.GameServerState)
+	SetState(serverState gameServer.GameServerState)
 }
 
 func BlowFishKey(data []byte, client GsInterfaceBF) {
@@ -24,5 +24,5 @@ func BlowFishKey(data []byte, client GsInterfaceBF) {
 	decodeData := c.Exp(c, client.GetPrivateKey().D, client.GetPrivateKey().N).Bytes()
 
 	client.SetBlowFishKey(decodeData)
-	client.SetState(state.BfConnected)
+	client.SetState(gameServer.BfConnected)
 }

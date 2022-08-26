@@ -9,8 +9,9 @@ import (
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/c2ls"
 	"l2goserver/loginserver/network/ls2c"
-	"l2goserver/loginserver/types/reason"
-	"l2goserver/loginserver/types/state"
+	"l2goserver/loginserver/types/reason/clientReasons"
+	"l2goserver/loginserver/types/state/clientState"
+	"l2goserver/loginserver/types/state/gameServer"
 	"l2goserver/packets"
 	"log"
 	"math/rand"
@@ -80,12 +81,12 @@ func (ls *LoginServer) Run() {
 		}
 
 		if IpManager.IsBannedIp(clientAddrPort.Addr()) {
-			_ = client.SendBuf(ls2c.AccountKicked(reason.PermanentlyBanned))
+			_ = client.SendBuf(ls2c.AccountKicked(clientReasons.PermanentlyBanned))
 			client.CloseConnection()
 			continue
 		}
 
-		client.SetState(state.Connected)
+		client.SetState(clientState.Connected)
 
 		go ls.handleClientPackets(client)
 
@@ -121,10 +122,10 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 		switch client.GetState() {
 		default:
 			//			log.Println("Неопознаный опкод")
-			//			fmt.Printf("opcode: %X, state %X", opcode, client.State)
+			//			fmt.Printf("opcode: %X, state %X", opcode, clientState.State)
 			return
 
-		case state.Connected:
+		case clientState.Connected:
 			if opcode == 7 {
 				err := c2ls.NewAuthGameGuard(data, client)
 				if err != nil {
@@ -132,10 +133,10 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 					return
 				}
 			} else {
-				//	log.Println(opcode, client.State)
+				//	log.Println(opcode, clientState.State)
 				return
 			}
-		case state.AuthedGameGuard:
+		case clientState.AuthedGameGuard:
 			if opcode == 0 {
 				err = c2ls.NewRequestAuthLogin(data, client, ls)
 				if err != nil {
@@ -143,14 +144,14 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 					return
 				}
 			} else {
-				//	log.Println(opcode, client.State)
+				//	log.Println(opcode, clientState.State)
 				return
 			}
-		case state.AuthedLogin:
+		case clientState.AuthedLogin:
 			switch opcode {
 			default:
 				//	log.Println("Неопознаный опкод")
-				//	fmt.Printf("opcode: %X, state %X", opcode, client.State)
+				//	fmt.Printf("opcode: %X, state %X", opcode, clientState.State)
 				return
 			case 02:
 				err = c2ls.RequestServerLogin(data, client, ls)
@@ -230,7 +231,7 @@ func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) 
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
 	access := client.Account.AccessLevel
 	if gsi != nil && gsi.IsAuthed() {
-		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetMaxPlayer()) && (gsi.GetStatus() != state.StatusGmOnly || access > 0)
+		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetMaxPlayer()) && (gsi.GetStatus() != gameServer.StatusGmOnly || access > 0)
 		if loginOk && (client.Account.LastServer != int8(serverId)) {
 			dbConn, err := db.GetConn()
 			if err != nil {

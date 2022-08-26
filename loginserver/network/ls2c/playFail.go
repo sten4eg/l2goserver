@@ -1,11 +1,11 @@
 package ls2c
 
 import (
-	"l2goserver/loginserver/types/reason"
+	"l2goserver/loginserver/types/reason/clientReasons"
 	"l2goserver/packets"
 )
 
-func NewPlayFailPacket(reason reason.Reason) *packets.Buffer {
+func NewPlayFailPacket(reason clientReasons.ClientLoginFailed) *packets.Buffer {
 	buffer := packets.Get()
 	buffer.WriteSingleByte(0x06) // Packet type: PlayFail
 	buffer.WriteDU(uint32(reason))

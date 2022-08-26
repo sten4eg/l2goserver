@@ -5,7 +5,7 @@ import (
 	"crypto/rsa"
 	"l2goserver/loginserver/crypt/blowfish"
 	"l2goserver/loginserver/gameserver/network/gs2ls"
-	"l2goserver/loginserver/types/state"
+	"l2goserver/loginserver/types/state/gameServer"
 	"net"
 	"net/netip"
 	"sync"
@@ -15,6 +15,7 @@ type account struct {
 	accounts map[string]bool
 	mu       sync.Mutex
 }
+
 type Info struct {
 	host        []netip.Prefix
 	hexId       []byte
@@ -22,11 +23,11 @@ type Info struct {
 	port        int16
 	maxPlayer   int32
 	authed      bool
-	status      state.ServerStatusValues
+	status      gameServer.ServerStatusValues
 	serverType  int32
 	ageLimit    int32
 	showBracket bool
-	state       state.GameServerState
+	state       gameServer.GameServerState
 	accounts    account
 	privateKey  *rsa.PrivateKey
 	conn        *net.TCPConn
@@ -48,6 +49,7 @@ func (gsi *Info) InitRSAKeys() error {
 func (gsi *Info) IsAuthed() bool {
 	return gsi.authed
 }
+
 func (gsi *Info) GetId() byte {
 	return gsi.id
 }
@@ -55,24 +57,31 @@ func (gsi *Info) GetId() byte {
 func (gsi *Info) getPort() int16 {
 	return gsi.port
 }
+
 func (gsi *Info) GetMaxPlayer() int32 {
 	return gsi.maxPlayer
 }
+
 func (gsi *Info) GetCurrentPlayerCount() int32 {
 	return int32(len(gsi.accounts.accounts))
 }
+
 func (gsi *Info) getAgeLimit() int32 {
 	return gsi.ageLimit
 }
+
 func (gsi *Info) GetType() int32 {
 	return gsi.serverType
 }
+
 func (gsi *Info) getStatus() int32 {
 	return gsi.status
 }
+
 func (gsi *Info) getShowBracket() bool {
 	return gsi.showBracket
 }
+
 func (gsi *Info) HasAccountOnGameServer(account string) bool {
 	gsi.accounts.mu.Lock()
 	defer gsi.accounts.mu.Unlock()
@@ -82,13 +91,15 @@ func (gsi *Info) HasAccountOnGameServer(account string) bool {
 	}
 	return inGame
 }
+
 func (gsi *Info) getGameServerConn() *net.TCPConn {
 	return gsi.conn
 }
 
-func (gsi *Info) GetStatus() state.ServerStatusValues {
+func (gsi *Info) GetStatus() gameServer.ServerStatusValues {
 	return gsi.status
 }
+
 func (gsi *Info) GetGsiById(serverId byte) gs2ls.GsiIsAuthInterface {
 	gsi_ := gsi.gs.GetGameServerById(serverId)
 	if gsi_ == nil {

@@ -7,7 +7,7 @@ import (
 	_ "embed"
 	"errors"
 	"l2goserver/loginserver/crypt"
-	"l2goserver/loginserver/types/state"
+	"l2goserver/loginserver/types/state/clientState"
 	"l2goserver/packets"
 	"l2goserver/utils"
 	"math/rand"
@@ -30,7 +30,7 @@ type ClientCtx struct {
 	SessionKey      *SessionKey
 	PrivateKey      *rsa.PrivateKey
 	BlowFish        []byte
-	state           state.ClientCtxState
+	state           clientState.ClientCtxState
 	joinedGS        bool
 	Uid             uint64
 	isStatic        bool
@@ -87,7 +87,7 @@ func NewClient() (*ClientCtx, error) {
 		BlowFish:        blowfish,
 		PrivateKey:      sRSA,
 		ScrambleModulus: scrambleModulus,
-		state:           state.NoState,
+		state:           clientState.NoState,
 		joinedGS:        false,
 		Uid:             rand.Uint64(),
 		isStatic:        true,
@@ -97,6 +97,7 @@ func NewClient() (*ClientCtx, error) {
 func (c *ClientCtx) SetConn(conn *net.TCPConn) {
 	c.conn = conn
 }
+
 func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	header := make([]byte, 2)
 	reg := trace.StartRegion(context.Background(), "readHeader")
@@ -157,11 +158,11 @@ func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 	return nil
 }
 
-func (c *ClientCtx) SetState(state state.ClientCtxState) {
+func (c *ClientCtx) SetState(state clientState.ClientCtxState) {
 	c.state = state
 }
 
-func (c *ClientCtx) GetState() state.ClientCtxState {
+func (c *ClientCtx) GetState() clientState.ClientCtxState {
 	return c.state
 }
 
@@ -170,6 +171,7 @@ func (c *ClientCtx) CloseConnection() {
 		_ = c.conn.Close()
 	}
 }
+
 func (c *ClientCtx) SetSessionKey(sessionKey *SessionKey) {
 	c.SessionKey = sessionKey
 }
@@ -185,6 +187,7 @@ func (c *ClientCtx) GetLocalAddr() net.Addr {
 func (c *ClientCtx) SetStaticFalse() {
 	c.isStatic = false
 }
+
 func (c *ClientCtx) SetJoinedGS(isJoinedGS bool) {
 	c.joinedGS = isJoinedGS
 }

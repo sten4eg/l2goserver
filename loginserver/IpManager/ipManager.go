@@ -39,15 +39,6 @@ func LoadBannedIp() error {
 	return nil
 }
 
-//func IsBannedIp(clientAddr netip.Addr) bool {
-//	for i := range BannedIp {
-//		if BannedIp[i].Compare(clientAddr) == 0 {
-//			return true
-//		}
-//	}
-//	return false
-//}
-
 func IsBannedIp(clientAddr netip.Addr) bool {
 	_, ok := BannedIp[clientAddr]
 	return ok

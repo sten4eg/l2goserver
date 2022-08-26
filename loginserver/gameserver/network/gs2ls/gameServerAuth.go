@@ -4,7 +4,8 @@ import (
 	"errors"
 	"l2goserver/config"
 	"l2goserver/loginserver/gameserver/network/ls2gs"
-	"l2goserver/loginserver/types/state"
+	"l2goserver/loginserver/types/reason/loginServer"
+	"l2goserver/loginserver/types/state/gameServer"
 	"l2goserver/packets"
 	"l2goserver/utils"
 	"log"
@@ -12,11 +13,11 @@ import (
 )
 
 type gsInterfaceForGameServerAuth interface {
-	ForceClose(state.LoginServerFail)
+	ForceClose(reason loginServer.FailReason)
 	Send(*packets.Buffer) error
 	SetInfoGameServerInfo([]netip.Prefix, []byte, byte, int16, int32, bool)
 	GetId() byte
-	SetState(state.GameServerState)
+	SetState(serverState gameServer.GameServerState)
 	GetGsiById(byte) GsiIsAuthInterface
 }
 
@@ -64,7 +65,7 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) error {
 	gsa.hosts = subNets
 	if handleRegProcess(server, gsa) {
 		_ = server.Send(ls2gs.AuthedResponse(server.GetId()))
-		server.SetState(state.AUTHED)
+		server.SetState(gameServer.Authed)
 		return nil
 	}
 	return handleReqProcessFaile
@@ -72,7 +73,7 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) error {
 
 func handleRegProcess(server gsInterfaceForGameServerAuth, data gameServerAuthData) bool {
 	if !utils.Contains(config.GetAllowedServerVersion(), data.serverVersion) {
-		server.ForceClose(state.ReasonInvalidGameServerVersion)
+		server.ForceClose(loginServer.InvalidGameServerVersion)
 		return false
 	}
 
@@ -80,13 +81,13 @@ func handleRegProcess(server gsInterfaceForGameServerAuth, data gameServerAuthDa
 		gsi := server.GetGsiById(data.desiredId)
 		if gsi != nil {
 			if gsi.IsAuthed() {
-				server.ForceClose(state.ReasonAlreadyLoggedIn)
+				server.ForceClose(loginServer.AlreadyLoggedIn)
 				return false
 			}
 		}
 		server.SetInfoGameServerInfo(data.hosts, data.hexId, data.desiredId, data.port, data.maxPlayers, true)
 	} else {
-		server.ForceClose(state.ReasonWrongHexId)
+		server.ForceClose(loginServer.WrongHexId)
 		return false
 	}
 	return true

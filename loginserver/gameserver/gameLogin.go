@@ -15,6 +15,7 @@ func (gs *GS) AttachLS(i LoginServInterface) {
 func (gs *GS) LoginServerGetSessionKey(account string) *models.SessionKey {
 	return gs.loginServerInfo.GetSessionKey(account)
 }
+
 func (gsi *Info) LoginServerGetSessionKey(account string) *models.SessionKey {
 	return gsi.gs.loginServerInfo.GetSessionKey(account)
 }
@@ -22,6 +23,7 @@ func (gsi *Info) LoginServerGetSessionKey(account string) *models.SessionKey {
 func (gs *GS) LoginServerRemoveAuthedLoginClient(account string) {
 	gs.loginServerInfo.RemoveAuthedLoginClient(account)
 }
+
 func (gsi *Info) LoginServerRemoveAuthedLoginClient(account string) {
 	gsi.gs.loginServerInfo.RemoveAuthedLoginClient(account)
 }

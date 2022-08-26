@@ -3,7 +3,7 @@ package ls2c
 import (
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
-	"l2goserver/loginserver/types/state"
+	"l2goserver/loginserver/types/state/gameServer"
 	"l2goserver/packets"
 	"net"
 	"time"
@@ -31,12 +31,12 @@ func NewServerListPacket(client *models.ClientCtx) error {
 		buffer.WriteDU(uint32(gameserver.GetGameServerPort(i)))           // GameServer port number
 		buffer.WriteSingleByte(byte(gameserver.GetGameServerAgeLimit(i))) // Age Limit 0, 15, 18
 		buffer.WriteSingleByte(0x01)                                      // Is pvp allowed? default True
-		buffer.WriteH(100)                                                // How many players are online Unused In client
+		buffer.WriteH(100)                                                // How many players are online Unused In clientState
 		buffer.WriteHU(uint16(gameserver.GetGameServerMaxPlayers(i)))     // Maximum allowed players
 
 		var realStatus byte
 		status := gameserver.GetGameServerStatus(i)
-		if state.ServerStatusValues(status) == state.StatusDown {
+		if gameServer.ServerStatusValues(status) == gameServer.StatusDown {
 			realStatus = 0x00
 		} else {
 			realStatus = 0x01

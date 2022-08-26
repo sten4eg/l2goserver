@@ -64,6 +64,7 @@ func AppendCheckSum(raw []byte, size int) []byte {
 	raw[i+3] = (byte)((chksum >> 0x18) & 0xff)
 	return raw
 }
+
 func encXORPass(raw []byte, size, key int) []byte {
 
 	var stop = size - 8

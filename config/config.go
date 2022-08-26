@@ -62,6 +62,7 @@ func AutoCreateAccounts() bool {
 func GetLoginPortForGameServer() string {
 	return globalConfig.LoginServer.PortForGS
 }
+
 func GetConfig() Conf {
 	return globalConfig
 }
@@ -69,6 +70,7 @@ func GetConfig() Conf {
 func GetAllowedServerVersion() []byte {
 	return globalConfig.LoginServer.AllowedServerVersion
 }
+
 func GetGameServerHexId() [][]byte {
 	return globalConfig.GameServer.HexIds
 }

@@ -12,8 +12,8 @@ import (
 	"l2goserver/loginserver/gameserver/network/ls2gs"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/ls2c"
-	reasons "l2goserver/loginserver/types/reason"
-	"l2goserver/loginserver/types/state"
+	reasons "l2goserver/loginserver/types/reason/clientReasons"
+	"l2goserver/loginserver/types/state/clientState"
 	"l2goserver/utils"
 	"log"
 	"math/big"
@@ -46,15 +46,15 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLo
 	switch reason {
 	default:
 		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.SystemError))
-	case reasons.AUTH_SUCCESS:
-		client.SetState(state.AuthedLogin)
+	case clientState.AuthSuccess:
+		client.SetState(clientState.AuthedLogin)
 		client.SetSessionKey(server.AssignSessionKeyToClient(client))
 		err = client.SendBuf(ls2c.NewLoginOkPacket(client))
 		getCharactersOnAccount(client.Account.Login, server)
-	case reasons.ACCOUNT_BANNED:
+	case clientState.AccountBanned:
 		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.Ban))
 		client.CloseConnection()
-	case reasons.ALREADY_ON_LS:
+	case clientState.AlreadyOnLs:
 		account := client.Account.Login
 		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.AccountInUse))
 		oldClient := server.GetClientCtx(account)
@@ -64,7 +64,7 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLo
 			server.RemoveAuthedLoginClient(account)
 		}
 		client.CloseConnection()
-	case reasons.ALREADY_ON_GS:
+	case clientState.AlreadyOnGs:
 		account := client.Account.Login
 		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.AccountInUse))
 		gsi := gameserver.GetGameServerInstance().GetAccountOnGameServer(account)
@@ -82,20 +82,20 @@ func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLo
 	return nil
 }
 
-func tryCheckinAccount(client *models.ClientCtx, server isInLoginInterface) reasons.AuthLoginResult {
+func tryCheckinAccount(client *models.ClientCtx, server isInLoginInterface) clientState.ClientAuthState {
 	if client.Account.AccessLevel < 0 {
-		return reasons.ACCOUNT_BANNED
+		return clientState.AccountBanned
 	}
 
-	ret := reasons.ALREADY_ON_GS
+	ret := clientState.AlreadyOnGs
 	if gameserver.IsAccountInGameServer(client.Account.Login) {
 		return ret
 	}
-	ret = reasons.ALREADY_ON_LS
+	ret = clientState.AlreadyOnLs
 	if server.IsAccountInLoginAndAddIfNot(client) {
 		return ret
 	}
-	return reasons.AUTH_SUCCESS
+	return clientState.AuthSuccess
 }
 
 func validate(request []byte, client *models.ClientCtx) error {
