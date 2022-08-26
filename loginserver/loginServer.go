@@ -149,7 +149,7 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 				//	fmt.Printf("opcode: %X, state %X", opcode, client.State)
 				return
 			case 02:
-				err = c2ls.NewRequestPlay(data, client)
+				err = c2ls.RequestServerLogin(data, client)
 				if err != nil {
 					//	log.Println(err)
 					return
@@ -169,9 +169,7 @@ func (ls *LoginServer) GetSessionKey(account string) *models.SessionKey {
 	ls.mu.Lock()
 	q := ls.accounts[account]
 	ls.mu.Unlock()
-	if q == nil {
-		return nil
-	}
+
 	return q.SessionKey
 }
 

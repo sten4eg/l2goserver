@@ -10,7 +10,7 @@ import (
 
 var errServerOverload = errors.New("serverOverload")
 
-func NewRequestPlay(request []byte, client *models.ClientCtx) error {
+func RequestServerLogin(request []byte, client *models.ClientCtx) error {
 	var packet = packets.NewReader(request)
 	var err error
 
@@ -19,11 +19,8 @@ func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 	serverId := packet.ReadUInt8()
 
 	_ = serverId
-	_ = key2
-	_ = key1
-	_ = err
 
-	if !(key1 == client.SessionKey.LoginOk1 && key2 == client.SessionKey.LoginOk2) {
+	if key1 != client.SessionKey.LoginOk1 || key2 != client.SessionKey.LoginOk2 {
 		err = client.SendBuf(serverpackets2.NewLoginFailPacket(reason.AccessFailed))
 		if err != nil {
 			return err
@@ -33,8 +30,8 @@ func NewRequestPlay(request []byte, client *models.ClientCtx) error {
 
 	//TODO коннект к гейм серверу и проверка можно ли к нему подконектиться
 	if true {
+		client.SetJoinedGS(true)
 		err = client.SendBuf(serverpackets2.NewPlayOkPacket(client))
-		client.JoinedGS = true
 	} else {
 		_ = client.SendBuf(serverpackets2.NewPlayFailPacket(reason.ServerOverloaded))
 		return errServerOverload

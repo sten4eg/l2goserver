@@ -50,6 +50,7 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) {
 		subNetsAddr, err := netip.ParsePrefix(packet.ReadString())
 		if err != nil {
 			log.Println(err.Error())
+			continue
 		}
 		_ = packet.ReadString() //TODO Убрать получение дублирующегося пакета с ip без маски подсети
 		subNets = append(subNets, subNetsAddr)

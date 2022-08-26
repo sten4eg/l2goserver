@@ -31,7 +31,7 @@ type ClientCtx struct {
 	PrivateKey      *rsa.PrivateKey
 	BlowFish        []byte
 	state           state.GameState
-	JoinedGS        bool
+	joinedGS        bool
 	Uid             uint64
 	isStatic        bool
 }
@@ -88,7 +88,7 @@ func NewClient() (*ClientCtx, error) {
 		PrivateKey:      sRSA,
 		ScrambleModulus: scrambleModulus,
 		state:           state.NoState,
-		JoinedGS:        false,
+		joinedGS:        false,
 		Uid:             rand.Uint64(),
 		isStatic:        true,
 	}, nil
@@ -184,4 +184,7 @@ func (c *ClientCtx) GetLocalAddr() net.Addr {
 
 func (c *ClientCtx) SetStaticFalse() {
 	c.isStatic = false
+}
+func (c *ClientCtx) SetJoinedGS(isJoinedGS bool) {
+	c.joinedGS = isJoinedGS
 }
