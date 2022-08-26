@@ -3,12 +3,12 @@ module l2goserver
 go 1.19
 
 require (
-	github.com/jackc/pgtype v0.0.0-20190828014616-a8802b16cc59
+	github.com/jackc/pgtype v1.12.0
 	github.com/jackc/pgx v3.6.2+incompatible
-	github.com/jackc/pgx/v5 v5.0.0-beta.2
-	github.com/pkg/profile v1.6.0
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
+	github.com/jackc/pgx/v5 v5.0.0-beta.3
+	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503
+	golang.org/x/exp v0.0.0-20220826144839-4cc3b17fd1f1
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -21,6 +21,5 @@ require (
 	github.com/lib/pq v1.10.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 )
