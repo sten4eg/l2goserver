@@ -1,8 +1,9 @@
 package loginserver
 
 import (
+	"github.com/puzpuzpuz/xsync"
 	"net"
-	"net/netip"
+	"strings"
 	"time"
 )
 
@@ -17,7 +18,7 @@ type connection struct {
 	isFlooding bool
 }
 
-var floodProtection map[netip.Addr]connection
+var floodProtection *xsync.MapOf[*connection]
 
 func (ls *LoginServer) AcceptTCPWithFloodProtection() (*net.TCPConn, error) {
 	for {
@@ -26,24 +27,24 @@ func (ls *LoginServer) AcceptTCPWithFloodProtection() (*net.TCPConn, error) {
 			continue
 		}
 
-		addr, err := netip.ParseAddrPort(conn.RemoteAddr().String())
-		if err != nil {
-			_ = conn.Close()
+		x, _, ok := strings.Cut(conn.RemoteAddr().String(), ":")
+		if !ok {
 			continue
 		}
 
-		fConn, ok := floodProtection[addr.Addr()]
+		fConn, ok := floodProtection.Load(x)
 
 		if !ok {
-			floodProtection[addr.Addr()] = connection{1, time.Now().UnixMilli(), false}
+			floodProtection.Store(x, &connection{1, time.Now().UnixMilli(), false})
 		} else {
 			fConn.connNum++
-			connectionTime := time.Now().UnixMilli() - fConn.lastConn
+			curTime := time.Now().UnixMilli()
+			connectionTime := curTime - fConn.lastConn
+			fConn.lastConn = curTime
 
 			if (fConn.connNum > fastConnectionLimit && connectionTime < normalConnectionTime) ||
 				connectionTime < fastConnectionTime ||
 				fConn.connNum > maxConnectionPerIP {
-				fConn.lastConn = time.Now().UnixMilli()
 				_ = conn.Close()
 				fConn.connNum--
 				fConn.isFlooding = true
@@ -58,5 +59,5 @@ func (ls *LoginServer) AcceptTCPWithFloodProtection() (*net.TCPConn, error) {
 }
 
 func InitializeFloodProtection() {
-	floodProtection = make(map[netip.Addr]connection, 100)
+	floodProtection = xsync.NewMapOf[*connection]()
 }

@@ -2,7 +2,7 @@ package loginserver
 
 import (
 	"context"
-	"l2goserver/config"
+	"github.com/puzpuzpuz/xsync"
 	"l2goserver/db"
 	"l2goserver/loginserver/IpManager"
 	"l2goserver/loginserver/gameserver"
@@ -17,24 +17,22 @@ import (
 	"math/rand"
 	"net"
 	"net/netip"
-	"sync"
 	"sync/atomic"
 )
 
 const AccountLastServerUpdate = "UPDATE accounts SET last_server = $1 WHERE login = $2"
 
 type LoginServer struct {
-	config          config.Conf
 	clientsListener *net.TCPListener
-	mu              sync.Mutex
-	accounts        map[string]*models.ClientCtx
+	accounts        *xsync.MapOf[*models.ClientCtx]
 }
 
 var Atom atomic.Int64
 var AtomKick atomic.Int64
 
-func New(cfg config.Conf) *LoginServer {
-	login := &LoginServer{config: cfg, accounts: make(map[string]*models.ClientCtx, 1000)}
+func New() *LoginServer {
+	login := &LoginServer{}
+	login.accounts = xsync.NewMapOf[*models.ClientCtx]()
 	gs := gameserver.GetGameServerInstance()
 	gs.AttachLS(login)
 	return login
@@ -171,24 +169,16 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 }
 
 func (ls *LoginServer) GetSessionKey(account string) *models.SessionKey {
-	ls.mu.Lock()
-	q := ls.accounts[account]
-	ls.mu.Unlock()
-
-	return q.SessionKey
+	ctx, ok := ls.accounts.Load(account)
+	if !ok {
+		return nil
+	}
+	return ctx.SessionKey
 }
 
 func (ls *LoginServer) IsAccountInLoginAndAddIfNot(client *models.ClientCtx) bool {
-	inLogin, ok := ls.accounts[client.Account.Login]
-	if !ok {
-		ls.accounts[client.Account.Login] = client
-		return false
-	}
-	if nil == inLogin {
-		ls.accounts[client.Account.Login] = client
-		return false
-	}
-	return true
+	_, inLogin := ls.accounts.LoadOrStore(client.Account.Login, client)
+	return inLogin
 }
 
 func (ls *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *models.SessionKey {
@@ -199,24 +189,23 @@ func (ls *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *model
 	sessionKey.LoginOk1 = rand.Uint32()
 	sessionKey.LoginOk2 = rand.Uint32()
 
-	ls.mu.Lock()
-	ls.accounts[client.Account.Login] = client
-	ls.mu.Unlock()
+	ls.accounts.Store(client.Account.Login, client)
 	return sessionKey
 }
 
 func (ls *LoginServer) RemoveAuthedLoginClient(account string) {
-	ls.mu.Lock()
-	client, ok := ls.accounts[account]
-	if ok && client != nil {
-		client.CloseConnection()
+	ctx, loaded := ls.accounts.LoadAndDelete(account)
+	if loaded && ctx != nil {
+		ctx.CloseConnection()
 	}
-	delete(ls.accounts, account)
-	ls.mu.Unlock()
 }
 
 func (ls *LoginServer) GetAccount(account string) *models.Account {
-	return &ls.accounts[account].Account
+	ctx, ok := ls.accounts.Load(account)
+	if ok && ctx != nil {
+		return &ctx.Account
+	}
+	return nil
 }
 
 func (ls *LoginServer) GetGameServerInfoList() []*gameserver.Info {
@@ -224,7 +213,11 @@ func (ls *LoginServer) GetGameServerInfoList() []*gameserver.Info {
 }
 
 func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
-	return ls.accounts[account]
+	ctx, ok := ls.accounts.Load(account)
+	if ok {
+		return ctx
+	}
+	return nil
 }
 
 func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (bool, error) {

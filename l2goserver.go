@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/pkg/profile"
 	"l2goserver/config"
 	"l2goserver/db"
 	"l2goserver/loginserver"
@@ -9,16 +10,15 @@ import (
 	"l2goserver/loginserver/gameserver"
 	"log"
 	"os"
-	"runtime/debug"
 	"runtime/trace"
 	"time"
 )
 
 func main() {
-	debug.SetGCPercent(200000)
+	//debug.SetGCPercent(200000)
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	//defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
+	defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfileAllocs, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfileHeap, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.BlockProfile, profile.ProfilePath(".")).Stop()
@@ -39,7 +39,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	loginServer := loginserver.New(config.GetConfig())
+	loginServer := loginserver.New()
 
 	err = db.ConfigureDB()
 	if err != nil {
@@ -55,6 +55,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	loginserver.InitializeFloodProtection()
 	loginServer.Run()
 

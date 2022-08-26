@@ -1,7 +1,6 @@
 package gameserver
 
 import (
-	"fmt"
 	"l2goserver/loginserver/gameserver/network/gs2ls"
 	"l2goserver/loginserver/types/state/gameServer"
 )
@@ -10,7 +9,7 @@ func (gsi *Info) HandlePacket(data []byte) error {
 	var err error
 	opcode := data[0]
 	data = data[1:]
-	fmt.Println(opcode)
+	//fmt.Println("gs send: ", opcode)
 
 	switch gsi.state {
 	case gameServer.Connected:
