@@ -189,7 +189,10 @@ func (gsi *Info) Listen() {
 			fmt.Println("Неверная контрольная сумма пакета, закрытие соединения.")
 			return
 		}
-		gsi.HandlePacket(data)
+		err = gsi.HandlePacket(data)
+		if err != nil {
+			return
+		}
 	}
 }
 func (gsi *Info) HandlePacket(data []byte) error {
