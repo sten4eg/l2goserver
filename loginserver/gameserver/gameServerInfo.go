@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"github.com/puzpuzpuz/xsync"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/crypt/blowfish"
 	"l2goserver/loginserver/gameserver/network/gs2ls"
@@ -34,15 +35,21 @@ type Info struct {
 	ageLimit        int32
 	serverType      int32
 	status          gameServerStatuses.ServerStatusValues
-	host            []netip.Prefix
-	hexId           []byte
 	privateKey      *rsa.PrivateKey
 	conn            *net.TCPConn
 	blowfish        *blowfish.Cipher
 	gameServerTable *Table
-	accounts        account
+	host            []netip.Prefix
+	hexId           []byte
+	accounts        *xsync.MapOf[bool]
 }
 
+func InitGameServerInfo() (*Info, error) {
+	gsi := new(Info)
+	gsi.accounts = xsync.NewMapOf[bool]()
+	err := gsi.InitRSAKeys()
+	return gsi, err
+}
 func (gsi *Info) InitRSAKeys() error {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
 	if err != nil {
@@ -69,7 +76,7 @@ func (gsi *Info) GetMaxPlayer() int32 {
 }
 
 func (gsi *Info) GetCurrentPlayerCount() int32 {
-	return int32(len(gsi.accounts.accounts))
+	return int32(gsi.accounts.Size())
 }
 
 func (gsi *Info) getAgeLimit() int32 {
@@ -89,9 +96,7 @@ func (gsi *Info) getShowBracket() bool {
 }
 
 func (gsi *Info) HasAccountOnGameServer(account string) bool {
-	gsi.accounts.mu.Lock()
-	defer gsi.accounts.mu.Unlock()
-	inGame, ok := gsi.accounts.accounts[account]
+	inGame, ok := gsi.accounts.Load(account)
 	if !ok {
 		return false
 	}
@@ -116,15 +121,11 @@ func (gsi *Info) GetGsiById(serverId byte) gs2ls.GsiIsAuthInterface {
 }
 
 func (gsi *Info) AddAccountOnGameServer(account string) {
-	gsi.accounts.mu.Lock()
-	gsi.accounts.accounts[account] = true
-	gsi.accounts.mu.Unlock()
+	gsi.accounts.Store(account, true)
 }
 
 func (gsi *Info) RemoveAccountOnGameServer(account string) {
-	gsi.accounts.mu.Lock()
-	delete(gsi.accounts.accounts, account)
-	gsi.accounts.mu.Unlock()
+	gsi.accounts.Delete(account)
 }
 
 func (gsi *Info) SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
@@ -134,9 +135,6 @@ func (gsi *Info) SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byt
 	gsi.port = port
 	gsi.maxPlayer = maxPlayer
 	gsi.authed = authed
-	gsi.accounts.mu.Lock()
-	gsi.accounts.accounts = make(map[string]bool, maxPlayer)
-	gsi.accounts.mu.Unlock()
 }
 
 func (gsi *Info) SetCharactersOnServer(account string, charsNum uint8, timeToDel []int64) {

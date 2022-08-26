@@ -109,8 +109,10 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	for {
 		opcode, data, err := client.Receive()
 		Atom.Add(1)
-
 		if err != nil {
+			if client.Account.Login != "" {
+				ls.RemoveAuthedLoginClient(client.Account.Login)
+			}
 			//	log.Println(err)
 			//	log.Println("Closing a connection")
 			AtomKick.Add(1)

@@ -2,6 +2,7 @@ package loginserver
 
 import (
 	"github.com/puzpuzpuz/xsync"
+	"log"
 	"net"
 	"strings"
 	"time"
@@ -10,8 +11,9 @@ import (
 const fastConnectionLimit = 15
 const normalConnectionTime = 700
 const fastConnectionTime = 350
-const maxConnectionPerIP = 2
+const maxConnectionPerIP = 50
 const banTime = time.Minute
+const safeConnInterval = 5000
 
 type connection struct {
 	connNum    uint8
@@ -26,16 +28,17 @@ func (ls *LoginServer) AcceptTCPWithFloodProtection() (*net.TCPConn, error) {
 	for {
 		conn, err := ls.clientsListener.AcceptTCP()
 		if err != nil {
+			log.Println("err AcceptTcp: ", err)
 			continue
 		}
 
 		x, _, ok := strings.Cut(conn.RemoteAddr().String(), ":")
 		if !ok {
+			log.Println("err Cut RemoteAddr, string is : ", conn.RemoteAddr().String())
 			continue
 		}
 
 		fConn, ok := floodProtection.Load(x)
-
 		if !ok {
 			floodProtection.Store(x, &connection{1, time.Now().UnixMilli(), false, time.Now()})
 		} else {
@@ -58,9 +61,8 @@ func (ls *LoginServer) AcceptTCPWithFloodProtection() (*net.TCPConn, error) {
 
 			if (fConn.connNum > 2 && connectionTime < fastConnectionTime) ||
 				fConn.connNum > maxConnectionPerIP || connectionTime < normalConnectionTime {
-				if connectionTime > 5000 {
+				if connectionTime > safeConnInterval {
 					fConn.isFlooding = false
-					fConn.banExpire = time.Now()
 					fConn.connNum = 1
 				} else {
 					_ = conn.Close()

@@ -46,7 +46,11 @@ func HandlerInit() error {
 func (t *Table) Run() {
 	for {
 		var err error
-		gsi := new(Info)
+		gsi, err := InitGameServerInfo()
+		if err != nil {
+			log.Println("ошибка при создании Gsi:", err)
+			continue
+		}
 		gsi.gameServerTable = t
 		gsi.uniqId = uniqId.Load()
 		uniqId.Add(1)
@@ -60,12 +64,6 @@ func (t *Table) Run() {
 		}
 
 		gsi.state = gameServer.Connected
-		err = gsi.InitRSAKeys()
-		if err != nil {
-			log.Println("ошибка при создании ключа для геймсервера")
-			_ = gsi.conn.Close()
-			continue
-		}
 
 		t.gameServersInfo = append(t.gameServersInfo, gsi)
 
