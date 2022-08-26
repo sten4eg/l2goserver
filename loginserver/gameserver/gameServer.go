@@ -109,7 +109,7 @@ func (gs *GS) GetAccountOnGameServer(account string) *Info {
 }
 func (gs *GS) GetGameServerById(serverId byte) *Info {
 	for _, gsi := range gs.gameServersInfo {
-		if gsi.Id == serverId {
+		if gsi.GetId() == serverId {
 			return gsi
 		}
 	}
@@ -128,7 +128,7 @@ func (gsi *Info) RemoveAccountOnGameServer(account string) {
 func (gsi *Info) SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
 	gsi.host = host //todo unused?
 	gsi.hexId = hexId
-	gsi.Id = id
+	gsi.id = id
 	gsi.port = port
 	gsi.maxPlayer = maxPlayer
 	gsi.authed = authed
@@ -144,11 +144,11 @@ func (gsi *Info) SetCharactersOnServer(account string, charsNum uint8, timeToDel
 	}
 
 	if charsNum > 0 {
-		accountInfo.SetCharsOnServer(gsi.Id, charsNum)
+		accountInfo.SetCharsOnServer(gsi.GetId(), charsNum)
 	}
 
 	if len(timeToDel) > 0 {
-		accountInfo.SetCharsWaitingDelOnServer(gsi.Id, timeToDel)
+		accountInfo.SetCharsWaitingDelOnServer(gsi.GetId(), timeToDel)
 	}
 }
 
@@ -192,7 +192,7 @@ func (gsi *Info) Listen() {
 		gsi.HandlePacket(data)
 	}
 }
-func (gsi *Info) HandlePacket(data []byte) {
+func (gsi *Info) HandlePacket(data []byte) error {
 	opcode := data[0]
 	data = data[1:]
 	fmt.Println(opcode)
@@ -204,7 +204,10 @@ func (gsi *Info) HandlePacket(data []byte) {
 		}
 	case state.BfConnected:
 		if opcode == 1 {
-			gs2ls.GameServerAuth(data, gsi)
+			err := gs2ls.GameServerAuth(data, gsi)
+			if err != nil {
+				return err
+			}
 		}
 	case state.AUTHED:
 
@@ -228,6 +231,7 @@ func (gsi *Info) HandlePacket(data []byte) {
 		}
 
 	}
+	return nil
 }
 func (gsi *Info) Send(buf *packets.Buffer) error {
 	size := buf.Len() + 4

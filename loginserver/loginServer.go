@@ -226,15 +226,15 @@ func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
 	return ls.accounts[account]
 }
 
-func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) bool {
+func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (bool, error) {
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
 	access := client.Account.AccessLevel
 	if gsi != nil && gsi.IsAuthed() {
-		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetGameServerInfoMaxPlayer()) && (gsi.GetStatus() != state.StatusGmOnly || access > 0)
+		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetMaxPlayer()) && (gsi.GetStatus() != state.StatusGmOnly || access > 0)
 		if loginOk && (client.Account.LastServer != int8(serverId)) {
 			dbConn, err := db.GetConn()
 			if err != nil {
-				log.Println(err.Error())
+				return loginOk, err
 			}
 			defer dbConn.Release()
 			_, err = dbConn.Exec(context.Background(), AccountLastServerUpdate, serverId, client.Account.Login)
@@ -242,7 +242,7 @@ func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) 
 				log.Println(err.Error())
 			}
 		}
-		return loginOk
+		return loginOk, nil
 	}
-	return false
+	return false, nil
 }

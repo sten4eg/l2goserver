@@ -1,12 +1,12 @@
 package state
 
-type GameState int8
+type ClientCtxState int8
 
 const (
-	NoState         GameState = 0
-	Connected       GameState = 1
-	AuthedGameGuard GameState = 2
-	AuthedLogin     GameState = 3
+	NoState         ClientCtxState = 0
+	Connected       ClientCtxState = 1
+	AuthedGameGuard ClientCtxState = 2
+	AuthedLogin     ClientCtxState = 3
 )
 
 type GameServerState byte
@@ -21,6 +21,11 @@ type LoginServerFail byte
 
 const (
 	ReasonInvalidGameServerVersion LoginServerFail = 0
-	REASON_WRONG_HEXID             LoginServerFail = 3
+	ReasonIpBanned                 LoginServerFail = 1
+	ReasonIpReserved               LoginServerFail = 2
+	ReasonWrongHexId               LoginServerFail = 3
+	ReasonIdReserved               LoginServerFail = 4
+	ReasonNoFreeId                 LoginServerFail = 5
+	NotAuthed                      LoginServerFail = 6
 	ReasonAlreadyLoggedIn          LoginServerFail = 7
 )

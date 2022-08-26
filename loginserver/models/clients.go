@@ -30,7 +30,7 @@ type ClientCtx struct {
 	SessionKey      *SessionKey
 	PrivateKey      *rsa.PrivateKey
 	BlowFish        []byte
-	state           state.GameState
+	state           state.ClientCtxState
 	joinedGS        bool
 	Uid             uint64
 	isStatic        bool
@@ -157,11 +157,11 @@ func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 	return nil
 }
 
-func (c *ClientCtx) SetState(state state.GameState) {
+func (c *ClientCtx) SetState(state state.ClientCtxState) {
 	c.state = state
 }
 
-func (c *ClientCtx) GetState() state.GameState {
+func (c *ClientCtx) GetState() state.ClientCtxState {
 	return c.state
 }
 

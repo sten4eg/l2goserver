@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"l2goserver/loginserver/crypt/blowfish"
+	"l2goserver/loginserver/gameserver/network/gs2ls"
 	"l2goserver/loginserver/types/state"
 	"net"
 	"net/netip"
@@ -17,7 +18,7 @@ type account struct {
 type Info struct {
 	host        []netip.Prefix
 	hexId       []byte
-	Id          byte
+	id          byte
 	port        int16
 	maxPlayer   int32
 	authed      bool
@@ -47,29 +48,29 @@ func (gsi *Info) InitRSAKeys() error {
 func (gsi *Info) IsAuthed() bool {
 	return gsi.authed
 }
-func (gsi *Info) GetGameServerInfoId() byte {
-	return gsi.Id
+func (gsi *Info) GetId() byte {
+	return gsi.id
 }
 
-func (gsi *Info) getGameServerInfoPort() int16 {
+func (gsi *Info) getPort() int16 {
 	return gsi.port
 }
-func (gsi *Info) GetGameServerInfoMaxPlayer() int32 {
+func (gsi *Info) GetMaxPlayer() int32 {
 	return gsi.maxPlayer
 }
 func (gsi *Info) GetCurrentPlayerCount() int32 {
 	return int32(len(gsi.accounts.accounts))
 }
-func (gsi *Info) getGameServerInfoAgeLimit() int32 {
+func (gsi *Info) getAgeLimit() int32 {
 	return gsi.ageLimit
 }
-func (gsi *Info) getGameServerInfoType() int32 {
+func (gsi *Info) GetType() int32 {
 	return gsi.serverType
 }
-func (gsi *Info) getGameServerInfoStatus() int32 {
+func (gsi *Info) getStatus() int32 {
 	return gsi.status
 }
-func (gsi *Info) getGameServerInfoShowBracket() bool {
+func (gsi *Info) getShowBracket() bool {
 	return gsi.showBracket
 }
 func (gsi *Info) HasAccountOnGameServer(account string) bool {
@@ -87,4 +88,12 @@ func (gsi *Info) getGameServerConn() *net.TCPConn {
 
 func (gsi *Info) GetStatus() state.ServerStatusValues {
 	return gsi.status
+}
+func (gsi *Info) GetGsiById(serverId byte) gs2ls.GsiIsAuthInterface {
+	gsi_ := gsi.gs.GetGameServerById(serverId)
+	if gsi_ == nil {
+		return nil
+	}
+	return gsi_
+
 }

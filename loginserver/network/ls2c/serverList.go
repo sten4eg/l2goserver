@@ -36,7 +36,7 @@ func NewServerListPacket(client *models.ClientCtx) error {
 
 		var realStatus byte
 		status := gameserver.GetGameServerStatus(i)
-		if state.GameServerStatus(status) == state.StatusDown {
+		if state.ServerStatusValues(status) == state.StatusDown {
 			realStatus = 0x00
 		} else {
 			realStatus = 0x01

@@ -9,7 +9,7 @@ import (
 )
 
 type IsLoginPossibleInterface interface {
-	IsLoginPossible(*models.ClientCtx, byte) bool
+	IsLoginPossible(*models.ClientCtx, byte) (bool, error)
 }
 
 var errServerOverload = errors.New("serverOverload")
@@ -31,8 +31,11 @@ func RequestServerLogin(request []byte, client *models.ClientCtx, server IsLogin
 		}
 		return errServerOverload
 	}
-
-	if server.IsLoginPossible(client, serverId) {
+	loginOk, err := server.IsLoginPossible(client, serverId)
+	if err != nil {
+		return err
+	}
+	if loginOk {
 		client.SetJoinedGS(true)
 		err = client.SendBuf(serverpackets2.NewPlayOkPacket(client))
 	} else {
