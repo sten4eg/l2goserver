@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 )
 
-const AccountLastServerUpdate = "UPDATE accounts SET lastServer = $1 WHERE login = $2"
+const AccountLastServerUpdate = "UPDATE accounts SET last_server = $1 WHERE login = $2"
 
 type LoginServer struct {
 	config          config.Conf
