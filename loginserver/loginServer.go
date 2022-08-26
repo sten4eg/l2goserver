@@ -6,7 +6,6 @@ import (
 	"l2goserver/db"
 	"l2goserver/loginserver/IpManager"
 	"l2goserver/loginserver/gameserver"
-	"l2goserver/loginserver/gameserver/network/gs2ls"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/c2ls"
 	"l2goserver/loginserver/network/ls2c"
@@ -231,7 +230,7 @@ func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) 
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
 	access := client.Account.AccessLevel
 	if gsi != nil && gsi.IsAuthed() {
-		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetGameServerInfoMaxPlayer()) && (gsi.GetStatus() != gs2ls.StatusGmOnly || access > 0)
+		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetGameServerInfoMaxPlayer()) && (gsi.GetStatus() != state.StatusGmOnly || access > 0)
 		if loginOk && (client.Account.LastServer != int8(serverId)) {
 			dbConn, err := db.GetConn()
 			if err != nil {
