@@ -107,6 +107,14 @@ func (gs *GS) GetAccountOnGameServer(account string) *Info {
 	}
 	return nil
 }
+func (gs *GS) GetGameServerById(serverId byte) *Info {
+	for _, gsi := range gs.gameServersInfo {
+		if gsi.Id == serverId {
+			return gsi
+		}
+	}
+	return nil
+}
 func (gsi *Info) AddAccountOnGameServer(account string) {
 	gsi.accounts.mu.Lock()
 	gsi.accounts.accounts[account] = true

@@ -1,9 +1,12 @@
 package loginserver
 
 import (
+	"context"
 	"l2goserver/config"
+	"l2goserver/db"
 	"l2goserver/loginserver/IpManager"
 	"l2goserver/loginserver/gameserver"
+	"l2goserver/loginserver/gameserver/network/gs2ls"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/c2ls"
 	"l2goserver/loginserver/network/ls2c"
@@ -17,6 +20,8 @@ import (
 	"sync"
 	"sync/atomic"
 )
+
+const AccountLastServerUpdate = "UPDATE accounts SET lastServer = $1 WHERE login = $2"
 
 type LoginServer struct {
 	config          config.Conf
@@ -149,7 +154,7 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 				//	fmt.Printf("opcode: %X, state %X", opcode, client.State)
 				return
 			case 02:
-				err = c2ls.RequestServerLogin(data, client)
+				err = c2ls.RequestServerLogin(data, client, ls)
 				if err != nil {
 					//	log.Println(err)
 					return
@@ -220,4 +225,25 @@ func (ls *LoginServer) GetGameServerInfoList() []*gameserver.Info {
 
 func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
 	return ls.accounts[account]
+}
+
+func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) bool {
+	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
+	access := client.Account.AccessLevel
+	if gsi != nil && gsi.IsAuthed() {
+		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetGameServerInfoMaxPlayer()) && (gsi.GetStatus() != gs2ls.StatusGmOnly || access > 0)
+		if loginOk && (client.Account.LastServer != int8(serverId)) {
+			dbConn, err := db.GetConn()
+			if err != nil {
+				log.Println(err.Error())
+			}
+			defer dbConn.Release()
+			_, err = dbConn.Exec(context.Background(), AccountLastServerUpdate, serverId, client.Account.Login)
+			if err != nil {
+				log.Println(err.Error())
+			}
+		}
+		return loginOk
+	}
+	return false
 }

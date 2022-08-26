@@ -8,9 +8,13 @@ import (
 	"l2goserver/packets"
 )
 
+type IsLoginPossibleInterface interface {
+	IsLoginPossible(*models.ClientCtx, byte) bool
+}
+
 var errServerOverload = errors.New("serverOverload")
 
-func RequestServerLogin(request []byte, client *models.ClientCtx) error {
+func RequestServerLogin(request []byte, client *models.ClientCtx, server IsLoginPossibleInterface) error {
 	var packet = packets.NewReader(request)
 	var err error
 
@@ -28,8 +32,7 @@ func RequestServerLogin(request []byte, client *models.ClientCtx) error {
 		return errServerOverload
 	}
 
-	//TODO коннект к гейм серверу и проверка можно ли к нему подконектиться
-	if true {
+	if server.IsLoginPossible(client, serverId) {
 		client.SetJoinedGS(true)
 		err = client.SendBuf(serverpackets2.NewPlayOkPacket(client))
 	} else {

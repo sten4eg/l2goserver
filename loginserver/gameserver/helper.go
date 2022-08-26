@@ -38,7 +38,7 @@ func GetGameServerId(index int) byte {
 	return GetGameServerInstance().gameServersInfo[index].GetGameServerInfoId() //возможна паника если в массиве нету id
 }
 func GetGameServerMaxPlayers(id int) int32 {
-	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoMaxPlayer()
+	return GetGameServerInstance().gameServersInfo[id].GetGameServerInfoMaxPlayer()
 }
 func GetGameServerAgeLimit(id int) int32 {
 	return GetGameServerInstance().gameServersInfo[id].getGameServerInfoAgeLimit()

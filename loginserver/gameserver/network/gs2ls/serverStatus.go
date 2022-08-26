@@ -20,6 +20,17 @@ const (
 	ServerAge               serverStatusCodes = 6
 )
 
+type ServerStatusValues = int32
+
+const (
+	StatusAuto   ServerStatusValues = 0x00
+	StatusGood   ServerStatusValues = 0x01
+	StatusNormal ServerStatusValues = 0x02
+	StatusFull   ServerStatusValues = 0x03
+	StatusDown   ServerStatusValues = 0x04
+	StatusGmOnly ServerStatusValues = 0x05
+)
+
 func ServerStatus(data []byte, server ServerStatusInterface) {
 	packet := packets.NewReader(data)
 
