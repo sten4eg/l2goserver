@@ -8,6 +8,7 @@ import (
 	"l2goserver/loginserver/crypt/blowfish"
 	"l2goserver/loginserver/gameserver/network/gs2ls"
 	"l2goserver/loginserver/gameserver/network/ls2gs"
+	"l2goserver/loginserver/types/gameServerStatuses"
 	"l2goserver/loginserver/types/reason/loginServer"
 	"l2goserver/loginserver/types/state/gameServer"
 	"l2goserver/packets"
@@ -301,7 +302,7 @@ func (gsi *Info) ForceClose(reason loginServer.FailReason) {
 
 }
 
-func (gsi *Info) SetStatus(status gameServer.ServerStatusValues) {
+func (gsi *Info) SetStatus(status gameServerStatuses.ServerStatusValues) {
 	gsi.status = status
 }
 

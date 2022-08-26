@@ -3,7 +3,7 @@ package ls2c
 import (
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
-	"l2goserver/loginserver/types/state/gameServer"
+	"l2goserver/loginserver/types/gameServerStatuses"
 	"l2goserver/packets"
 	"net"
 	"time"
@@ -36,7 +36,7 @@ func NewServerListPacket(client *models.ClientCtx) error {
 
 		var realStatus byte
 		status := gameserver.GetGameServerStatus(i)
-		if gameServer.ServerStatusValues(status) == gameServer.StatusDown {
+		if gameServerStatuses.ServerStatusValues(status) == gameServerStatuses.StatusDown {
 			realStatus = 0x00
 		} else {
 			realStatus = 0x01

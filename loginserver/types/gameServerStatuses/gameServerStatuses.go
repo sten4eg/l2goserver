@@ -1,4 +1,4 @@
-package gameServer
+package gameServerStatuses
 
 type ServerStatusValues = int32
 

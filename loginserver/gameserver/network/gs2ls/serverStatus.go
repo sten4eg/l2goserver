@@ -1,12 +1,12 @@
 package gs2ls
 
 import (
-	"l2goserver/loginserver/types/state/gameServer"
+	"l2goserver/loginserver/types/gameServerStatuses"
 	"l2goserver/packets"
 )
 
 type ServerStatusInterface interface {
-	SetStatus(gameServer.ServerStatusValues)
+	SetStatus(gameServerStatuses.ServerStatusValues)
 	SetShowBracket(bool)
 	SetMaxPlayer(int32)
 	SetServerType(int32)
@@ -22,15 +22,15 @@ func ServerStatus(data []byte, server ServerStatusInterface) {
 		code := packet.ReadInt32()
 		value := packet.ReadInt32()
 		switch code {
-		case gameServer.ServerListStatus:
+		case gameServerStatuses.ServerListStatus:
 			server.SetStatus(value)
-		case gameServer.ServerType:
+		case gameServerStatuses.ServerType:
 			server.SetServerType(value)
-		case gameServer.ServerListSquareBracket:
+		case gameServerStatuses.ServerListSquareBracket:
 			server.SetShowBracket(value == 1)
-		case gameServer.MaxPlayers:
+		case gameServerStatuses.MaxPlayers:
 			server.SetMaxPlayer(value)
-		case gameServer.ServerAge:
+		case gameServerStatuses.ServerAge:
 			server.SetAgeLimit(value)
 		}
 	}
