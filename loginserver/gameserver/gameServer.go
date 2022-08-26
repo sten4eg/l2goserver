@@ -18,18 +18,18 @@ import (
 	"strconv"
 )
 
-type GS struct {
+type Table struct {
 	Connection      *net.TCPListener
 	gameServersInfo []*Info
 	loginServerInfo LoginServInterface
 }
 
-var gameServerInstance *GS
+var gameServerInstance *Table
 var initBlowfishKey = []byte{95, 59, 118, 46, 93, 48, 53, 45, 51, 49, 33, 124, 43, 45, 37, 120, 84, 33, 94, 91, 36, 0}
 var uniqId byte
 
 func HandlerInit() error {
-	gameServerInstance = new(GS)
+	gameServerInstance = new(Table)
 	uniqId = 1
 	port := config.GetLoginPortForGameServer()
 	intPort, err := strconv.Atoi(port)
@@ -51,17 +51,17 @@ func HandlerInit() error {
 	return nil
 }
 
-func (gs *GS) Run() {
+func (t *Table) Run() {
 	for {
 		var err error
 		gsi := new(Info)
-		gsi.gs = gs
+		gsi.gameServerTable = t
 		gsi.uniqId = uniqId //atomic?
 		uniqId++
 
 		gsi.SetBlowFishKey(initBlowfishKey)
 
-		gsi.conn, err = gs.Connection.AcceptTCP()
+		gsi.conn, err = t.Connection.AcceptTCP()
 		if err != nil {
 			log.Println("ошибка при Accept gameserver")
 			continue
@@ -75,7 +75,7 @@ func (gs *GS) Run() {
 			continue
 		}
 
-		gs.gameServersInfo = append(gs.gameServersInfo, gsi)
+		t.gameServersInfo = append(t.gameServersInfo, gsi)
 
 		pubKey := make([]byte, 1, 65)
 		pubKey = append(pubKey, gsi.privateKey.PublicKey.N.Bytes()...)
@@ -93,16 +93,16 @@ func (gs *GS) Run() {
 	}
 }
 
-func (gs *GS) RemoveGsi(connId byte) {
-	for i, gsi := range gs.gameServersInfo {
+func (t *Table) RemoveGsi(connId byte) {
+	for i, gsi := range t.gameServersInfo {
 		if gsi.uniqId == connId {
-			gs.gameServersInfo = append(gs.gameServersInfo[:i], gs.gameServersInfo[i+1:]...)
+			t.gameServersInfo = append(t.gameServersInfo[:i], t.gameServersInfo[i+1:]...)
 		}
 	}
 }
 
-func (gs *GS) GetAccountOnGameServer(account string) *Info {
-	for _, gsi := range gs.GetGameServerInfoList() {
+func (t *Table) GetAccountOnGameServer(account string) *Info {
+	for _, gsi := range t.GetGameServerInfoList() {
 		if gsi.HasAccountOnGameServer(account) {
 			return gsi
 		}
@@ -110,8 +110,8 @@ func (gs *GS) GetAccountOnGameServer(account string) *Info {
 	return nil
 }
 
-func (gs *GS) GetGameServerById(serverId byte) *Info {
-	for _, gsi := range gs.gameServersInfo {
+func (t *Table) GetGameServerById(serverId byte) *Info {
+	for _, gsi := range t.gameServersInfo {
 		if gsi.GetId() == serverId {
 			return gsi
 		}
@@ -144,7 +144,7 @@ func (gsi *Info) SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byt
 }
 
 func (gsi *Info) SetCharactersOnServer(account string, charsNum uint8, timeToDel []int64) {
-	accountInfo := gsi.gs.loginServerInfo.GetAccount(account)
+	accountInfo := gsi.gameServerTable.loginServerInfo.GetAccount(account)
 
 	if accountInfo == nil {
 		return
@@ -322,6 +322,6 @@ func (gsi *Info) SetAgeLimit(ageLimit int32) {
 	gsi.ageLimit = ageLimit
 }
 
-func (gs *GS) GetGameServerInfoList() []*Info {
-	return gs.gameServersInfo
+func (t *Table) GetGameServerInfoList() []*Info {
+	return t.gameServersInfo
 }

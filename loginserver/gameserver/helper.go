@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-func GetGameServerInstance() *GS {
+func GetGameServerInstance() *Table {
 	return gameServerInstance
 }
 

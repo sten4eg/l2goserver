@@ -18,24 +18,24 @@ type account struct {
 }
 
 type Info struct {
-	host        []netip.Prefix
-	hexId       []byte
-	id          byte
-	port        int16
-	maxPlayer   int32
-	authed      bool
-	status      gameServerStatuses.ServerStatusValues
-	serverType  int32
-	ageLimit    int32
-	showBracket bool
-	state       gameServer.GameServerState
-	accounts    account
-	privateKey  *rsa.PrivateKey
-	conn        *net.TCPConn
-	blowfish    *blowfish.Cipher
-	mu          sync.Mutex
-	gs          *GS
-	uniqId      byte
+	host            []netip.Prefix
+	hexId           []byte
+	id              byte
+	port            int16
+	maxPlayer       int32
+	authed          bool
+	status          gameServerStatuses.ServerStatusValues
+	serverType      int32
+	ageLimit        int32
+	showBracket     bool
+	state           gameServer.GameServerState
+	accounts        account
+	privateKey      *rsa.PrivateKey
+	conn            *net.TCPConn
+	blowfish        *blowfish.Cipher
+	mu              sync.Mutex
+	gameServerTable *Table
+	uniqId          byte
 }
 
 func (gsi *Info) InitRSAKeys() error {
@@ -102,7 +102,7 @@ func (gsi *Info) GetStatus() gameServerStatuses.ServerStatusValues {
 }
 
 func (gsi *Info) GetGsiById(serverId byte) gs2ls.GsiIsAuthInterface {
-	gsi_ := gsi.gs.GetGameServerById(serverId)
+	gsi_ := gsi.gameServerTable.GetGameServerById(serverId)
 	if gsi_ == nil {
 		return nil
 	}
