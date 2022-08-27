@@ -2,6 +2,7 @@ package loginserver
 
 import (
 	"context"
+	"fmt"
 	"github.com/puzpuzpuz/xsync"
 	"l2goserver/db"
 	"l2goserver/loginserver/IpManager"
@@ -108,10 +109,14 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 
 	for {
 		opcode, data, err := client.Receive()
+		fmt.Println(opcode)
 		Atom.Add(1)
 		if err != nil {
 			if client.Account.Login != "" {
-				ls.RemoveAuthedLoginClient(client.Account.Login)
+				//	ls.RemoveAuthedLoginClient(client.Account.Login)
+				//TODO при переходе на гейм сервер клиент закрывает соединение
+				//TODO и тут вызывается RemoveAuthedLoginClient но после этого гейм сервер пытается запросить инфу
+				//TODO по этому логину и обламывается, не пуская чела на сервер
 			}
 			//	log.Println(err)
 			//	log.Println("Closing a connection")

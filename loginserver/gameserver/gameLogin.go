@@ -17,7 +17,11 @@ func (t *Table) LoginServerGetSessionKey(account string) *models.SessionKey {
 }
 
 func (gsi *Info) LoginServerGetSessionKey(account string) *models.SessionKey {
-	return gsi.gameServerTable.loginServerInfo.GetSessionKey(account)
+	sessionKey := gsi.gameServerTable.loginServerInfo.GetSessionKey(account)
+	if sessionKey == nil {
+		return nil
+	}
+	return sessionKey
 }
 
 func (t *Table) LoginServerRemoveAuthedLoginClient(account string) {
