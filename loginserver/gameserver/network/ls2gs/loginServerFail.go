@@ -6,8 +6,8 @@ import (
 )
 
 func LoginServerFail(reason loginServer.FailReason) *packets.Buffer {
-	buf := packets.GetBuffer()
-	buf.WriteSingleByte(0x01)
-	buf.WriteSingleByte(byte(reason))
-	return buf
+	buffer := packets.GetBuffer()
+	buffer.WriteSingleByte(0x01)
+	buffer.WriteSingleByte(byte(reason))
+	return buffer
 }

@@ -27,9 +27,9 @@ func (b *Buffer) Reset() {
 }
 
 func float64ToByte(f float64) []byte {
-	var buf [8]byte
-	binary.LittleEndian.PutUint64(buf[0:], math.Float64bits(f))
-	return buf[0:]
+	var buffer [8]byte
+	binary.LittleEndian.PutUint64(buffer[0:], math.Float64bits(f))
+	return buffer[0:]
 }
 
 func (b *Buffer) WriteF(value float64) {
@@ -45,20 +45,20 @@ func (b *Buffer) WriteHU(value uint16) {
 }
 
 func (b *Buffer) WriteQ(value int64) {
-	var buf [8]byte
-	binary.LittleEndian.PutUint64(buf[:], uint64(value))
-	b.B = append(b.B, buf[0:]...)
+	var buffer [8]byte
+	binary.LittleEndian.PutUint64(buffer[:], uint64(value))
+	b.B = append(b.B, buffer[0:]...)
 }
 
 func (b *Buffer) WriteD(value int32) {
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], uint32(value))
-	b.B = append(b.B, buf[0:]...)
+	var buffer [4]byte
+	binary.LittleEndian.PutUint32(buffer[:], uint32(value))
+	b.B = append(b.B, buffer[0:]...)
 }
 func (b *Buffer) WriteDU(value uint32) {
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], value)
-	b.B = append(b.B, buf[0:]...)
+	var buffer [4]byte
+	binary.LittleEndian.PutUint32(buffer[:], value)
+	b.B = append(b.B, buffer[0:]...)
 }
 
 func (b *Buffer) WriteSlice(value []byte) {
@@ -77,17 +77,17 @@ const EmptyByte byte = 0
 func (b *Buffer) WriteS(value string) {
 	utf16Slice := utf16.Encode([]rune(value))
 
-	var buf []byte
+	var buffer []byte
 	for _, v := range utf16Slice {
 		if v < math.MaxInt8 {
-			buf = append(buf, byte(v), 0)
+			buffer = append(buffer, byte(v), 0)
 		} else {
 			f, s := uint8(v&0xff), uint8(v>>8)
-			buf = append(buf, f, s)
+			buffer = append(buffer, f, s)
 		}
 	}
 
-	buf = append(buf, EmptyByte, EmptyByte)
+	buffer = append(buffer, EmptyByte, EmptyByte)
 
-	b.B = append(b.B, buf...)
+	b.B = append(b.B, buffer...)
 }

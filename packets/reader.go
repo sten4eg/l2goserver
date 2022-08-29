@@ -121,13 +121,13 @@ func (r *Reader) ReadInt64() int64 {
 }
 func (r *Reader) ReadString() string {
 	var result []uint16
-	buf := make([]byte, 2)
+	buffer := make([]byte, 2)
 	for {
-		_, err := r.r.Read(buf)
+		_, err := r.r.Read(buffer)
 		if err != nil {
 			panic(err)
 		}
-		q := binary.LittleEndian.Uint16(buf)
+		q := binary.LittleEndian.Uint16(buffer)
 
 		if q == 0 {
 			break

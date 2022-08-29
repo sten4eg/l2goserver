@@ -187,13 +187,13 @@ func (gsi *Info) Listen() {
 	}
 }
 
-func (gsi *Info) Send(buf *packets.Buffer) error {
-	size := buf.Len() + 4
+func (gsi *Info) Send(buffer *packets.Buffer) error {
+	size := buffer.Len() + 4
 	size = (size + 8) - (size % 8) // padding
 
 	data := make([]byte, size)
-	copy(data, buf.Bytes())
-	packets.Put(buf)
+	copy(data, buffer.Bytes())
+	packets.Put(buffer)
 
 	rs := crypt.AppendCheckSum(data, size)
 

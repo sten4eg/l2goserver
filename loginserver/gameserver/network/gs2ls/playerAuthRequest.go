@@ -21,14 +21,14 @@ func PlayerAuthRequest(data []byte, gs playerAuthRequestInterface) {
 	loginKey2 := packet.ReadUInt32()
 
 	key := gs.LoginServerGetSessionKey(account)
-	var buf *packets.Buffer
+	var buffer *packets.Buffer
 
 	if key != nil || playerKey1 != key.PlayOk1 || playerKey2 != key.PlayOk2 || loginKey1 != key.LoginOk1 || loginKey2 != key.LoginOk2 {
 		gs.LoginServerRemoveAuthedLoginClient(account)
-		buf = ls2gs.PlayerAuthResponse(account, true)
+		buffer = ls2gs.PlayerAuthResponse(account, true)
 	} else {
-		buf = ls2gs.PlayerAuthResponse(account, false)
+		buffer = ls2gs.PlayerAuthResponse(account, false)
 	}
 
-	_ = gs.Send(buf)
+	_ = gs.Send(buffer)
 }

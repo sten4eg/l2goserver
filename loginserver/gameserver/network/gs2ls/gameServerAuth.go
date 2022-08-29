@@ -14,11 +14,11 @@ import (
 
 type gsInterfaceForGameServerAuth interface {
 	ForceClose(reason loginServer.FailReason)
-	Send(*packets.Buffer) error
-	SetInfoGameServerInfo([]netip.Prefix, []byte, byte, int16, int32, bool)
+	Send(buffer *packets.Buffer) error
+	SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byte, port int16, maxPlayer int32, authed bool)
 	GetId() byte
 	SetState(serverState gameServer.GameServerState)
-	GetGsiById(byte) GsiIsAuthInterface
+	GetGsiById(id byte) GsiIsAuthInterface
 }
 
 type GsiIsAuthInterface interface {

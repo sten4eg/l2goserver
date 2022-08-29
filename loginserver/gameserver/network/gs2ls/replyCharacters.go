@@ -3,7 +3,7 @@ package gs2ls
 import "l2goserver/packets"
 
 type SetCharactersOnServerInterface interface {
-	SetCharactersOnServer(string, uint8, []int64)
+	SetCharactersOnServer(account string, charsNum uint8, timeToDel []int64)
 }
 
 func ReplyCharacters(data []byte, server SetCharactersOnServerInterface) {
