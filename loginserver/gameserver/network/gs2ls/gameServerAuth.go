@@ -38,7 +38,6 @@ type gameServerAuthData struct {
 
 func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) error {
 	packet := packets.NewReader(data)
-	handleReqProcessFaile := errors.New("Функция handleReqProcess не выполнена")
 	var gsa gameServerAuthData
 	gsa.serverVersion = packet.ReadSingleByte()
 	gsa.desiredId = packet.ReadSingleByte()
@@ -59,7 +58,7 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) error {
 			log.Println(err.Error())
 			continue
 		}
-		_ = packet.ReadString() //TODO Убрать получение дублирующегося пакета с ip без маски подсети
+		_ = packet.ReadString() // TODO Убрать получение дублирующегося пакета с ip без маски подсети
 		subNets = append(subNets, subNetsAddr)
 	}
 	gsa.hosts = subNets
@@ -68,7 +67,9 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) error {
 		server.SetState(gameServer.Authed)
 		return nil
 	}
-	return handleReqProcessFaile
+
+	handleReqProcessFailed := errors.New("функция handleReqProcess не выполнена")
+	return handleReqProcessFailed
 }
 
 func handleRegProcess(server gsInterfaceForGameServerAuth, data gameServerAuthData) bool {

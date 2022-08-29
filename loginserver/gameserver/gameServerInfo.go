@@ -119,7 +119,7 @@ func (gsi *Info) RemoveAccountOnGameServer(account string) {
 }
 
 func (gsi *Info) SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byte, port int16, maxPlayer int32, authed bool) {
-	gsi.host = host //todo unused?
+	gsi.host = host // todo unused?
 	gsi.hexId = hexId
 	gsi.id = id
 	gsi.port = port

@@ -26,7 +26,7 @@ func GetCountGameServer() byte {
 
 func GetGameServerIp(id int) string {
 	gameServer := GetGameServerInstance()
-	gsi := gameServer.gameServersInfo[id] //todo надо проверка
+	gsi := gameServer.gameServersInfo[id] // todo надо проверка
 	addr := gsi.getGameServerConn().RemoteAddr().String()
 	b, _, _ := strings.Cut(addr, ":")
 	return b
@@ -37,7 +37,7 @@ func GetGameServerPort(id int) int16 {
 }
 
 func GetGameServerId(index int) byte {
-	return GetGameServerInstance().gameServersInfo[index].GetId() //возможна паника если в массиве нету id
+	return GetGameServerInstance().gameServersInfo[index].GetId() // возможна паника если в массиве нету id
 }
 
 func GetGameServerMaxPlayers(id int) int32 {
