@@ -9,7 +9,7 @@ import (
 	"net/netip"
 )
 
-const IPTempBan = "INSERT INTO ip_ban VALUES ($1, $2) ON DUPLICATE KEY UPDATE value=$3"
+const IPTempBan = "INSERT INTO loginserver.ip_ban VALUES ($1, $2) ON CONFLICT(ip) DO UPDATE SET  unix_time = $2"
 
 func RequestTempBan(data []byte) {
 	packet := packets.NewReader(data)
@@ -36,7 +36,7 @@ func banUser(ip string, banTime int) error {
 	}
 	defer dbConn.Release()
 
-	_, err = dbConn.Exec(context.Background(), IPTempBan, ip, banTime, banTime)
+	_, err = dbConn.Exec(context.Background(), IPTempBan, ip, banTime)
 	if err != nil {
 		return err
 	}

@@ -205,7 +205,7 @@ func (ls *LoginServer) GetAccount(account string) *models.Account {
 	return nil
 }
 
-func (ls *LoginServer) GetGameServerInfoList() []*gameserver.Info {
+func (_ *LoginServer) GetGameServerInfoList() []*gameserver.Info {
 	return gameserver.GetGameServerInstance().GetGameServerInfoList()
 }
 
@@ -217,7 +217,7 @@ func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
 	return nil
 }
 
-func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (bool, error) {
+func (_ *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (bool, error) {
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
 	access := client.Account.AccessLevel
 	if gsi != nil && gsi.IsAuthed() {

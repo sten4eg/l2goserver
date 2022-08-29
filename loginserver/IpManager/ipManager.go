@@ -17,7 +17,7 @@ func LoadBannedIp() error {
 	}
 	defer dbConn.Release()
 
-	rows, err := dbConn.Query(context.Background(), `SELECT ip, "value" FROM ip_ban WHERE "value" > extract('epoch' from CURRENT_TIMESTAMP)::bigint`)
+	rows, err := dbConn.Query(context.Background(), `SELECT ip, unix_time FROM ip_ban WHERE unix_time > extract('epoch' from now())::bigint`)
 	if err != nil {
 		return err
 	}

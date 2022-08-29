@@ -53,7 +53,7 @@ func GetGameServerServerType(id int) int32 {
 }
 
 func GetGameServerStatus(id int) byte {
-	return byte(GetGameServerInstance().gameServersInfo[id].getStatus())
+	return byte(GetGameServerInstance().gameServersInfo[id].GetStatus())
 }
 
 func ShowBracketsInGameServer(id int) byte {

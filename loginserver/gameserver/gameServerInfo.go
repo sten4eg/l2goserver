@@ -81,10 +81,6 @@ func (gsi *Info) GetType() int32 {
 	return gsi.serverType
 }
 
-func (gsi *Info) getStatus() int32 {
-	return gsi.status
-}
-
 func (gsi *Info) getShowBracket() bool {
 	return gsi.showBracket
 }
