@@ -6,7 +6,7 @@ import (
 )
 
 func NewPlayFailPacket(reason clientReasons.ClientLoginFailed) *packets.Buffer {
-	buffer := packets.Get()
+	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x06) // Packet type: PlayFail
 	buffer.WriteDU(uint32(reason))
 

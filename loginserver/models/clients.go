@@ -14,26 +14,20 @@ import (
 	"net"
 	"runtime/trace"
 	"strconv"
-	"sync"
 )
 
-type Clients struct {
-	C  []*ClientCtx
-	Mu sync.Mutex
-}
 type ClientCtx struct {
 	noCopy          utils.NoCopy //nolint:unused,structcheck
-	Account         Account
+	joinedGS        bool
+	state           clientState.ClientCtxState
 	SessionID       uint32
+	Uid             uint64
 	conn            *net.TCPConn
-	ScrambleModulus []byte
 	SessionKey      *SessionKey
 	PrivateKey      *rsa.PrivateKey
 	BlowFish        []byte
-	state           clientState.ClientCtxState
-	joinedGS        bool
-	Uid             uint64
-	isStatic        bool
+	ScrambleModulus []byte
+	Account         Account
 }
 
 type SessionKey struct {
@@ -90,7 +84,6 @@ func NewClient() (*ClientCtx, error) {
 		state:           clientState.NoState,
 		joinedGS:        false,
 		Uid:             rand.Uint64(),
-		isStatic:        true,
 	}, nil
 }
 
@@ -123,7 +116,8 @@ func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	}
 	reg.End()
 
-	fullPackage := make([]byte, 0, len(header)+len(data))
+	fullPackage := make([]byte, 0, dataSize+2)
+
 	fullPackage = append(fullPackage, header...)
 	fullPackage = append(fullPackage, data...)
 
@@ -138,19 +132,34 @@ func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 	data := buffer.Bytes()
 	defer packets.Put(buffer)
 
-	data = crypt.EncodeData(data, c.BlowFish, c.isStatic)
+	data = crypt.EncodeData(data, c.BlowFish)
 	// Вычисление длинны пакета
 	length := uint16(len(data) + 2)
 
-	toSend := packets.Get()
-	toSend.WriteHU(length)
-	toSend.WriteSlice(data) //TODO очень много выделяет
-	defer packets.Put(toSend)
+	s, f := byte(length>>8), byte(length&0xff)
 
-	_, err := c.conn.Write(toSend.Bytes())
+	data = append([]byte{f, s}, data...)
+
+	_, err := c.conn.Write(data)
 	if err != nil {
 		return errors.New("пакет не может быть отправлен")
 	}
+
+	return nil
+}
+func (c *ClientCtx) SendBufInit(buffer *packets.Buffer) error {
+	data := buffer.Bytes()
+	defer packets.Put(buffer)
+
+	data = crypt.EncodeDataInit(data)
+	// Вычисление длинны пакета
+	length := uint16(len(data) + 2)
+
+	s, f := byte(length>>8), byte(length&0xff)
+
+	data = append([]byte{f, s}, data...)
+
+	_, err := c.conn.Write(data)
 	if err != nil {
 		return errors.New("пакет не может быть отправлен")
 	}
@@ -180,14 +189,10 @@ func (c *ClientCtx) GetRemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
-func (c *ClientCtx) GetLocalAddr() net.Addr {
-	return c.conn.LocalAddr()
-}
-
-func (c *ClientCtx) SetStaticFalse() {
-	c.isStatic = false
-}
-
 func (c *ClientCtx) SetJoinedGS(isJoinedGS bool) {
 	c.joinedGS = isJoinedGS
+}
+
+func (c *ClientCtx) IsJoinedGS() bool {
+	return c.joinedGS
 }

@@ -5,8 +5,8 @@ import (
 	"l2goserver/packets"
 )
 
-func NewInitPacket(c *models.ClientCtx, buffer *packets.Buffer) *packets.Buffer {
-
+func NewInitPacket(c *models.ClientCtx) error {
+	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x00)
 
 	buffer.WriteDU(c.SessionID)          // SessionId
@@ -21,5 +21,7 @@ func NewInitPacket(c *models.ClientCtx, buffer *packets.Buffer) *packets.Buffer 
 
 	buffer.WriteSlice(c.BlowFish)
 	buffer.WriteSingleByte(0x00)
-	return buffer
+
+	err := c.SendBufInit(buffer)
+	return err
 }

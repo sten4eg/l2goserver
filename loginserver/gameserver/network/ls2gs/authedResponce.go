@@ -6,7 +6,7 @@ import (
 )
 
 func AuthedResponse(serverId byte) *packets.Buffer {
-	buf := packets.Get()
+	buf := packets.GetBuffer()
 	buf.WriteSingleByte(0x02)
 	buf.WriteSingleByte(serverId)
 	buf.WriteS(dao.GetServerNameById(serverId))

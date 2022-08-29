@@ -6,7 +6,7 @@ import (
 )
 
 func NewPlayOkPacket(client *models.ClientCtx) *packets.Buffer {
-	buffer := packets.Get()
+	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x07)
 	buffer.WriteDU(client.SessionKey.PlayOk1) // Session Key
 	buffer.WriteDU(client.SessionKey.PlayOk2) // Session Key

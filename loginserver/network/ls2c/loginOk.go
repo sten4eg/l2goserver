@@ -6,7 +6,7 @@ import (
 )
 
 func NewLoginOkPacket(client *models.ClientCtx) *packets.Buffer {
-	buffer := packets.Get()
+	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x03)
 	buffer.WriteDU(client.SessionKey.LoginOk1)
 	buffer.WriteDU(client.SessionKey.LoginOk2)

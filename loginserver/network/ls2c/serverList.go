@@ -10,7 +10,7 @@ import (
 )
 
 func NewServerListPacket(client *models.ClientCtx) error {
-	buffer := packets.Get()
+	buffer := packets.GetBuffer()
 	lastServer := client.Account.LastServer
 	serversCount := gameserver.GetCountGameServer()
 	buffer.WriteSingleByte(0x04)

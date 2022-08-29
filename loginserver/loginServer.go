@@ -13,7 +13,6 @@ import (
 	"l2goserver/loginserver/types/gameServerStatuses"
 	"l2goserver/loginserver/types/reason/clientReasons"
 	"l2goserver/loginserver/types/state/clientState"
-	"l2goserver/packets"
 	"log"
 	"math/rand"
 	"net"
@@ -73,7 +72,7 @@ func (ls *LoginServer) Run() {
 
 		client.SetConn(tcpConn)
 
-		clientAddrPort := netip.MustParseAddrPort(client.GetLocalAddr().String())
+		clientAddrPort := netip.MustParseAddrPort(client.GetRemoteAddr().String())
 
 		if !clientAddrPort.IsValid() {
 			continue
@@ -97,34 +96,26 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	defer client.CloseConnection()
 	var err error
 
-	bufToInit := packets.Get()
-	initPacket := ls2c.NewInitPacket(client, bufToInit)
-
-	err = client.SendBuf(initPacket)
+	err = ls2c.NewInitPacket(client)
 	if err != nil {
-		//log.Println(err)
 		return
 	}
-	client.SetStaticFalse()
 
 	for {
 		opcode, data, err := client.Receive()
 		fmt.Println(opcode)
 		Atom.Add(1)
 		if err != nil {
-			if client.Account.Login != "" {
-				//	ls.RemoveAuthedLoginClient(client.Account.Login)
-				//TODO при переходе на гейм сервер клиент закрывает соединение
-				//TODO и тут вызывается RemoveAuthedLoginClient но после этого гейм сервер пытается запросить инфу
-				//TODO по этому логину и обламывается, не пуская чела на сервер
-			}
+			ls.ClientDisconnect(client)
+
 			//	log.Println(err)
 			//	log.Println("Closing a connection")
 			AtomKick.Add(1)
 			return
 		}
 		//		log.Println("Опкод", opcode)
-		switch client.GetState() {
+		state := client.GetState()
+		switch state {
 		default:
 			//			log.Println("Неопознаный опкод")
 			//			fmt.Printf("opcode: %X, state %X", opcode, clientState.State)
@@ -246,4 +237,10 @@ func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) 
 		return loginOk, nil
 	}
 	return false, nil
+}
+
+func (ls *LoginServer) ClientDisconnect(client *models.ClientCtx) {
+	if !client.IsJoinedGS() {
+		ls.RemoveAuthedLoginClient(client.Account.Login)
+	}
 }

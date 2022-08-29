@@ -102,49 +102,57 @@ func encXORPass(raw []byte, size, key int) []byte {
 	return raw
 }
 
-func EncodeData(raw []byte, blowfishKey []byte, isStatic bool) []byte {
+func EncodeDataInit(raw []byte) (data []byte) {
 	size := len(raw) + 4 // reserve checksum
-	data := make([]byte, 200)
+
+	size += 4                      // reserve for XOR "key"
+	size = (size + 8) - (size % 8) // padding
+	data = make([]byte, size)
 	copy(data, raw)
-	if isStatic {
-		size += 4                      // reserve for XOR "key"
-		size = (size + 8) - (size % 8) // padding
 
-		data = encXORPass(data, size, rand.Int()) // Xor
-		crypt(&data, size, StaticBlowfish)        // blowfish
-	} else {
-		size = (size + 8) - (size % 8) // padding
-		AppendCheckSum(data, size)
-		crypt(&data, size, blowfishKey)
-	}
+	data = encXORPass(data, size, rand.Int()) // Xor
+	crypt(data, size, StaticBlowfish)         // blowfish
 
-	return data[:size]
+	return
+}
+
+func EncodeData(raw []byte, blowfishKey []byte) (data []byte) {
+	size := len(raw) + 4 // reserve checksum
+
+	size = (size + 8) - (size % 8) // padding
+
+	data = make([]byte, size)
+	copy(data, raw)
+
+	AppendCheckSum(data, size)
+	crypt(data, size, blowfishKey)
+
+	return
 }
 
 func DecodeData(raw []byte, blowfishKey []byte) []byte {
 	size := len(raw) - 2 // minus length package
-	data := make([]byte, 200)
-	copy(data, raw[2:])
-	decrypt(&data, size, blowfishKey)
+	raw = raw[2:]
+	decrypt(raw, size, blowfishKey)
 
-	valid := VerifyCheckSum(data, size)
+	valid := VerifyCheckSum(raw, size)
 	if !valid {
 		log.Println("not verifiedCheckSum")
 	}
-	return data
+	return raw
 }
 
-func crypt(raw *[]byte, size int, blowfishKey []byte) {
+func crypt(raw []byte, size int, blowfishKey []byte) {
 	cipher, _ := blowfish.NewCipher(blowfishKey)
 	for i := 0; i < size; i += 8 {
-		cipher.Encrypt(*raw, *raw, i, i)
+		cipher.Encrypt(raw, raw, i, i)
 	}
 }
 
-func decrypt(raw *[]byte, size int, blowfishKey []byte) {
+func decrypt(raw []byte, size int, blowfishKey []byte) {
 	cipher, _ := blowfish.NewCipher(blowfishKey)
 	for i := 0; i < size; i += 8 {
-		cipher.Decrypt(*raw, *raw, i, i)
+		cipher.Decrypt(raw, raw, i, i)
 	}
 }
 

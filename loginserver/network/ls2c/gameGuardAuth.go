@@ -5,7 +5,7 @@ import (
 )
 
 func Newggauth(sessionID uint32) *packets.Buffer {
-	buffer := new(packets.Buffer)
+	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x0b)
 	buffer.WriteDU(sessionID)
 	buffer.WriteD(0x00)

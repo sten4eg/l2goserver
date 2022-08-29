@@ -22,8 +22,9 @@ const (
 // Distinct pools may be used for distinct types of byte buffers.
 // Properly determined byte buffer types with their own pools may help reducing
 // memory waste.
-type Pool struct {
-	calls       [steps]uint64
+type pools struct {
+	calls [steps]uint64
+
 	calibrating uint64
 
 	defaultSize uint64
@@ -32,20 +33,20 @@ type Pool struct {
 	pool sync.Pool
 }
 
-var pool Pool
+var pool pools
 
-// Get returns an empty byte buffer from the pool.
+// GetBuffer returns an empty byte buffer from the pool.
 //
 // Got byte buffer may be returned to the pool via Put call.
 // This reduces the number of memory allocations required for byte buffer
 // management.
-func Get() *Buffer { return pool.Get() }
+func GetBuffer() *Buffer { return pool.get() }
 
-// Get returns new byte buffer with zero length.
+// GetBuffer returns new byte buffer with zero length.
 //
 // The byte buffer may be returned to the pool via Put after the use
 // in order to minimize GC overhead.
-func (p *Pool) Get() *Buffer {
+func (p *pools) get() *Buffer {
 	v := p.pool.Get()
 	if v != nil {
 		return v.(*Buffer)
@@ -59,12 +60,12 @@ func (p *Pool) Get() *Buffer {
 //
 // ByteBuffer.B mustn't be touched after returning it to the pool.
 // Otherwise data races will occur.
-func Put(b *Buffer) { pool.Put(b) }
+func Put(b *Buffer) { pool.put(b) }
 
-// Put releases byte buffer obtained via Get to the pool.
+// Put releases byte buffer obtained via GetBuffer to the pool.
 //
 // The buffer mustn't be accessed after returning to the pool.
-func (p *Pool) Put(b *Buffer) {
+func (p *pools) put(b *Buffer) {
 	idx := index(len(b.B))
 
 	if atomic.AddUint64(&p.calls[idx], 1) > calibrateCallsThreshold {
@@ -78,7 +79,7 @@ func (p *Pool) Put(b *Buffer) {
 	}
 }
 
-func (p *Pool) calibrate() {
+func (p *pools) calibrate() {
 	if !atomic.CompareAndSwapUint64(&p.calibrating, 0, 1) {
 		return
 	}

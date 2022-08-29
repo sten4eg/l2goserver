@@ -3,7 +3,7 @@ package ls2gs
 import "l2goserver/packets"
 
 func PlayerAuthResponse(account string, response bool) *packets.Buffer {
-	buf := packets.Get()
+	buf := packets.GetBuffer()
 	buf.WriteSingleByte(0x03)
 	buf.WriteS(account)
 	if response {

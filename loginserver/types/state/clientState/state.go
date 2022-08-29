@@ -1,6 +1,6 @@
 package clientState
 
-type ClientCtxState int8
+type ClientCtxState byte
 
 const (
 	NoState         ClientCtxState = 0
