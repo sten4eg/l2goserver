@@ -22,8 +22,6 @@ func RequestServerLogin(request []byte, client *models.ClientCtx, server IsLogin
 	key2 := packet.ReadUInt32()
 	serverId := packet.ReadUInt8()
 
-	_ = serverId
-
 	if key1 != client.SessionKey.LoginOk1 || key2 != client.SessionKey.LoginOk2 {
 		err = client.SendBuf(serverpackets2.NewLoginFailPacket(clientReasons.AccessFailed))
 		if err != nil {
