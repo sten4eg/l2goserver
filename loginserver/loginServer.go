@@ -94,9 +94,8 @@ func (ls *LoginServer) Run() {
 
 func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	defer client.CloseConnection()
-	var err error
 
-	err = ls2c.NewInitPacket(client)
+	err := ls2c.NewInitPacket(client)
 	if err != nil {
 		return
 	}

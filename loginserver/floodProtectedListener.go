@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const fastConnectionLimit = 15
+// const fastConnectionLimit = 15
 const normalConnectionTime = 700
 const fastConnectionTime = 350
 const maxConnectionPerIP = 50

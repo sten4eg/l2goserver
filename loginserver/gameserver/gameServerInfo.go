@@ -16,13 +16,7 @@ import (
 	"log"
 	"net"
 	"net/netip"
-	"sync"
 )
-
-type account struct {
-	accounts map[string]bool
-	mu       sync.Mutex
-}
 
 type Info struct {
 	showBracket     bool
