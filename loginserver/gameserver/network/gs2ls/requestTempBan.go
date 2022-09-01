@@ -3,7 +3,7 @@ package gs2ls
 import (
 	"context"
 	"l2goserver/db"
-	"l2goserver/loginserver/IpManager"
+	"l2goserver/loginserver/ipManager"
 	"l2goserver/packets"
 	"log"
 	"net/netip"
@@ -54,6 +54,6 @@ func AddBanForAddress(address string, expiration int) error {
 	if err != nil {
 		return err
 	}
-	IpManager.BannedIp[addr] = expiration
+	ipManager.BannedIp[addr] = expiration
 	return nil
 }

@@ -1,4 +1,4 @@
-package IpManager
+package ipManager
 
 import (
 	"context"

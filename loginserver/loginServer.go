@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/puzpuzpuz/xsync"
 	"l2goserver/db"
-	"l2goserver/loginserver/IpManager"
 	"l2goserver/loginserver/gameserver"
+	"l2goserver/loginserver/ipManager"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/c2ls"
 	"l2goserver/loginserver/network/ls2c"
@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 )
 
-const AccountLastServerUpdate = "UPDATE accounts SET last_server = $1 WHERE login = $2"
+const AccountLastServerUpdate = "UPDATE loginserver.accounts SET last_server = $1 WHERE login = $2"
 
 type LoginServer struct {
 	clientsListener *net.TCPListener
@@ -78,7 +78,7 @@ func (ls *LoginServer) Run() {
 			continue
 		}
 
-		if IpManager.IsBannedIp(clientAddrPort.Addr()) {
+		if ipManager.IsBannedIp(clientAddrPort.Addr()) {
 			_ = client.SendBuf(ls2c.AccountKicked(clientReasons.PermanentlyBanned))
 			client.CloseConnection()
 			continue
