@@ -14,7 +14,6 @@ import (
 	"l2goserver/loginserver/network/ls2c"
 	reasons "l2goserver/loginserver/types/reason/clientReasons"
 	"l2goserver/loginserver/types/state/clientState"
-	"l2goserver/utils"
 	"log"
 	"math/big"
 	"runtime/trace"
@@ -114,8 +113,8 @@ func validate(request []byte, client *models.ClientCtx) error {
 	trimLogin := bytes.Trim(decodeData[1:14], string(rune(0)))
 	trimPassword := bytes.Trim(decodeData[14:28], string(rune(0)))
 
-	login := utils.B2s(trimLogin)
-	password := utils.B2s(trimPassword)
+	login := string(trimLogin)
+	password := string(trimPassword)
 
 	var account models.Account
 	reg := trace.StartRegion(context.Background(), "GetCONN1")
@@ -143,7 +142,7 @@ func validate(request []byte, client *models.ClientCtx) error {
 	}
 	reg.End()
 
-	err = bcrypt.CompareHashAndPassword(utils.S2b(account.Password), utils.S2b(password))
+	err = bcrypt.CompareHashAndPassword([]byte((account.Password)), []byte(password))
 	if err != nil {
 		return err
 	}
@@ -154,17 +153,12 @@ func validate(request []byte, client *models.ClientCtx) error {
 		return err
 	}
 
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
 	client.Account = account
 	return nil
 }
 
 func createAccount(clearLogin, clearPassword string) error {
-	password, err := bcrypt.GenerateFromPassword(utils.S2b(clearPassword), 10)
+	password, err := bcrypt.GenerateFromPassword([]byte(clearPassword), 10)
 	if err != nil {
 		return err
 	}

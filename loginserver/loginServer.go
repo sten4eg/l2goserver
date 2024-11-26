@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/puzpuzpuz/xsync"
+	floodProtecor "github.com/sten4eg/floodProtector"
 	"l2goserver/db"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/ipManager"
@@ -20,8 +21,6 @@ import (
 	"sync/atomic"
 )
 
-const AccountLastServerUpdate = "UPDATE loginserver.accounts SET last_server = $1 WHERE login = $2"
-
 type LoginServer struct {
 	clientsListener *net.TCPListener
 	accounts        *xsync.MapOf[*models.ClientCtx]
@@ -30,26 +29,23 @@ type LoginServer struct {
 var Atom atomic.Int64
 var AtomKick atomic.Int64
 
-func New() *LoginServer {
-	login := &LoginServer{}
-	login.accounts = xsync.NewMapOf[*models.ClientCtx]()
-	gs := gameserver.GetGameServerInstance()
-	gs.AttachLS(login)
-	return login
-}
-
-func (ls *LoginServer) StartListen() error {
-	var err error
+func New() (*LoginServer, error) {
 	addr := new(net.TCPAddr)
 	addr.Port = 2106
 	addr.IP = net.IP{127, 0, 0, 1}
-
-	ls.clientsListener, err = net.ListenTCP("tcp4", addr)
+	clientsListener, err := net.ListenTCP("tcp4", addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	login := &LoginServer{
+		accounts:        xsync.NewMapOf[*models.ClientCtx](),
+		clientsListener: clientsListener,
+	}
+
+	gs := gameserver.GetGameServerInstance()
+	gs.AttachLS(login)
+	return login, nil
 }
 
 func (ls *LoginServer) Run() {
@@ -64,7 +60,7 @@ func (ls *LoginServer) Run() {
 			continue
 		}
 
-		tcpConn, err := ls.AcceptTCPWithFloodProtection()
+		tcpConn, err := floodProtecor.AcceptTCP()
 		if err != nil {
 			log.Println("Accept() error", err)
 			continue
@@ -73,10 +69,6 @@ func (ls *LoginServer) Run() {
 		client.SetConn(tcpConn)
 
 		clientAddrPort := netip.MustParseAddrPort(client.GetRemoteAddr().String())
-
-		if !clientAddrPort.IsValid() {
-			continue
-		}
 
 		if ipManager.IsBannedIp(clientAddrPort.Addr()) {
 			_ = client.SendBuf(ls2c.AccountKicked(clientReasons.PermanentlyBanned))
@@ -218,6 +210,8 @@ func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
 }
 
 func (_ *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (bool, error) {
+	const AccountLastServerUpdate = `UPDATE loginserver.accounts SET last_server = $1 WHERE login = $2`
+
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
 	access := client.Account.AccessLevel
 	if gsi != nil && gsi.IsAuthed() {

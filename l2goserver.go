@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/pkg/profile"
 	"l2goserver/config"
 	"l2goserver/db"
 	"l2goserver/loginserver"
@@ -14,11 +13,17 @@ import (
 	"time"
 )
 
+const q = 1 << 28
+
 func main() {
+	var w = q / 10 / 1024 / 1204
+	_ = w
+	var s = []byte{1 << 28: 1}
+	_ = s
 	//debug.SetGCPercent(200000)
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
+	//defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfileAllocs, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfileHeap, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.BlockProfile, profile.ProfilePath(".")).Stop()
@@ -39,19 +44,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	loginServer := loginserver.New()
-
+	loginServer, err := loginserver.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 	err = db.ConfigureDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	err = ipManager.LoadBannedIp()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = loginServer.StartListen()
 	if err != nil {
 		log.Fatal(err)
 	}
