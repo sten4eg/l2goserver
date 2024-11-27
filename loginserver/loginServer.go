@@ -14,6 +14,7 @@ import (
 	"l2goserver/loginserver/types/gameServerStatuses"
 	"l2goserver/loginserver/types/reason/clientReasons"
 	"l2goserver/loginserver/types/state/clientState"
+	"l2goserver/utils"
 	"log"
 	"math/rand"
 	"net"
@@ -129,7 +130,7 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 			}
 		case clientState.AuthedGameGuard:
 			if opcode == 0 {
-				err = c2ls.NewRequestAuthLogin(data, client, ls)
+				err = c2ls.NewRequestAuthLogin(data, client, ls, gameserver.GetGameServerInstance())
 				if err != nil {
 					//	log.Println(err)
 					return
@@ -151,7 +152,7 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 					return
 				}
 			case 05:
-				client.Send(ls2c.NewServerListPacket(client))
+				client.Send(ls2c.NewServerListPacket(client, gameserver.GetGameServerInstance()))
 				return
 			}
 		}
@@ -191,8 +192,11 @@ func (ls *LoginServer) GetAccount(account string) *models.Account {
 	return nil
 }
 
-func (_ *LoginServer) GetGameServerInfoList() []*gameserver.Info {
-	return gameserver.GetGameServerInstance().GetGameServerInfoList()
+func (_ *LoginServer) GetGameServerInfoList() []c2ls.GameServerInfoInterface {
+	infoList := gameserver.GetGameServerInstance().GetGameServerInfoList()
+	return utils.ConvertSlice(infoList, func(info *gameserver.Info) c2ls.GameServerInfoInterface {
+		return info
+	})
 }
 
 func (ls *LoginServer) GetClientCtx(account string) c2ls.ClientRequestInterface {

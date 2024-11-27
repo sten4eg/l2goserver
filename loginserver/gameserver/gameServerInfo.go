@@ -214,6 +214,32 @@ func (gsi *Info) Send(buffer *packets.Buffer) error {
 	}
 	return err
 }
+func (gsi *Info) SendSlice(rawData []byte) error {
+	size := len(rawData) + 4
+	size = (size + 8) - (size % 8) // padding
+
+	data := make([]byte, size)
+	copy(data, rawData)
+
+	rs := crypt.AppendCheckSum(data, size)
+
+	for i := 0; i < size; i += 8 {
+		gsi.blowfish.Encrypt(rs, rs, i, i)
+	}
+
+	rs = rs[:size]
+	leng := len(rs) + 2
+
+	s, f := byte(leng>>8), byte(leng&0xff)
+	res := append([]byte{f, s}, rs...)
+
+	_, err := gsi.conn.Write(res)
+
+	if err != nil {
+		return err
+	}
+	return err
+}
 
 func (gsi *Info) GetPrivateKey() *rsa.PrivateKey {
 	return gsi.privateKey

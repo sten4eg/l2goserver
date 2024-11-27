@@ -2,7 +2,7 @@ package c2ls
 
 import (
 	"errors"
-	serverpackets2 "l2goserver/loginserver/network/ls2c"
+	"l2goserver/loginserver/network/ls2c"
 	"l2goserver/loginserver/types/reason/clientReasons"
 	"l2goserver/packets"
 )
@@ -35,7 +35,7 @@ func RequestServerLogin(request []byte, client ClientServerLogin, server IsLogin
 	loginOk1, loginOk2, _, _ := client.GetSessionKey()
 
 	if key1 != loginOk1 || key2 != loginOk2 {
-		err = client.Send(serverpackets2.NewLoginFailPacket(clientReasons.AccessFailed))
+		err = client.Send(ls2c.NewLoginFailPacket(clientReasons.AccessFailed))
 		if err != nil {
 			return err
 		}
@@ -48,9 +48,9 @@ func RequestServerLogin(request []byte, client ClientServerLogin, server IsLogin
 
 	if loginOk {
 		client.SetJoinedGS(true)
-		err = client.Send(serverpackets2.NewPlayOkPacket(client))
+		err = client.Send(ls2c.NewPlayOkPacket(client))
 	} else {
-		err = client.Send(serverpackets2.NewPlayFailPacket(clientReasons.ServerOverloaded))
+		err = client.Send(ls2c.NewPlayFailPacket(clientReasons.ServerOverloaded))
 		return errServerOverload
 	}
 

@@ -11,7 +11,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"l2goserver/config"
 	"l2goserver/db"
-	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/gameserver/network/ls2gs"
 	"l2goserver/loginserver/network/ls2c"
 	reasons "l2goserver/loginserver/types/reason/clientReasons"
@@ -29,12 +28,16 @@ const AccountsInsert = "INSERT INTO loginserver.accounts (login, password) VALUE
 
 var errNoData = errors.New("errNoData")
 
-type isInLoginInterface interface {
+type loginServerInterface interface {
 	IsAccountInLoginAndAddIfNot(ClientRequestInterface) bool
 	AssignSessionKeyToClient(GAL) (uint32, uint32, uint32, uint32)
-	GetGameServerInfoList() []*gameserver.Info
+	GetGameServerInfoList() []GameServerInfoInterface
 	GetClientCtx(string) ClientRequestInterface
 	RemoveAuthedLoginClient(string)
+}
+type GameServerInfoInterface interface {
+	IsAuthed() bool
+	SendSlice([]byte) error
 }
 type GAL interface {
 	GetAccountLogin() string
@@ -52,47 +55,51 @@ type ClientRequestInterface interface {
 	GetRemoteAddr() net.Addr
 	SetAccount(string, string, pgtype.Timestamp, pgtype.Timestamp, int8, int8, sql.NullString)
 }
+type gameServerInterface interface {
+	GetAccountOnGameServer(string) GameServerInfoInterface
+	IsAccountInGameServer(account string) bool
+}
 
-func NewRequestAuthLogin(request []byte, client ClientRequestInterface, server isInLoginInterface) error {
+func NewRequestAuthLogin(request []byte, client ClientRequestInterface, loginServer loginServerInterface, gameServer gameServerInterface) error {
 	err := validate(request, client)
 	if err != nil {
 		err = client.Send(ls2c.NewLoginFailPacket(reasons.LoginOrPassWrong))
 		return err
 	}
-	reason := tryCheckinAccount(client, server)
+	reason := tryCheckinAccount(client, loginServer, gameServer)
 
 	switch reason {
 	default:
 		err = client.Send(ls2c.NewLoginFailPacket(reasons.SystemError))
 	case clientState.AuthSuccess:
 		client.SetState(clientState.AuthedLogin)
-		client.SetSessionKey(server.AssignSessionKeyToClient(client))
+		client.SetSessionKey(loginServer.AssignSessionKeyToClient(client))
 		err = client.Send(ls2c.NewLoginOkPacket(client))
-		sendCharactersOnAccount(client.GetAccountLogin(), server)
+		sendCharactersOnAccount(client.GetAccountLogin(), loginServer)
 	case clientState.AccountBanned:
 		err = client.Send(ls2c.NewLoginFailPacket(reasons.Ban))
 		client.CloseConnection()
 	case clientState.AlreadyOnLs:
 		account := client.GetAccountLogin()
 		err = client.Send(ls2c.NewLoginFailPacket(reasons.AccountInUse))
-		oldClient := server.GetClientCtx(account)
+		oldClient := loginServer.GetClientCtx(account)
 		if oldClient != nil {
 			err = oldClient.Send(ls2c.AccountKicked(reasons.AccountInUse))
 			if err != nil {
-				server.RemoveAuthedLoginClient(account)
+				loginServer.RemoveAuthedLoginClient(account)
 				return err
 			}
 			oldClient.CloseConnection()
-			server.RemoveAuthedLoginClient(account)
+			loginServer.RemoveAuthedLoginClient(account)
 		}
 		client.CloseConnection()
 	case clientState.AlreadyOnGs:
 		account := client.GetAccountLogin()
 		err = client.Send(ls2c.NewLoginFailPacket(reasons.AccountInUse))
-		gsi := gameserver.GetGameServerInstance().GetAccountOnGameServer(account)
+		gsi := gameServer.GetAccountOnGameServer(account)
 		if gsi != nil {
 			if gsi.IsAuthed() {
-				_ = gsi.Send(ls2gs.KickPlayer(account))
+				_ = gsi.SendSlice(ls2gs.KickPlayer(account))
 			}
 		}
 	}
@@ -104,13 +111,13 @@ func NewRequestAuthLogin(request []byte, client ClientRequestInterface, server i
 	return nil
 }
 
-func tryCheckinAccount(client ClientRequestInterface, server isInLoginInterface) clientState.ClientAuthState {
+func tryCheckinAccount(client ClientRequestInterface, server loginServerInterface, gameServer gameServerInterface) clientState.ClientAuthState {
 	if client.GetAccountAccessLevel() < 0 {
 		return clientState.AccountBanned
 	}
 
 	ret := clientState.AlreadyOnGs
-	if gameserver.IsAccountInGameServer(client.GetAccountLogin()) {
+	if gameServer.IsAccountInGameServer(client.GetAccountLogin()) {
 		return ret
 	}
 	ret = clientState.AlreadyOnLs
@@ -200,11 +207,11 @@ func createAccount(clearLogin, clearPassword string) error {
 	return err
 }
 
-func sendCharactersOnAccount(account string, server isInLoginInterface) {
+func sendCharactersOnAccount(account string, server loginServerInterface) {
 	serverList := server.GetGameServerInfoList()
 	for _, gsi := range serverList {
 		if gsi.IsAuthed() {
-			_ = gsi.Send(ls2gs.RequestCharacter(account))
+			_ = gsi.SendSlice(ls2gs.RequestCharacter(account))
 		}
 	}
 }

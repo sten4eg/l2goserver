@@ -22,3 +22,10 @@ func CompareHexId(hexId []byte, hexIds [][]byte) bool {
 	}
 	return false
 }
+func ConvertSlice[T any, U any](input []T, convert func(T) U) []U {
+	output := make([]U, len(input))
+	for i, v := range input {
+		output[i] = convert(v)
+	}
+	return output
+}

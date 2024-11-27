@@ -8,10 +8,8 @@ func GetGameServerInstance() *Table {
 	return gameServerInstance
 }
 
-func IsAccountInGameServer(account string) bool {
-	gameServer := GetGameServerInstance()
-
-	for _, v := range gameServer.gameServersInfo {
+func (t *Table) IsAccountInGameServer(account string) bool {
+	for _, v := range t.gameServersInfo {
 		if v.HasAccountOnGameServer(account) {
 			return true
 		}
@@ -19,45 +17,43 @@ func IsAccountInGameServer(account string) bool {
 	return false
 }
 
-func GetCountGameServer() byte {
-	gameServer := GetGameServerInstance()
-	return byte(len(gameServer.gameServersInfo))
+func (t *Table) GetCountGameServer() byte {
+	return byte(len(t.gameServersInfo))
 }
 
-func GetGameServerIp(id int) string {
-	gameServer := GetGameServerInstance()
-	gsi := gameServer.gameServersInfo[id] // todo надо проверка
+func (t *Table) GetGameServerIp(id int) string {
+	gsi := t.gameServersInfo[id] // todo надо проверка
 	addr := gsi.getGameServerConn().RemoteAddr().String()
 	b, _, _ := strings.Cut(addr, ":")
 	return b
 }
 
-func GetGameServerPort(id int) int16 {
-	return GetGameServerInstance().gameServersInfo[id].getPort()
+func (t *Table) GetGameServerPort(id int) int16 {
+	return t.gameServersInfo[id].getPort()
 }
 
-func GetGameServerId(index int) byte {
-	return GetGameServerInstance().gameServersInfo[index].GetId() // возможна паника если в массиве нету id
+func (t *Table) GetGameServerId(index int) byte {
+	return t.gameServersInfo[index].GetId() // возможна паника если в массиве нету id
 }
 
-func GetGameServerMaxPlayers(id int) int32 {
-	return GetGameServerInstance().gameServersInfo[id].GetMaxPlayer()
+func (t *Table) GetGameServerMaxPlayers(id int) int32 {
+	return t.gameServersInfo[id].GetMaxPlayer()
 }
 
-func GetGameServerAgeLimit(id int) int32 {
-	return GetGameServerInstance().gameServersInfo[id].getAgeLimit()
+func (t *Table) GetGameServerAgeLimit(id int) int32 {
+	return t.gameServersInfo[id].getAgeLimit()
 }
 
-func GetGameServerServerType(id int) int32 {
-	return GetGameServerInstance().gameServersInfo[id].GetType()
+func (t *Table) GetGameServerServerType(id int) int32 {
+	return t.gameServersInfo[id].GetType()
 }
 
-func GetGameServerStatus(id int) byte {
-	return byte(GetGameServerInstance().gameServersInfo[id].GetStatus())
+func (t *Table) GetGameServerStatus(id int) byte {
+	return byte(t.gameServersInfo[id].GetStatus())
 }
 
-func ShowBracketsInGameServer(id int) byte {
-	if GetGameServerInstance().gameServersInfo[id].getShowBracket() {
+func (t *Table) ShowBracketsInGameServer(id int) byte {
+	if t.gameServersInfo[id].getShowBracket() {
 		return 1
 	}
 	return 0

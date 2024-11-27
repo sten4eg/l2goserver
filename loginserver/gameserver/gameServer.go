@@ -3,6 +3,7 @@ package gameserver
 import (
 	"l2goserver/config"
 	"l2goserver/loginserver/gameserver/network/ls2gs"
+	"l2goserver/loginserver/network/c2ls"
 	"l2goserver/loginserver/types/state/gameServer"
 	"log"
 	"net"
@@ -91,7 +92,7 @@ func (t *Table) RemoveGsi(connId uint32) {
 	}
 }
 
-func (t *Table) GetAccountOnGameServer(account string) *Info {
+func (t *Table) GetAccountOnGameServer(account string) c2ls.GameServerInfoInterface {
 	for _, gsi := range t.GetGameServerInfoList() {
 		if gsi.HasAccountOnGameServer(account) {
 			return gsi
