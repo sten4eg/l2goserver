@@ -5,10 +5,10 @@ import (
 	"l2goserver/packets"
 )
 
-func NewPlayFailPacket(reason clientReasons.ClientLoginFailed) *packets.Buffer {
+func NewPlayFailPacket(reason clientReasons.ClientLoginFailed) []byte {
 	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x06) // Packet type: PlayFail
 	buffer.WriteDU(uint32(reason))
 
-	return buffer
+	return buffer.CopyBytes()
 }

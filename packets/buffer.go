@@ -18,7 +18,7 @@ func (b *Buffer) Bytes() []byte {
 	return b.B
 }
 func (b *Buffer) CopyBytes() []byte {
-	m := make([]byte, b.Len()+1)
+	m := make([]byte, b.Len())
 	_ = copy(m, b.B)
 	return m
 }

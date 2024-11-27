@@ -5,10 +5,10 @@ import (
 	"l2goserver/packets"
 )
 
-func AccountKicked(reason clientReasons.ClientLoginFailed) *packets.Buffer {
+func AccountKicked(reason clientReasons.ClientLoginFailed) []byte {
 	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x02)
 	buffer.WriteD(int32(reason))
 
-	return buffer
+	return buffer.CopyBytes()
 }

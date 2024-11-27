@@ -1,17 +1,17 @@
 package ls2c
 
 import (
-	"l2goserver/loginserver/models"
+	"l2goserver/loginserver/network"
 	"l2goserver/packets"
 )
 
-func NewInitPacket(c *models.ClientCtx) error {
+func NewInitPacket(c network.Ls2c) []byte {
 	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x00)
 
-	buffer.WriteDU(c.SessionID)          // SessionId
-	buffer.WriteDU(0xc621)               // PROTOCOL_REV
-	buffer.WriteSlice(c.ScrambleModulus) // pubKey
+	buffer.WriteDU(c.GetSessionId())          // SessionId
+	buffer.WriteDU(0xc621)                    // PROTOCOL_REV
+	buffer.WriteSlice(c.GetScrambleModulus()) // pubKey
 
 	// unk GG related?
 	buffer.WriteDU(0x29DD954E)
@@ -19,9 +19,8 @@ func NewInitPacket(c *models.ClientCtx) error {
 	buffer.WriteDU(0x97ADB620)
 	buffer.WriteDU(0x07BDE0F7)
 
-	buffer.WriteSlice(c.BlowFish)
+	buffer.WriteSlice(c.GetBlowFish())
 	buffer.WriteSingleByte(0x00)
+	return buffer.CopyBytes()
 
-	err := c.SendBufInit(buffer)
-	return err
 }

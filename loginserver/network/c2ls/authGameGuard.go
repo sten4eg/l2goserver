@@ -4,7 +4,6 @@ import (
 	"errors"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/ls2c"
-	"l2goserver/loginserver/types/state/clientState"
 	"l2goserver/packets"
 )
 
@@ -16,10 +15,8 @@ func NewAuthGameGuard(request []byte, ctx *models.ClientCtx) error {
 
 	sessionId = packet.ReadUInt32()
 
-	if ctx.SessionID != sessionId {
+	if ctx.GetSessionId() != sessionId {
 		return errWrongSession
 	}
-	ctx.SetState(clientState.AuthedGameGuard)
-	return ctx.SendBuf(ls2c.Newggauth(ctx.SessionID))
-
+	return ctx.Send(ls2c.Newggauth(ctx.GetSessionId()))
 }

@@ -7,32 +7,21 @@ import (
 	"l2goserver/loginserver"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/ipManager"
+	"l2goserver/packets"
 	"log"
 	"os"
 	"runtime/trace"
 	"time"
 )
 
-const q = 1 << 28
-
 func main() {
-	var w = q / 10 / 1024 / 1204
-	_ = w
-	var s = []byte{1 << 28: 1}
-	_ = s
-	//debug.SetGCPercent(200000)
-
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	//defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
-	//defer profile.Start(profile.MemProfileAllocs, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
-	//defer profile.Start(profile.MemProfileHeap, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
-	//defer profile.Start(profile.BlockProfile, profile.ProfilePath(".")).Stop()
-	//defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
-
-	//defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
-	//defer profile.Start(profile.GoroutineProfile, profile.ProfilePath(".")).Stop()
-	//defer profile.Start(profile.MutexProfile, profile.ProfilePath(".")).Stop()
-
+	buffer := packets.GetBuffer()
+	buffer.WriteD(12)
+	buffer.WriteD(12)
+	buffer.WriteD(12)
+	buffer.WriteD(12)
+	buffer.CopyBytes()
+	fmt.Println("1")
 	go Trace()
 	//go F()
 	err := config.Read()

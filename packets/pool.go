@@ -11,9 +11,8 @@ const (
 	steps      = 20
 
 	minSize = 1 << minBitSize
-	//maxSize = 1 << (minBitSize + steps - 1)
 
-	calibrateCallsThreshold = 42000
+	calibrateCallsThreshold = 42000 // калибровка будет происходить каждые calibrateCallsThreshold put операций
 	maxPercentile           = 0.95
 )
 
@@ -137,6 +136,8 @@ func (ci callSizes) Swap(i, j int) {
 	ci[i], ci[j] = ci[j], ci[i]
 }
 
+// определяет idx который находиться в [0, steps]
+// переход на новый steps по степени двойки
 func index(n int) int {
 	n--
 	n >>= minBitSize

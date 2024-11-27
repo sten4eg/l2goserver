@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func NewServerListPacket(client *models.ClientCtx) error {
+func NewServerListPacket(client *models.ClientCtx) []byte {
 	buffer := packets.GetBuffer()
 	lastServer := client.Account.LastServer
 	serversCount := gameserver.GetCountGameServer()
@@ -65,6 +65,6 @@ func NewServerListPacket(client *models.ClientCtx) error {
 			buffer.WriteSingleByte(0)
 		}
 	}
-	return client.SendBuf(buffer)
+	return buffer.CopyBytes()
 
 }

@@ -4,7 +4,7 @@ import (
 	"l2goserver/packets"
 )
 
-func Newggauth(sessionID uint32) *packets.Buffer {
+func Newggauth(sessionID uint32) []byte {
 	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x0b)
 	buffer.WriteDU(sessionID)
@@ -12,5 +12,5 @@ func Newggauth(sessionID uint32) *packets.Buffer {
 	buffer.WriteD(0x00)
 	buffer.WriteD(0x00)
 	buffer.WriteD(0x00)
-	return buffer
+	return buffer.CopyBytes()
 }

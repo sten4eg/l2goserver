@@ -20,7 +20,7 @@ type ClientCtx struct {
 	noCopy          utils.NoCopy //nolint:unused,structcheck
 	joinedGS        bool
 	state           clientState.ClientCtxState
-	SessionID       uint32
+	sessionID       uint32
 	Uid             uint64
 	conn            *net.TCPConn
 	SessionKey      *SessionKey
@@ -76,7 +76,7 @@ func NewClient() (*ClientCtx, error) {
 
 	//scrambleModulus := []byte{134, 142, 95, 160, 18, 252, 106, 59, 228, 254, 60, 14, 60, 2, 90, 106, 224, 241, 174, 178, 47, 66, 122, 21, 110, 215, 76, 146, 27, 182, 122, 150, 1, 134, 164, 255, 126, 28, 105, 76, 133, 192, 162, 208, 233, 9, 184, 101, 194, 45, 164, 247, 101, 2, 210, 212, 118, 99, 115, 43, 231, 32, 183, 49, 136, 115, 208, 243, 39, 171, 54, 233, 219, 240, 167, 155, 202, 241, 240, 210, 1, 247, 75, 86, 226, 199, 41, 87, 111, 247, 168, 33, 182, 40, 202, 11, 189, 174, 210, 199, 242, 41, 127, 49, 208, 44, 221, 72, 240, 95, 21, 2, 195, 222, 83, 6, 225, 251, 182, 0, 179, 43, 149, 226, 56, 43, 3, 2}
 	return &ClientCtx{
-		SessionID:       id,
+		sessionID:       id,
 		SessionKey:      &sk,
 		BlowFish:        blowfish,
 		PrivateKey:      sRSA,
@@ -147,6 +147,24 @@ func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 
 	return nil
 }
+
+func (c *ClientCtx) Send(buffer []byte) error {
+	data := crypt.EncodeData(buffer, c.BlowFish)
+	// Вычисление длинны пакета
+	length := uint16(len(data) + 2)
+
+	s, f := byte(length>>8), byte(length&0xff)
+
+	data = append([]byte{f, s}, data...)
+
+	_, err := c.conn.Write(data)
+	if err != nil {
+		return errors.New("пакет не может быть отправлен")
+	}
+
+	return nil
+}
+
 func (c *ClientCtx) SendBufInit(buffer *packets.Buffer) error {
 	data := buffer.Bytes()
 	defer packets.Put(buffer)
@@ -195,4 +213,30 @@ func (c *ClientCtx) SetJoinedGS(isJoinedGS bool) {
 
 func (c *ClientCtx) IsJoinedGS() bool {
 	return c.joinedGS
+}
+
+func (c *ClientCtx) GetSessionLoginOK1() uint32 {
+	return c.SessionKey.LoginOk1
+}
+func (c *ClientCtx) GetSessionLoginOK2() uint32 {
+	return c.SessionKey.LoginOk2
+}
+func (c *ClientCtx) GetSessionPlayOK1() uint32 {
+	return c.SessionKey.PlayOk1
+}
+func (c *ClientCtx) GetSessionPlayOK2() uint32 {
+	return c.SessionKey.PlayOk2
+}
+func (c *ClientCtx) GetSessionId() uint32 {
+	return c.sessionID
+}
+func (c *ClientCtx) GetScrambleModulus() []byte {
+	return c.ScrambleModulus
+}
+func (c *ClientCtx) GetBlowFish() []byte {
+	return c.BlowFish
+}
+
+func (c *ClientCtx) GetAccountLogin() string {
+	return c.Account.Login
 }

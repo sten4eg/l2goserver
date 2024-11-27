@@ -27,45 +27,52 @@ const AccountsInsert = "INSERT INTO loginserver.accounts (login, password) VALUE
 var errNoData = errors.New("errNoData")
 
 type isInLoginInterface interface {
-	IsAccountInLoginAndAddIfNot(*models.ClientCtx) bool
-	AssignSessionKeyToClient(*models.ClientCtx) *models.SessionKey
+	IsAccountInLoginAndAddIfNot(ClientRequestInterface) bool
+	AssignSessionKeyToClient(ClientRequestInterface) *models.SessionKey
 	GetGameServerInfoList() []*gameserver.Info
-	GetClientCtx(string) *models.ClientCtx
+	GetClientCtx(string) ClientRequestInterface
 	RemoveAuthedLoginClient(string)
 }
 
-func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface) error {
+type ClientRequestInterface interface {
+	Send([]byte) error
+	SetState(clientState.ClientCtxState)
+	SetSessionKey()
+	GetAccountLogin() string
+}
+
+func NewRequestAuthLogin(request []byte, client ClientRequestInterface, server isInLoginInterface) error {
 	err := validate(request, client)
 	if err != nil {
-		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.LoginOrPassWrong))
+		err = client.Send(ls2c.NewLoginFailPacket(reasons.LoginOrPassWrong))
 		return err
 	}
 	reason := tryCheckinAccount(client, server)
 
 	switch reason {
 	default:
-		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.SystemError))
+		err = client.Send(ls2c.NewLoginFailPacket(reasons.SystemError))
 	case clientState.AuthSuccess:
 		client.SetState(clientState.AuthedLogin)
 		client.SetSessionKey(server.AssignSessionKeyToClient(client))
-		err = client.SendBuf(ls2c.NewLoginOkPacket(client))
-		sendCharactersOnAccount(client.Account.Login, server)
+		err = client.Send(ls2c.NewLoginOkPacket(client))
+		sendCharactersOnAccount(client.GetAccountLogin(), server)
 	case clientState.AccountBanned:
-		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.Ban))
+		err = client.Send(ls2c.NewLoginFailPacket(reasons.Ban))
 		client.CloseConnection()
 	case clientState.AlreadyOnLs:
 		account := client.Account.Login
-		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.AccountInUse))
+		err = client.Send(ls2c.NewLoginFailPacket(reasons.AccountInUse))
 		oldClient := server.GetClientCtx(account)
 		if oldClient != nil {
-			err = oldClient.SendBuf(ls2c.AccountKicked(reasons.AccountInUse))
+			err = oldClient.Send(ls2c.AccountKicked(reasons.AccountInUse))
 			oldClient.CloseConnection()
 			server.RemoveAuthedLoginClient(account)
 		}
 		client.CloseConnection()
 	case clientState.AlreadyOnGs:
 		account := client.Account.Login
-		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.AccountInUse))
+		err = client.Send(ls2c.NewLoginFailPacket(reasons.AccountInUse))
 		gsi := gameserver.GetGameServerInstance().GetAccountOnGameServer(account)
 		if gsi != nil {
 			if gsi.IsAuthed() {
@@ -97,7 +104,7 @@ func tryCheckinAccount(client *models.ClientCtx, server isInLoginInterface) clie
 	return clientState.AuthSuccess
 }
 
-func validate(request []byte, client *models.ClientCtx) error {
+func validate(request []byte, clienst *models.ClientCtx) error {
 	if cap(request) < 128 {
 		return errNoData
 	}

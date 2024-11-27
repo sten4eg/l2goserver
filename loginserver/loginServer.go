@@ -93,10 +93,7 @@ func (ls *LoginServer) Run() {
 func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	defer client.CloseConnection()
 
-	err := ls2c.NewInitPacket(client)
-	if err != nil {
-		return
-	}
+	client.SendBufInit(ls2c.NewInitPacket(client))
 
 	for {
 		opcode, data, err := client.Receive()
@@ -125,6 +122,7 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 					//	log.Println(err)
 					return
 				}
+				client.SetState(clientState.AuthedGameGuard)
 			} else {
 				//	log.Println(opcode, clientState.State)
 				return
@@ -153,11 +151,7 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 					return
 				}
 			case 05:
-				err = ls2c.NewServerListPacket(client)
-				if err != nil {
-					//		log.Println(err)
-					return
-				}
+				return client.SendBuf(ls2c.NewServerListPacket(client))
 			}
 		}
 	}
