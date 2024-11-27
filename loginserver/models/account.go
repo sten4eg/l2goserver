@@ -2,7 +2,7 @@ package models
 
 import (
 	"database/sql"
-	"github.com/jackc/pgx/pgtype"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Account struct {

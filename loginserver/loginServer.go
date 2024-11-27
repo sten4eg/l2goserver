@@ -51,7 +51,7 @@ func New() (*LoginServer, error) {
 func (ls *LoginServer) Run() {
 	defer ls.clientsListener.Close()
 
-	flootMap := xsync.NewMapOf[string, floodProtecor.ConnectionInfo]()
+	floodMap := xsync.NewMapOf[string, floodProtecor.ConnectionInfo]()
 	for {
 		var err error
 
@@ -66,7 +66,7 @@ func (ls *LoginServer) Run() {
 			log.Println(err)
 		}
 
-		tcpConn, err := floodProtecor.AcceptTCP(conn, flootMap)
+		tcpConn, err := floodProtecor.AcceptTCP(conn, floodMap)
 		if err != nil {
 			log.Println("Accept() error", err)
 			continue
@@ -77,7 +77,7 @@ func (ls *LoginServer) Run() {
 		clientAddrPort := netip.MustParseAddrPort(client.GetRemoteAddr().String())
 
 		if ipManager.IsBannedIp(clientAddrPort.Addr()) {
-			_ = client.SendBuf(ls2c.AccountKicked(clientReasons.PermanentlyBanned))
+			_ = client.Send(ls2c.AccountKicked(clientReasons.PermanentlyBanned))
 			client.CloseConnection()
 			continue
 		}
@@ -93,7 +93,7 @@ func (ls *LoginServer) Run() {
 func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	defer client.CloseConnection()
 
-	client.SendBufInit(ls2c.NewInitPacket(client))
+	client.SendInit(ls2c.NewInitPacket(client))
 
 	for {
 		opcode, data, err := client.Receive()
@@ -151,35 +151,29 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 					return
 				}
 			case 05:
-				return client.SendBuf(ls2c.NewServerListPacket(client))
+				client.Send(ls2c.NewServerListPacket(client))
+				return
 			}
 		}
 	}
 }
 
-func (ls *LoginServer) GetSessionKey(account string) *models.SessionKey {
+func (ls *LoginServer) GetSessionKey(account string) (uint32, uint32, uint32, uint32) {
 	ctx, ok := ls.accounts.Load(account)
 	if !ok {
-		return nil
+		return 0, 0, 0, 0
 	}
-	return ctx.SessionKey
+	return ctx.SessionKey.LoginOk1, ctx.SessionKey.LoginOk2, ctx.SessionKey.PlayOk1, ctx.SessionKey.PlayOk2
 }
 
-func (ls *LoginServer) IsAccountInLoginAndAddIfNot(client *models.ClientCtx) bool {
-	_, inLogin := ls.accounts.LoadOrStore(client.Account.Login, client)
+func (ls *LoginServer) IsAccountInLoginAndAddIfNot(client c2ls.ClientRequestInterface) bool {
+	_, inLogin := ls.accounts.LoadOrStore(client.GetAccountLogin(), nil) //todo nil
 	return inLogin
 }
 
-func (ls *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *models.SessionKey {
-	sessionKey := new(models.SessionKey)
-
-	sessionKey.PlayOk1 = rand.Uint32()
-	sessionKey.PlayOk2 = rand.Uint32()
-	sessionKey.LoginOk1 = rand.Uint32()
-	sessionKey.LoginOk2 = rand.Uint32()
-
-	ls.accounts.Store(client.Account.Login, client)
-	return sessionKey
+func (ls *LoginServer) AssignSessionKeyToClient(client c2ls.GAL) (uint32, uint32, uint32, uint32) {
+	ls.accounts.Store(client.GetAccountLogin(), nil) //todo nil
+	return rand.Uint32(), rand.Uint32(), rand.Uint32(), rand.Uint32()
 }
 
 func (ls *LoginServer) RemoveAuthedLoginClient(account string) {
@@ -201,7 +195,7 @@ func (_ *LoginServer) GetGameServerInfoList() []*gameserver.Info {
 	return gameserver.GetGameServerInstance().GetGameServerInfoList()
 }
 
-func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
+func (ls *LoginServer) GetClientCtx(account string) c2ls.ClientRequestInterface {
 	ctx, ok := ls.accounts.Load(account)
 	if ok {
 		return ctx
@@ -209,20 +203,20 @@ func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
 	return nil
 }
 
-func (_ *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (bool, error) {
+func (_ *LoginServer) IsLoginPossible(client c2ls.ClientServerLogin, serverId byte) (bool, error) {
 	const AccountLastServerUpdate = `UPDATE loginserver.accounts SET last_server = $1 WHERE login = $2`
 
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
-	access := client.Account.AccessLevel
+	access := client.GetAccountAccessLevel()
 	if gsi != nil && gsi.IsAuthed() {
 		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetMaxPlayer()) && (gsi.GetStatus() != gameServerStatuses.StatusGmOnly || access > 0)
-		if loginOk && (client.Account.LastServer != int8(serverId)) {
+		if loginOk && (client.GetLastServer() != int8(serverId)) {
 			dbConn, err := db.GetConn()
 			if err != nil {
 				return loginOk, err
 			}
 			defer dbConn.Release()
-			_, err = dbConn.Exec(context.Background(), AccountLastServerUpdate, serverId, client.Account.Login)
+			_, err = dbConn.Exec(context.Background(), AccountLastServerUpdate, serverId, client.GetAccountLogin())
 			if err != nil {
 				log.Println(err.Error())
 			}

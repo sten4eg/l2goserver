@@ -3,7 +3,7 @@ package gameserver
 import "l2goserver/loginserver/models"
 
 type LoginServInterface interface {
-	GetSessionKey(string) *models.SessionKey
+	GetSessionKey(string) (uint32, uint32, uint32, uint32)
 	RemoveAuthedLoginClient(string)
 	GetAccount(string) *models.Account
 }
@@ -12,16 +12,12 @@ func (t *Table) AttachLS(i LoginServInterface) {
 	t.loginServerInfo = i
 }
 
-func (t *Table) LoginServerGetSessionKey(account string) *models.SessionKey {
+func (t *Table) LoginServerGetSessionKey(account string) (uint32, uint32, uint32, uint32) {
 	return t.loginServerInfo.GetSessionKey(account)
 }
 
-func (gsi *Info) LoginServerGetSessionKey(account string) *models.SessionKey {
-	sessionKey := gsi.gameServerTable.loginServerInfo.GetSessionKey(account)
-	if sessionKey == nil {
-		return nil
-	}
-	return sessionKey
+func (gsi *Info) LoginServerGetSessionKey(account string) (uint32, uint32, uint32, uint32) {
+	return gsi.gameServerTable.loginServerInfo.GetSessionKey(account)
 }
 
 func (t *Table) LoginServerRemoveAuthedLoginClient(account string) {

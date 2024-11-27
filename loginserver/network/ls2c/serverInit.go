@@ -1,11 +1,16 @@
 package ls2c
 
 import (
-	"l2goserver/loginserver/network"
 	"l2goserver/packets"
 )
 
-func NewInitPacket(c network.Ls2c) []byte {
+type initPacketInterface interface {
+	GetSessionId() uint32
+	GetScrambleModulus() []byte
+	GetBlowFish() []byte
+}
+
+func NewInitPacket(c initPacketInterface) []byte {
 	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x00)
 

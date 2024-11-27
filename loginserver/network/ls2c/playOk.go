@@ -1,11 +1,15 @@
 package ls2c
 
 import (
-	"l2goserver/loginserver/network"
 	"l2goserver/packets"
 )
 
-func NewPlayOkPacket(client network.Ls2c) []byte {
+type playOkPacket interface {
+	GetSessionPlayOK1() uint32
+	GetSessionPlayOK2() uint32
+}
+
+func NewPlayOkPacket(client playOkPacket) []byte {
 	buffer := packets.GetBuffer()
 	buffer.WriteSingleByte(0x07)
 	buffer.WriteDU(client.GetSessionPlayOK1()) // Session Key

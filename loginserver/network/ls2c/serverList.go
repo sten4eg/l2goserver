@@ -2,16 +2,22 @@ package ls2c
 
 import (
 	"l2goserver/loginserver/gameserver"
-	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/types/gameServerStatuses"
 	"l2goserver/packets"
 	"net"
 	"time"
 )
 
-func NewServerListPacket(client *models.ClientCtx) []byte {
+type serverListInterface interface {
+	GetLastServer() int8
+	GetAccountCharacterCountOnServerId(serverId uint8) uint8
+	GetAccountCharacterToDelCountOnServerId(serverId uint8) ([]int64, bool)
+}
+
+func NewServerListPacket(client serverListInterface) []byte {
 	buffer := packets.GetBuffer()
-	lastServer := client.Account.LastServer
+	lastServer := client.GetLastServer()
+
 	serversCount := gameserver.GetCountGameServer()
 	buffer.WriteSingleByte(0x04)
 	buffer.WriteSingleByte(serversCount)     // количество серверов
@@ -54,8 +60,8 @@ func NewServerListPacket(client *models.ClientCtx) []byte {
 	for i := 0; i < int(serversCount); i++ {
 		serverId := gameserver.GetGameServerId(i)
 		buffer.WriteSingleByte(serverId)
-		buffer.WriteSingleByte(client.Account.CharacterCount[serverId])
-		charsToDel, ok := client.Account.CharactersToDel[serverId]
+		buffer.WriteSingleByte(client.GetAccountCharacterCountOnServerId(serverId))
+		charsToDel, ok := client.GetAccountCharacterToDelCountOnServerId(serverId)
 		if ok && len(charsToDel) != 0 {
 			buffer.WriteSingleByte(byte(len(charsToDel)))
 			for j := range charsToDel {
