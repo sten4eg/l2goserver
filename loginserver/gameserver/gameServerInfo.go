@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"github.com/puzpuzpuz/xsync"
+	"github.com/puzpuzpuz/xsync/v3"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/crypt/blowfish"
 	"l2goserver/loginserver/gameserver/network/gs2ls"
@@ -35,12 +35,12 @@ type Info struct {
 	gameServerTable *Table
 	host            []netip.Prefix
 	hexId           []byte
-	accounts        *xsync.MapOf[bool]
+	accounts        *xsync.MapOf[string, bool]
 }
 
 func InitGameServerInfo() (*Info, error) {
 	gsi := new(Info)
-	gsi.accounts = xsync.NewMapOf[bool]()
+	gsi.accounts = xsync.NewMapOf[string, bool]()
 	err := gsi.InitRSAKeys()
 	return gsi, err
 }

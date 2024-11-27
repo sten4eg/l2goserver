@@ -3,7 +3,7 @@ package loginserver
 import (
 	"context"
 	"fmt"
-	"github.com/puzpuzpuz/xsync"
+	"github.com/puzpuzpuz/xsync/v3"
 	floodProtecor "github.com/sten4eg/floodProtector"
 	"l2goserver/db"
 	"l2goserver/loginserver/gameserver"
@@ -23,7 +23,7 @@ import (
 
 type LoginServer struct {
 	clientsListener *net.TCPListener
-	accounts        *xsync.MapOf[*models.ClientCtx]
+	accounts        *xsync.MapOf[string, *models.ClientCtx]
 }
 
 var Atom atomic.Int64
@@ -39,7 +39,7 @@ func New() (*LoginServer, error) {
 	}
 
 	login := &LoginServer{
-		accounts:        xsync.NewMapOf[*models.ClientCtx](),
+		accounts:        xsync.NewMapOf[string, *models.ClientCtx](),
 		clientsListener: clientsListener,
 	}
 
@@ -51,6 +51,7 @@ func New() (*LoginServer, error) {
 func (ls *LoginServer) Run() {
 	defer ls.clientsListener.Close()
 
+	flootMap := xsync.NewMapOf[string, floodProtecor.ConnectionInfo]()
 	for {
 		var err error
 
@@ -60,7 +61,12 @@ func (ls *LoginServer) Run() {
 			continue
 		}
 
-		tcpConn, err := floodProtecor.AcceptTCP()
+		conn, err := ls.clientsListener.AcceptTCP()
+		if err != nil {
+			log.Println(err)
+		}
+
+		tcpConn, err := floodProtecor.AcceptTCP(conn, flootMap)
 		if err != nil {
 			log.Println("Accept() error", err)
 			continue
