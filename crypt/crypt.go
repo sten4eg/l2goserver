@@ -1,7 +1,7 @@
 package crypt
 
 import (
-	"l2goserver/loginserver/crypt/blowfish"
+	"l2goserver/crypt/blowfish"
 	"log"
 	"math/rand/v2"
 )

@@ -3,7 +3,7 @@ package gs2ls
 import (
 	"context"
 	"l2goserver/database"
-	"l2goserver/loginserver/ipManager"
+	"l2goserver/ipManager"
 	"l2goserver/packets"
 	"log"
 )

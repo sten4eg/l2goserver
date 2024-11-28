@@ -8,7 +8,7 @@ import (
 	_ "embed"
 	"errors"
 	"github.com/jackc/pgx/v5/pgtype"
-	"l2goserver/loginserver/crypt"
+	"l2goserver/crypt"
 	"l2goserver/loginserver/types/state/clientState"
 	"l2goserver/utils"
 	"math/rand"

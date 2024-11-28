@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"l2goserver/config"
 	"l2goserver/database"
+	"l2goserver/ipManager"
 	"l2goserver/loginserver"
 	"l2goserver/loginserver/gameserver"
-	"l2goserver/loginserver/ipManager"
 	"log"
 	"os"
 	"runtime/trace"
@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-
 	go Trace()
-	//go F()
+
 	cfg, err := config.Read()
 	if err != nil {
 		log.Fatal("Ошибка чтения конфига", err)

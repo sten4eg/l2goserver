@@ -6,8 +6,8 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 	floodProtecor "github.com/sten4eg/floodProtector"
 	"l2goserver/database"
+	"l2goserver/ipManager"
 	"l2goserver/loginserver/gameserver"
-	"l2goserver/loginserver/ipManager"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/c2ls"
 	"l2goserver/loginserver/network/ls2c"
@@ -22,9 +22,11 @@ import (
 	"sync/atomic"
 )
 
+type account = string
+
 type LoginServer struct {
 	clientsListener *net.TCPListener
-	accounts        *xsync.MapOf[string, *models.ClientCtx]
+	accounts        *xsync.MapOf[account, *models.ClientCtx]
 	gameServerTable *gameserver.Table
 	database        database.Database
 }
@@ -44,7 +46,7 @@ func New(db database.Database) (*LoginServer, error) {
 	gs := gameserver.GetGameServerInstance()
 
 	login := &LoginServer{
-		accounts:        xsync.NewMapOf[string, *models.ClientCtx](),
+		accounts:        xsync.NewMapOf[account, *models.ClientCtx](),
 		clientsListener: clientsListener,
 		gameServerTable: gs,
 		database:        db,
@@ -79,11 +81,9 @@ func (ls *LoginServer) Run() {
 		}
 
 		client.SetConn(tcpConn)
-
 		client.SetState(clientState.Connected)
 
 		go ls.handleClientPackets(client)
-
 	}
 
 }
@@ -215,7 +215,7 @@ func (ls *LoginServer) GetClientCtx(account string) c2ls.ClientRequestInterface 
 }
 
 func (ls *LoginServer) IsLoginPossible(client c2ls.ClientServerLogin, serverId byte) (bool, error) {
-	const AccountLastServerUpdate = `UPDATE loginserver.accounts SET last_server = $1 WHERE login = $2`
+	const AccountLastServerUpdate = `UPDATE accounts SET last_server = $1 WHERE login = $2`
 
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
 	access := client.GetAccountAccessLevel()
