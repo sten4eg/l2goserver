@@ -35,10 +35,12 @@ type loginServerInterface interface {
 	GetClientCtx(string) ClientRequestInterface
 	RemoveAuthedLoginClient(string)
 }
+
 type GameServerInfoInterface interface {
 	IsAuthed() bool
 	SendSlice([]byte) error
 }
+
 type GAL interface {
 	GetAccountLogin() string
 }

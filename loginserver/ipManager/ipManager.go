@@ -7,10 +7,10 @@ import (
 	"net/netip"
 )
 
-var BannedIp map[netip.Addr]int
+var bannedIp map[netip.Addr]int
 
 func LoadBannedIp(db database.Database) error {
-	BannedIp = make(map[netip.Addr]int, 100)
+	bannedIp = make(map[netip.Addr]int, 100)
 
 	rows, err := db.Query(context.Background(), `SELECT ip, unix_time FROM ip_ban WHERE unix_time > extract('epoch' from now())::bigint`)
 	if err != nil {
@@ -28,7 +28,7 @@ func LoadBannedIp(db database.Database) error {
 		}
 		a := netip.MustParseAddr(i.IPNet.IP.String())
 		if a.IsValid() {
-			BannedIp[a] = value
+			bannedIp[a] = value
 		}
 
 	}
@@ -37,6 +37,15 @@ func LoadBannedIp(db database.Database) error {
 }
 
 func IsBannedIp(clientAddr netip.Addr) bool {
-	_, ok := BannedIp[clientAddr]
+	_, ok := bannedIp[clientAddr]
 	return ok
+}
+
+func AddBannedIp(ip string, banTime int) error {
+	addr, err := netip.ParseAddr(ip)
+	if err != nil {
+		return err
+	}
+	bannedIp[addr] = banTime
+	return nil
 }
