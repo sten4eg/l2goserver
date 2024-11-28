@@ -80,14 +80,6 @@ func (ls *LoginServer) Run() {
 
 		client.SetConn(tcpConn)
 
-		clientAddrPort := netip.MustParseAddrPort(client.GetRemoteAddr().String())
-
-		if ipManager.IsBannedIp(clientAddrPort.Addr()) {
-			_ = client.Send(ls2c.AccountKicked(clientReasons.PermanentlyBanned))
-			client.CloseConnection()
-			continue
-		}
-
 		client.SetState(clientState.Connected)
 
 		go ls.handleClientPackets(client)
@@ -122,6 +114,15 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 			return
 
 		case clientState.Connected:
+			clientAddrPort := netip.MustParseAddrPort(client.GetRemoteAddr().String())
+			if ipManager.IsBannedIp(clientAddrPort.String()) {
+				err := client.Send(ls2c.AccountKicked(clientReasons.PermanentlyBanned))
+				if err != nil {
+					log.Println(err)
+				}
+				return
+			}
+
 			if opcode == 7 {
 				err := c2ls.NewAuthGameGuard(data, client)
 				if err != nil {
@@ -133,6 +134,7 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 				//	log.Println(opcode, clientState.State)
 				return
 			}
+
 		case clientState.AuthedGameGuard:
 			if opcode == 0 {
 				err = c2ls.NewRequestAuthLogin(data, client, ls, gameserver.GetGameServerInstance(), ls.database)

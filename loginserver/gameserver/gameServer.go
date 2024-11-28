@@ -75,9 +75,7 @@ func (t *Table) Run() {
 		pubKey := make([]byte, 1, 65)
 		pubKey = append(pubKey, gsi.privateKey.PublicKey.N.Bytes()...)
 
-		buffer := ls2gs.InitLS(pubKey)
-
-		err = gsi.Send(buffer)
+		err = gsi.Send(ls2gs.InitLS(pubKey))
 		if err != nil {
 			log.Println("ошибка при отправке в геймсервера")
 			gameServerInstance.RemoveGsi(gsi.uniqId)

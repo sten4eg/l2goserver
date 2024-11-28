@@ -8,33 +8,33 @@ import (
 	"log"
 )
 
-const IPTempBan = "INSERT INTO loginserver.ip_ban VALUES ($1, $2) ON CONFLICT(ip) DO UPDATE SET  unix_time = $2"
+const IPTempBan = `INSERT INTO ip_ban (ip) VALUES ($1)`
 
 func RequestTempBan(data []byte, db database.Database) {
 	packet := packets.NewReader(data)
 	_ = packet.ReadString() // Логин
 	ip := packet.ReadString()
-	banTime := int(packet.ReadInt64())
+	_ = packet.ReadInt64() //banTime
 
 	//haveReason := packet.ReadInt8() != 0
 	//if haveReason {
 	//	banReason := packet.ReadString()
 	//}
 
-	err := banUser(ip, banTime, db)
+	err := banUser(ip, db)
 	if err != nil {
 		log.Println(err.Error())
 	}
 
 }
 
-func banUser(ip string, banTime int, db database.Database) error {
-	_, err := db.Exec(context.Background(), IPTempBan, ip, banTime)
+func banUser(ip string, db database.Database) error {
+	_, err := db.Exec(context.Background(), IPTempBan, ip)
 	if err != nil {
 		return err
 	}
 
-	err = ipManager.AddBannedIp(ip, banTime)
+	err = ipManager.AddBannedIp(ip)
 	if err != nil {
 		return err
 	}

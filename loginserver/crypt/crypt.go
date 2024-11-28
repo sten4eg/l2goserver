@@ -3,7 +3,7 @@ package crypt
 import (
 	"l2goserver/loginserver/crypt/blowfish"
 	"log"
-	"math/rand"
+	"math/rand/v2"
 )
 
 var StaticBlowfish = []byte{

@@ -6,7 +6,7 @@ import (
 )
 
 type playerAuthRequestInterface interface {
-	Send(*packets.Buffer) error
+	Send([]byte) error
 	LoginServerGetSessionKey(string) (uint32, uint32, uint32, uint32)
 	LoginServerRemoveAuthedLoginClient(string)
 }
@@ -20,7 +20,8 @@ func PlayerAuthRequest(data []byte, gs playerAuthRequestInterface) {
 	loginKey2 := packet.ReadUInt32()
 
 	LoginOk1, LoginOk2, PlayOk1, PlayOk2 := gs.LoginServerGetSessionKey(account)
-	var buffer *packets.Buffer
+	buffer := packets.GetBuffer()
+	defer packets.Put(buffer)
 
 	if playerKey1 != PlayOk1 || playerKey2 != PlayOk2 || loginKey1 != LoginOk1 || loginKey2 != LoginOk2 {
 		gs.LoginServerRemoveAuthedLoginClient(account)
@@ -29,5 +30,5 @@ func PlayerAuthRequest(data []byte, gs playerAuthRequestInterface) {
 		buffer = ls2gs.PlayerAuthResponse(account, false)
 	}
 
-	_ = gs.Send(buffer)
+	_ = gs.Send(buffer.CopyBytes())
 }

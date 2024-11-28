@@ -14,7 +14,7 @@ import (
 
 type gsInterfaceForGameServerAuth interface {
 	ForceClose(reason loginServer.FailReason)
-	Send(buffer *packets.Buffer) error
+	Send([]byte) error
 	SetInfoGameServerInfo(host []netip.Prefix, hexId []byte, id byte, port int16, maxPlayer int32, authed bool)
 	GetId() byte
 	SetState(serverState gameServer.GameServerState)

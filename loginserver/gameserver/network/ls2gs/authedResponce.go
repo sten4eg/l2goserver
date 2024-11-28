@@ -5,10 +5,11 @@ import (
 	"l2goserver/packets"
 )
 
-func AuthedResponse(serverId byte) *packets.Buffer {
+func AuthedResponse(serverId byte) []byte {
 	buffer := packets.GetBuffer()
+	defer packets.Put(buffer)
 	buffer.WriteSingleByte(0x02)
 	buffer.WriteSingleByte(serverId)
 	buffer.WriteS(dao.GetServerNameById(serverId))
-	return buffer
+	return buffer.CopyBytes()
 }

@@ -38,7 +38,7 @@ type loginServerInterface interface {
 
 type GameServerInfoInterface interface {
 	IsAuthed() bool
-	SendSlice([]byte) error
+	Send([]byte) error
 }
 
 type GAL interface {
@@ -101,7 +101,7 @@ func NewRequestAuthLogin(request []byte, client ClientRequestInterface, loginSer
 		gsi := gameServer.GetAccountOnGameServer(account)
 		if gsi != nil {
 			if gsi.IsAuthed() {
-				_ = gsi.SendSlice(ls2gs.KickPlayer(account))
+				_ = gsi.Send(ls2gs.KickPlayer(account))
 			}
 		}
 	}
@@ -198,7 +198,7 @@ func sendCharactersOnAccount(account string, server loginServerInterface) {
 	serverList := server.GetGameServerInfoList()
 	for _, gsi := range serverList {
 		if gsi.IsAuthed() {
-			_ = gsi.SendSlice(ls2gs.RequestCharacter(account))
+			_ = gsi.Send(ls2gs.RequestCharacter(account))
 		}
 	}
 }
