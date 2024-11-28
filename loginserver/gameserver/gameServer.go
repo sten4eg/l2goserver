@@ -2,6 +2,7 @@ package gameserver
 
 import (
 	"l2goserver/config"
+	"l2goserver/database"
 	"l2goserver/loginserver/gameserver/network/ls2gs"
 	"l2goserver/loginserver/network/c2ls"
 	"l2goserver/loginserver/types/state/gameServer"
@@ -15,14 +16,17 @@ type Table struct {
 	Connection      *net.TCPListener
 	gameServersInfo []*Info
 	loginServerInfo LoginServInterface
+	database        database.Database
 }
 
 var gameServerInstance *Table
 var initBlowfishKey = []byte{95, 59, 118, 46, 93, 48, 53, 45, 51, 49, 33, 124, 43, 45, 37, 120, 84, 33, 94, 91, 36, 0}
 var uniqId atomic.Uint32
 
-func HandlerInit() error {
+func HandlerInit(db database.Database) error {
 	gameServerInstance = new(Table)
+	gameServerInstance.database = db
+
 	uniqId.Add(1)
 	port := config.GetLoginPortForGameServer()
 	intPort, err := strconv.Atoi(port)
@@ -47,7 +51,7 @@ func HandlerInit() error {
 func (t *Table) Run() {
 	for {
 		var err error
-		gsi, err := InitGameServerInfo()
+		gsi, err := InitGameServerInfo(t.database)
 		if err != nil {
 			log.Println("ошибка при создании Gsi:", err)
 			continue
