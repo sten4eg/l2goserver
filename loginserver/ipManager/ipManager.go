@@ -3,24 +3,21 @@ package ipManager
 import (
 	"context"
 	"github.com/jackc/pgtype"
-	"l2goserver/db"
+	"l2goserver/database"
 	"net/netip"
 )
 
 var BannedIp map[netip.Addr]int
 
-func LoadBannedIp() error {
+func LoadBannedIp(db database.Database) error {
 	BannedIp = make(map[netip.Addr]int, 100)
-	dbConn, err := db.GetConn()
-	if err != nil {
-		return err
-	}
-	defer dbConn.Release()
 
-	rows, err := dbConn.Query(context.Background(), `SELECT ip, unix_time FROM ip_ban WHERE unix_time > extract('epoch' from now())::bigint`)
+	rows, err := db.Query(context.Background(), `SELECT ip, unix_time FROM ip_ban WHERE unix_time > extract('epoch' from now())::bigint`)
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
 	var i pgtype.Inet
 
 	for rows.Next() {

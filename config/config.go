@@ -13,15 +13,21 @@ type Conf struct {
 }
 
 type DatabaseType struct {
-	Name        string `yaml:"name"`
-	Host        string `yaml:"host"`
-	Schema      string `yaml:"schema"`
-	Port        string `yaml:"port"`
-	User        string `yaml:"user"`
-	Password    string `yaml:"password"`
-	SSLMode     string `yaml:"sslMode"`
-	PoolMaxConn string `yaml:"poolMaxConn"`
+	Name        string  `yaml:"name"`
+	Host        string  `yaml:"host"`
+	Schema      string  `yaml:"schema"`
+	Port        uint16  `yaml:"port"`
+	User        string  `yaml:"user"`
+	Password    string  `yaml:"password"`
+	SSLMode     sslMode `yaml:"sslMode"`
+	PoolMaxConn uint8   `yaml:"poolMaxConn"`
 }
+type sslMode string
+
+const (
+	SSLModeEnable  sslMode = "enable"
+	SSLModeDisable sslMode = "disable"
+)
 
 type LoginServerType struct {
 	Host                 string       `yaml:"host"`
@@ -39,20 +45,20 @@ type GameServerType struct {
 	HexIds     [][]byte `yaml:"hexIds"`
 }
 
-func Read() error {
+func Read() (Conf, error) {
 	var config Conf
 	file, err := os.Open("./config/config.yaml")
 	if err != nil {
-		return err
+		return config, err
 	}
 
 	decoder := yaml.NewDecoder(file)
 	err = decoder.Decode(&config)
 	if err != nil {
-		return err
+		return config, err
 	}
 	globalConfig = config
-	return nil
+	return config, nil
 }
 
 func AutoCreateAccounts() bool {
@@ -73,4 +79,20 @@ func GetAllowedServerVersion() []byte {
 
 func GetGameServerHexId() [][]byte {
 	return globalConfig.GameServer.HexIds
+}
+
+func (s *sslMode) UnmarshalYAML(node *yaml.Node) error {
+	var mode bool
+	if err := node.Decode(&mode); err != nil {
+		return err
+	}
+
+	*s = SSLModeDisable
+
+	if mode {
+		*s = SSLModeEnable
+		return nil
+	}
+
+	return nil
 }

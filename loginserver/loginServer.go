@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/puzpuzpuz/xsync/v3"
 	floodProtecor "github.com/sten4eg/floodProtector"
-	"l2goserver/db"
+	"l2goserver/database"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/ipManager"
 	"l2goserver/loginserver/models"
@@ -25,12 +25,14 @@ import (
 type LoginServer struct {
 	clientsListener *net.TCPListener
 	accounts        *xsync.MapOf[string, *models.ClientCtx]
+	gameServerTable *gameserver.Table
+	database        database.Database
 }
 
 var Atom atomic.Int64
 var AtomKick atomic.Int64
 
-func New() (*LoginServer, error) {
+func New(db database.Database) (*LoginServer, error) {
 	addr := new(net.TCPAddr)
 	addr.Port = 2106
 	addr.IP = net.IP{127, 0, 0, 1}
@@ -39,13 +41,16 @@ func New() (*LoginServer, error) {
 		return nil, err
 	}
 
+	gs := gameserver.GetGameServerInstance()
+
 	login := &LoginServer{
 		accounts:        xsync.NewMapOf[string, *models.ClientCtx](),
 		clientsListener: clientsListener,
+		gameServerTable: gs,
+		database:        db,
 	}
-
-	gs := gameserver.GetGameServerInstance()
 	gs.AttachLS(login)
+
 	return login, nil
 }
 
@@ -130,7 +135,7 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 			}
 		case clientState.AuthedGameGuard:
 			if opcode == 0 {
-				err = c2ls.NewRequestAuthLogin(data, client, ls, gameserver.GetGameServerInstance())
+				err = c2ls.NewRequestAuthLogin(data, client, ls, gameserver.GetGameServerInstance(), ls.database)
 				if err != nil {
 					//	log.Println(err)
 					return
@@ -207,7 +212,7 @@ func (ls *LoginServer) GetClientCtx(account string) c2ls.ClientRequestInterface 
 	return nil
 }
 
-func (_ *LoginServer) IsLoginPossible(client c2ls.ClientServerLogin, serverId byte) (bool, error) {
+func (ls *LoginServer) IsLoginPossible(client c2ls.ClientServerLogin, serverId byte) (bool, error) {
 	const AccountLastServerUpdate = `UPDATE loginserver.accounts SET last_server = $1 WHERE login = $2`
 
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
@@ -215,12 +220,7 @@ func (_ *LoginServer) IsLoginPossible(client c2ls.ClientServerLogin, serverId by
 	if gsi != nil && gsi.IsAuthed() {
 		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetMaxPlayer()) && (gsi.GetStatus() != gameServerStatuses.StatusGmOnly || access > 0)
 		if loginOk && (client.GetLastServer() != int8(serverId)) {
-			dbConn, err := db.GetConn()
-			if err != nil {
-				return loginOk, err
-			}
-			defer dbConn.Release()
-			_, err = dbConn.Exec(context.Background(), AccountLastServerUpdate, serverId, client.GetAccountLogin())
+			_, err := ls.database.Exec(context.Background(), AccountLastServerUpdate, serverId, client.GetAccountLogin())
 			if err != nil {
 				log.Println(err.Error())
 			}

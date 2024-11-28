@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 	"l2goserver/config"
-	"l2goserver/db"
+	"l2goserver/database"
 	"l2goserver/loginserver"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/ipManager"
-	"l2goserver/packets"
 	"log"
 	"os"
 	"runtime/trace"
@@ -15,34 +14,29 @@ import (
 )
 
 func main() {
-	buffer := packets.GetBuffer()
-	buffer.WriteD(12)
-	buffer.WriteD(12)
-	buffer.WriteD(12)
-	buffer.WriteD(12)
-	buffer.CopyBytes()
-	fmt.Println("1")
+
 	go Trace()
 	//go F()
-	err := config.Read()
+	cfg, err := config.Read()
 	if err != nil {
 		log.Fatal("Ошибка чтения конфига", err)
 	}
-	err = gameserver.HandlerInit()
+	db, err := database.NewDatabase(cfg.LoginServer.Database)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	loginServer, err := loginserver.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = db.ConfigureDB()
+	err = gameserver.HandlerInit(db)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = ipManager.LoadBannedIp()
+	loginServer, err := loginserver.New(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = ipManager.LoadBannedIp(db)
 	if err != nil {
 		log.Fatal(err)
 	}

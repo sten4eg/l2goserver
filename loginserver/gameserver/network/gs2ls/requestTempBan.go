@@ -2,7 +2,7 @@ package gs2ls
 
 import (
 	"context"
-	"l2goserver/db"
+	"l2goserver/database"
 	"l2goserver/loginserver/ipManager"
 	"l2goserver/packets"
 	"log"
@@ -11,7 +11,7 @@ import (
 
 const IPTempBan = "INSERT INTO loginserver.ip_ban VALUES ($1, $2) ON CONFLICT(ip) DO UPDATE SET  unix_time = $2"
 
-func RequestTempBan(data []byte) {
+func RequestTempBan(data []byte, db database.Database) {
 	packet := packets.NewReader(data)
 	_ = packet.ReadString() // Логин
 	ip := packet.ReadString()
@@ -22,21 +22,15 @@ func RequestTempBan(data []byte) {
 	//	banReason := packet.ReadString()
 	//}
 
-	err := banUser(ip, banTime)
+	err := banUser(ip, banTime, db)
 	if err != nil {
 		log.Println(err.Error())
 	}
 
 }
 
-func banUser(ip string, banTime int) error {
-	dbConn, err := db.GetConn()
-	if err != nil {
-		return err
-	}
-	defer dbConn.Release()
-
-	_, err = dbConn.Exec(context.Background(), IPTempBan, ip, banTime)
+func banUser(ip string, banTime int, db database.Database) error {
+	_, err := db.Exec(context.Background(), IPTempBan, ip, banTime)
 	if err != nil {
 		return err
 	}

@@ -7,11 +7,11 @@ loginserver:
     name: postgres
     host: localhost
     schema: loginserver
-    port: '5432'
+    port: 5432
     user: postgres
     password: postgres
-    sslMode: disable
-    poolMaxConn: '980'
+    sslMode: false
+    poolMaxConn: 20
   allowedServerVersion:
     - 6
     - 14

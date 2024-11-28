@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"github.com/puzpuzpuz/xsync/v3"
+	"l2goserver/database"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/crypt/blowfish"
 	"l2goserver/loginserver/gameserver/network/gs2ls"
@@ -36,10 +37,12 @@ type Info struct {
 	host            []netip.Prefix
 	hexId           []byte
 	accounts        *xsync.MapOf[string, bool]
+	database        database.Database
 }
 
-func InitGameServerInfo() (*Info, error) {
+func InitGameServerInfo(db database.Database) (*Info, error) {
 	gsi := new(Info)
+	gsi.database = db
 	gsi.accounts = xsync.NewMapOf[string, bool]()
 	err := gsi.InitRSAKeys()
 	return gsi, err
