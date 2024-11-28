@@ -11,6 +11,7 @@ type playOkPacket interface {
 
 func NewPlayOkPacket(client playOkPacket) []byte {
 	buffer := packets.GetBuffer()
+	defer packets.Put(buffer)
 	buffer.WriteSingleByte(0x07)
 	buffer.WriteDU(client.GetSessionPlayOK1()) // Session Key
 	buffer.WriteDU(client.GetSessionPlayOK2()) // Session Key

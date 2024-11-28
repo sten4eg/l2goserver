@@ -11,6 +11,7 @@ type i interface {
 
 func NewLoginOkPacket(client i) []byte {
 	buffer := packets.GetBuffer()
+	defer packets.Put(buffer)
 	buffer.WriteSingleByte(0x03)
 	buffer.WriteDU(client.GetSessionLoginOK1())
 	buffer.WriteDU(client.GetSessionLoginOK2())

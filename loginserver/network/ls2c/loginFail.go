@@ -7,6 +7,7 @@ import (
 
 func NewLoginFailPacket(reason clientReasons.ClientLoginFailed) []byte {
 	buffer := packets.GetBuffer()
+	defer packets.Put(buffer)
 	buffer.WriteSingleByte(0x01) // Packet type: LoginFail
 	buffer.WriteSingleByte(byte(reason))
 

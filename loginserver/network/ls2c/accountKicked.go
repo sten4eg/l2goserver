@@ -7,6 +7,7 @@ import (
 
 func AccountKicked(reason clientReasons.ClientLoginFailed) []byte {
 	buffer := packets.GetBuffer()
+	defer packets.Put(buffer)
 	buffer.WriteSingleByte(0x02)
 	buffer.WriteD(int32(reason))
 

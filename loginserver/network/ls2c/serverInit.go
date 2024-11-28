@@ -12,6 +12,7 @@ type initPacketInterface interface {
 
 func NewInitPacket(c initPacketInterface) []byte {
 	buffer := packets.GetBuffer()
+	defer packets.Put(buffer)
 	buffer.WriteSingleByte(0x00)
 
 	buffer.WriteDU(c.GetSessionId())          // SessionId

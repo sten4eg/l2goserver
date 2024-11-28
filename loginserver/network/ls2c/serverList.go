@@ -26,6 +26,7 @@ type gameserverInter interface {
 
 func NewServerListPacket(client serverListInterface, gs gameserverInter) []byte {
 	buffer := packets.GetBuffer()
+	defer packets.Put(buffer)
 	lastServer := client.GetLastServer()
 
 	serversCount := gs.GetCountGameServer()

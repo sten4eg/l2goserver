@@ -116,13 +116,12 @@ func tryCheckinAccount(client ClientRequestInterface, server loginServerInterfac
 		return clientState.AccountBanned
 	}
 
-	ret := clientState.AlreadyOnGs
 	if gameServer.IsAccountInGameServer(client.GetAccountLogin()) {
-		return ret
+		return clientState.AlreadyOnGs
 	}
-	ret = clientState.AlreadyOnLs
+
 	if server.IsAccountInLoginAndAddIfNot(client) {
-		return ret
+		return clientState.AlreadyOnLs
 	}
 	return clientState.AuthSuccess
 }
