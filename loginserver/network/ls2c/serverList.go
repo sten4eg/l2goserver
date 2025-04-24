@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func NewServerListPacket(client *models.ClientCtx) error {
+func ServerList(client *models.ClientCtx) error {
 	buffer := packets.GetBuffer()
 	lastServer := client.Account.LastServer
 	serversCount := gameserver.GetCountGameServer()

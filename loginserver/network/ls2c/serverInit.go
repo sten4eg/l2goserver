@@ -22,6 +22,5 @@ func NewInitPacket(c *models.ClientCtx) error {
 	buffer.WriteSlice(c.BlowFish)
 	buffer.WriteSingleByte(0x00)
 
-	err := c.SendBufInit(buffer)
-	return err
+	return c.SendBufInit(buffer)
 }

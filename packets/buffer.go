@@ -7,23 +7,23 @@ import (
 )
 
 type Buffer struct {
-	B []byte
+	b []byte
 }
 
 func (b *Buffer) Len() int {
-	return len(b.B)
+	return len(b.b)
 }
 
 func (b *Buffer) Bytes() []byte {
-	return b.B
+	return b.b
 }
 func (b *Buffer) CopyBytes() []byte {
 	m := make([]byte, b.Len()+1)
-	_ = copy(m, b.B)
+	_ = copy(m, b.b)
 	return m
 }
 func (b *Buffer) Reset() {
-	b.B = b.B[:0]
+	b.b = b.b[:0]
 }
 
 func float64ToByte(f float64) []byte {
@@ -33,43 +33,43 @@ func float64ToByte(f float64) []byte {
 }
 
 func (b *Buffer) WriteF(value float64) {
-	b.B = append(b.B, float64ToByte(value)...)
+	b.b = append(b.b, float64ToByte(value)...)
 }
 
 func (b *Buffer) WriteH(value int16) {
-	b.B = append(b.B, byte(value&0xff), byte(value>>8))
+	b.b = append(b.b, byte(value&0xff), byte(value>>8))
 }
 
 func (b *Buffer) WriteHU(value uint16) {
-	b.B = append(b.B, byte(value&0xff), byte(value>>8))
+	b.b = append(b.b, byte(value&0xff), byte(value>>8))
 }
 
 func (b *Buffer) WriteQ(value int64) {
 	var buffer [8]byte
 	binary.LittleEndian.PutUint64(buffer[:], uint64(value))
-	b.B = append(b.B, buffer[0:]...)
+	b.b = append(b.b, buffer[0:]...)
 }
 
 func (b *Buffer) WriteD(value int32) {
 	var buffer [4]byte
 	binary.LittleEndian.PutUint32(buffer[:], uint32(value))
-	b.B = append(b.B, buffer[0:]...)
+	b.b = append(b.b, buffer[0:]...)
 }
 func (b *Buffer) WriteDU(value uint32) {
 	var buffer [4]byte
 	binary.LittleEndian.PutUint32(buffer[:], value)
-	b.B = append(b.B, buffer[0:]...)
+	b.b = append(b.b, buffer[0:]...)
 }
 
 func (b *Buffer) WriteSlice(value []byte) {
-	b.B = append(b.B, value...)
+	b.b = append(b.b, value...)
 }
 func (b *Buffer) WriteSliceTest(value []byte) {
-	b.B = append(b.B, value[0:]...)
+	b.b = append(b.b, value[0:]...)
 }
 
 func (b *Buffer) WriteSingleByte(value byte) {
-	b.B = append(b.B, value)
+	b.b = append(b.b, value)
 }
 
 const EmptyByte byte = 0
@@ -89,5 +89,5 @@ func (b *Buffer) WriteS(value string) {
 
 	buffer = append(buffer, EmptyByte, EmptyByte)
 
-	b.B = append(b.B, buffer...)
+	b.b = append(b.b, buffer...)
 }

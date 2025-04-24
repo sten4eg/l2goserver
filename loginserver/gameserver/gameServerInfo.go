@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"github.com/puzpuzpuz/xsync"
 	"l2goserver/loginserver/crypt"
 	"l2goserver/loginserver/crypt/blowfish"
 	"l2goserver/loginserver/gameserver/network/gs2ls"
@@ -16,6 +15,7 @@ import (
 	"log"
 	"net"
 	"net/netip"
+	"sync"
 )
 
 type Info struct {
@@ -35,17 +35,17 @@ type Info struct {
 	gameServerTable *Table
 	host            []netip.Prefix
 	hexId           []byte
-	accounts        *xsync.MapOf[bool]
+	accounts        sync.Map
 }
 
 func InitGameServerInfo() (*Info, error) {
 	gsi := new(Info)
-	gsi.accounts = xsync.NewMapOf[bool]()
+	gsi.accounts = sync.Map{}
 	err := gsi.InitRSAKeys()
 	return gsi, err
 }
 func (gsi *Info) InitRSAKeys() error {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,12 @@ func (gsi *Info) GetMaxPlayer() int32 {
 }
 
 func (gsi *Info) GetCurrentPlayerCount() int32 {
-	return int32(gsi.accounts.Size())
+	var count int32
+	gsi.accounts.Range(func(k, v interface{}) bool {
+		count++
+		return true
+	})
+	return count
 }
 
 func (gsi *Info) getAgeLimit() int32 {
@@ -90,7 +95,7 @@ func (gsi *Info) HasAccountOnGameServer(account string) bool {
 	if !ok {
 		return false
 	}
-	return inGame
+	return inGame.(bool)
 }
 
 func (gsi *Info) getGameServerConn() *net.TCPConn {

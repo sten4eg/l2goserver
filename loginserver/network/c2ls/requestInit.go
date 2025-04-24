@@ -5,6 +5,6 @@ import (
 	"l2goserver/loginserver/network/ls2c"
 )
 
-func RequestServerList(client *models.ClientCtx) error {
-	return ls2c.ServerList(client)
+func RequestInit(client *models.ClientCtx) error {
+	return ls2c.NewInitPacket(client)
 }

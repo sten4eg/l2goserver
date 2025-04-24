@@ -13,15 +13,9 @@ import (
 	"time"
 )
 
-const q = 1 << 28
-
 func main() {
-	var w = q / 10 / 1024 / 1204
-	_ = w
-	var s = []byte{1 << 28: 1}
-	_ = s
-	//debug.SetGCPercent(200000)
-
+	dataSize := (int(255) | int(255)<<8) - 2
+	_ = dataSize
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	//defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfileAllocs, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
@@ -58,7 +52,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	loginserver.InitializeFloodProtection()
+	//loginserver.InitializeFloodProtection() //TODO
 	loginServer.Run()
 
 }
@@ -80,11 +74,4 @@ func Trace() {
 	time.Sleep(time.Second * 20)
 	trace.Stop()
 	fmt.Println("END TRACE")
-}
-func F() {
-	for {
-		time.Sleep(time.Second * 1)
-		log.Println("a:", loginserver.Atom.Load())
-		log.Println("k:", loginserver.AtomKick.Load())
-	}
 }

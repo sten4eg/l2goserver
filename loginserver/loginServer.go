@@ -3,8 +3,6 @@ package loginserver
 import (
 	"context"
 	"fmt"
-	"github.com/puzpuzpuz/xsync"
-	floodProtecor "github.com/sten4eg/floodProtector"
 	"l2goserver/db"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/ipManager"
@@ -18,16 +16,14 @@ import (
 	"math/rand"
 	"net"
 	"net/netip"
-	"sync/atomic"
+	"sync"
 )
 
 type LoginServer struct {
 	clientsListener *net.TCPListener
-	accounts        *xsync.MapOf[*models.ClientCtx]
+	// string(account) => *models.ClientCtx
+	accounts sync.Map
 }
-
-var Atom atomic.Int64
-var AtomKick atomic.Int64
 
 func New() (*LoginServer, error) {
 	addr := new(net.TCPAddr)
@@ -39,7 +35,7 @@ func New() (*LoginServer, error) {
 	}
 
 	login := &LoginServer{
-		accounts:        xsync.NewMapOf[*models.ClientCtx](),
+		accounts:        sync.Map{},
 		clientsListener: clientsListener,
 	}
 
@@ -51,6 +47,8 @@ func New() (*LoginServer, error) {
 func (ls *LoginServer) Run() {
 	defer ls.clientsListener.Close()
 
+	//flootMap := xsync.NewMapOf[string, floodProtecor.ConnectionInfo]()
+
 	for {
 		var err error
 
@@ -60,13 +58,18 @@ func (ls *LoginServer) Run() {
 			continue
 		}
 
-		tcpConn, err := floodProtecor.AcceptTCP()
+		conn, err := ls.clientsListener.AcceptTCP()
 		if err != nil {
-			log.Println("Accept() error", err)
-			continue
+			log.Println(err)
 		}
 
-		client.SetConn(tcpConn)
+		//tcpConn, err := floodProtecor.AcceptTCP(conn,flootMap)
+		//if err != nil {
+		//	log.Println("Accept() error", err)
+		//	continue
+		//}
+
+		client.SetConn(conn)
 
 		clientAddrPort := netip.MustParseAddrPort(client.GetRemoteAddr().String())
 
@@ -86,8 +89,7 @@ func (ls *LoginServer) Run() {
 
 func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	defer client.CloseConnection()
-
-	err := ls2c.NewInitPacket(client)
+	err := c2ls.RequestInit(client)
 	if err != nil {
 		return
 	}
@@ -95,61 +97,44 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 	for {
 		opcode, data, err := client.Receive()
 		fmt.Println(opcode)
-		Atom.Add(1)
 		if err != nil {
 			ls.ClientDisconnect(client)
-
-			//	log.Println(err)
-			//	log.Println("Closing a connection")
-			AtomKick.Add(1)
 			return
 		}
-		//		log.Println("Опкод", opcode)
 		state := client.GetState()
 		switch state {
 		default:
-			//			log.Println("Неопознаный опкод")
-			//			fmt.Printf("opcode: %X, state %X", opcode, clientState.State)
 			return
-
 		case clientState.Connected:
 			if opcode == 7 {
-				err := c2ls.NewAuthGameGuard(data, client)
+				err = c2ls.RequestAuthGameGuard(data, client)
 				if err != nil {
-					//	log.Println(err)
 					return
 				}
 			} else {
-				//	log.Println(opcode, clientState.State)
 				return
 			}
 		case clientState.AuthedGameGuard:
 			if opcode == 0 {
-				err = c2ls.NewRequestAuthLogin(data, client, ls)
+				err = c2ls.RequestAuthLogin(data, client, ls)
 				if err != nil {
-					//	log.Println(err)
 					return
 				}
 			} else {
-				//	log.Println(opcode, clientState.State)
 				return
 			}
 		case clientState.AuthedLogin:
 			switch opcode {
 			default:
-				//	log.Println("Неопознаный опкод")
-				//	fmt.Printf("opcode: %X, state %X", opcode, clientState.State)
 				return
 			case 02:
 				err = c2ls.RequestServerLogin(data, client, ls)
 				if err != nil {
-					//	log.Println(err)
 					return
 				}
 			case 05:
-				err = ls2c.NewServerListPacket(client)
+				err = c2ls.RequestServerList(client)
 				if err != nil {
-					//		log.Println(err)
 					return
 				}
 			}
@@ -162,7 +147,7 @@ func (ls *LoginServer) GetSessionKey(account string) *models.SessionKey {
 	if !ok {
 		return nil
 	}
-	return ctx.SessionKey
+	return ctx.(*models.ClientCtx).SessionKey
 }
 
 func (ls *LoginServer) IsAccountInLoginAndAddIfNot(client *models.ClientCtx) bool {
@@ -185,14 +170,14 @@ func (ls *LoginServer) AssignSessionKeyToClient(client *models.ClientCtx) *model
 func (ls *LoginServer) RemoveAuthedLoginClient(account string) {
 	ctx, loaded := ls.accounts.LoadAndDelete(account)
 	if loaded && ctx != nil {
-		ctx.CloseConnection()
+		ctx.(*models.ClientCtx).CloseConnection()
 	}
 }
 
 func (ls *LoginServer) GetAccount(account string) *models.Account {
 	ctx, ok := ls.accounts.Load(account)
 	if ok && ctx != nil {
-		return &ctx.Account
+		return &ctx.(*models.ClientCtx).Account
 	}
 	return nil
 }
@@ -204,7 +189,7 @@ func (_ *LoginServer) GetGameServerInfoList() []*gameserver.Info {
 func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
 	ctx, ok := ls.accounts.Load(account)
 	if ok {
-		return ctx
+		return ctx.(*models.ClientCtx)
 	}
 	return nil
 }

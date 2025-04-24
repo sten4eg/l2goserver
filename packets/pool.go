@@ -7,83 +7,87 @@ import (
 )
 
 const (
-	minBitSize = 6 // 2**6=64 is a CPU cache line size
-	steps      = 20
+	minBitSize = 6  // 2^6=64 соответствует размеру кэш-линии процессора
+	steps      = 20 // Количество шагов для размеров буферов
 
-	minSize = 1 << minBitSize
-	//maxSize = 1 << (minBitSize + steps - 1)
+	minSize = 1 << minBitSize // Минимальный размер буфера
+	// Максимальный размер вычисляется динамически во время калибровки
 
-	calibrateCallsThreshold = 42000
-	maxPercentile           = 0.95
+	calibrateCallsThreshold = 42000 // Порог вызовов для активации калибровки
+	maxPercentile           = 0.95  // Перцентиль для определения максимального размера
 )
 
-// Pool represents byte buffer pool.
+// pools представляет пул байтовых буферов.
 //
-// Distinct pools may be used for distinct types of byte buffers.
-// Properly determined byte buffer types with their own pools may help reducing
-// memory waste.
+// Разные пулы могут использоваться для разных типов буферов.
+// Правильно определенные типы буферов со своими пулами помогают уменьшить
+// потребление памяти.
 type pools struct {
-	calls [steps]uint64
+	calls [steps]uint64 // Счетчики вызовов для каждого размера буфера
 
-	calibrating uint64
+	calibrating uint64 // Флаг выполнения калибровки (0 или 1)
 
-	defaultSize uint64
-	maxSize     uint64
+	defaultSize uint64 // Размер по умолчанию для новых буферов
+	maxSize     uint64 // Максимальный допустимый размер для возврата в пул
 
-	pool sync.Pool
+	pool sync.Pool // Основной пул для хранения буферов
 }
 
-var pool pools
+var pool pools // Глобальный экземпляр пула
 
-// GetBuffer returns an empty byte buffer from the pool.
+// GetBuffer возвращает пустой буфер из пула.
 //
-// Got byte buffer may be returned to the pool via Put call.
-// This reduces the number of memory allocations required for byte buffer
-// management.
+// После использования буфер должен быть возвращен в пул через PutBuffer.
+// Это уменьшает количество аллокаций памяти для управления буферами.
 func GetBuffer() *Buffer { return pool.get() }
 
-// GetBuffer returns new byte buffer with zero length.
+// get возвращает новый буфер с длиной 0.
 //
-// The byte buffer may be returned to the pool via Put after the use
-// in order to minimize GC overhead.
+// Буфер может быть возвращен в пул через Put для снижения нагрузки на GC.
 func (p *pools) get() *Buffer {
 	v := p.pool.Get()
 	if v != nil {
 		return v.(*Buffer)
 	}
 	return &Buffer{
-		B: make([]byte, 0, atomic.LoadUint64(&p.defaultSize)),
+		b: make([]byte, 0, atomic.LoadUint64(&p.defaultSize)),
 	}
 }
 
-// Put returns byte buffer to the pool.
+// Put  возвращает буфер в пул.
 //
-// ByteBuffer.B mustn't be touched after returning it to the pool.
-// Otherwise data races will occur.
+// Буфер не должен использоваться после возврата в пул во избежание
+// состояний гонки.
 func Put(b *Buffer) { pool.put(b) }
 
-// Put releases byte buffer obtained via GetBuffer to the pool.
+// put возвращает буфер в пул.
 //
-// The buffer mustn't be accessed after returning to the pool.
+// После возврата в пул к буферу нельзя обращаться.
 func (p *pools) put(b *Buffer) {
-	idx := index(len(b.B))
+	// Определяем индекс размера в массиве calls
+	idx := index(len(b.b))
 
+	// Если превышен порог вызовов - запускаем калибровку
 	if atomic.AddUint64(&p.calls[idx], 1) > calibrateCallsThreshold {
 		p.calibrate()
 	}
 
+	// Проверяем максимальный допустимый размер
 	maxSize := int(atomic.LoadUint64(&p.maxSize))
-	if maxSize == 0 || cap(b.B) <= maxSize {
+	if maxSize == 0 || cap(b.b) <= maxSize {
 		b.Reset()
 		p.pool.Put(b)
 	}
 }
 
+// calibrate настраивает оптимальные размеры буферов на основе статистики.
 func (p *pools) calibrate() {
+	// Захватываем флаг калибровки
 	if !atomic.CompareAndSwapUint64(&p.calibrating, 0, 1) {
 		return
 	}
 
+	// Собираем статистику использования
 	a := make(callSizes, 0, steps)
 	var callsSum uint64
 	for i := uint64(0); i < steps; i++ {
@@ -94,11 +98,15 @@ func (p *pools) calibrate() {
 			size:  minSize << i,
 		})
 	}
+
+	// Сортируем размеры по убыванию частоты использования
 	sort.Sort(a)
 
+	// Вычисляем размер по умолчанию и максимальный размер
 	defaultSize := a[0].size
 	maxSize := defaultSize
 
+	// Определяем размер, покрывающий 95% запросов
 	maxSum := uint64(float64(callsSum) * maxPercentile)
 	callsSum = 0
 	for i := 0; i < steps; i++ {
@@ -112,31 +120,28 @@ func (p *pools) calibrate() {
 		}
 	}
 
+	// Обновляем настройки пула
 	atomic.StoreUint64(&p.defaultSize, defaultSize)
 	atomic.StoreUint64(&p.maxSize, maxSize)
 
+	// Сбрасываем флаг калибровки
 	atomic.StoreUint64(&p.calibrating, 0)
 }
 
+// callSize представляет связь между количеством вызовов и размером буфера
 type callSize struct {
-	calls uint64
-	size  uint64
+	calls uint64 // Количество запросов
+	size  uint64 // Размер буфера
 }
 
+// callSizes реализует интерфейс сортировки для среза callSize
 type callSizes []callSize
 
-func (ci callSizes) Len() int {
-	return len(ci)
-}
+func (ci callSizes) Len() int           { return len(ci) }
+func (ci callSizes) Less(i, j int) bool { return ci[i].calls > ci[j].calls }
+func (ci callSizes) Swap(i, j int)      { ci[i], ci[j] = ci[j], ci[i] }
 
-func (ci callSizes) Less(i, j int) bool {
-	return ci[i].calls > ci[j].calls
-}
-
-func (ci callSizes) Swap(i, j int) {
-	ci[i], ci[j] = ci[j], ci[i]
-}
-
+// index вычисляет индекс в массиве calls для заданного размера буфера
 func index(n int) int {
 	n--
 	n >>= minBitSize
@@ -145,6 +150,7 @@ func index(n int) int {
 		n >>= 1
 		idx++
 	}
+	// Ограничиваем максимальный индекс
 	if idx >= steps {
 		idx = steps - 1
 	}

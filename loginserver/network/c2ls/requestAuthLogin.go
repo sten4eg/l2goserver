@@ -34,7 +34,7 @@ type isInLoginInterface interface {
 	RemoveAuthedLoginClient(string)
 }
 
-func NewRequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface) error {
+func RequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface) error {
 	err := validate(request, client)
 	if err != nil {
 		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.LoginOrPassWrong))
