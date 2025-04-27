@@ -1,23 +1,21 @@
 package models
 
 import (
-	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	_ "embed"
+	"encoding/binary"
 	"errors"
-	"l2goserver/loginserver/crypt"
+	"io"
+	"l2goserver/crypt"
 	"l2goserver/loginserver/types/state/clientState"
 	"l2goserver/packets"
-	"l2goserver/utils"
 	"math/rand"
 	"net"
-	"runtime/trace"
-	"strconv"
 )
 
 type ClientCtx struct {
-	noCopy          utils.NoCopy //nolint:unused,structcheck
+	_               noCopy //nolint:unused,structcheck
 	joinedGS        bool
 	state           clientState.ClientCtxState
 	SessionID       uint32
@@ -93,41 +91,33 @@ func (c *ClientCtx) SetConn(conn *net.TCPConn) {
 
 func (c *ClientCtx) Receive() (uint8, []byte, error) {
 	header := make([]byte, 2)
-	reg := trace.StartRegion(context.Background(), "readHeader")
-	n, err := c.conn.Read(header)
+	_, err := io.ReadFull(c.conn, header)
+
 	if err != nil {
 		return 0, nil, err
 	}
-	if n != 2 {
-		return 0, nil, errors.New("Ожидалось 2 байта длинны, получено: " + strconv.Itoa(n))
-	}
-	reg.End()
-	// длинна пакета
-	dataSize := (int(header[0]) | int(header[1])<<8) - 2
 
-	// аллокация требуемого массива байт для входящего пакета
+	dataSize := int(binary.LittleEndian.Uint16(header)) - 2
+	if dataSize < 0 {
+		return 0, nil, errors.New("отрицательный размер")
+	}
+
 	data := make([]byte, dataSize)
-
-	reg = trace.StartRegion(context.Background(), "readData")
-
-	n, err = c.conn.Read(data)
-	if n != dataSize || err != nil {
-		return 0, nil, errors.New("длинна прочитанного пакета не соответствует требуемому размеру")
+	_, err = io.ReadFull(c.conn, data)
+	if err != nil {
+		return 0, nil, err
 	}
-	reg.End()
 
-	fullPackage := make([]byte, 0, dataSize+2)
+	if ok := crypt.DecodeData(data, c.BlowFish); !ok {
+		return 0, nil, errors.New("DecodeData fail")
+	}
 
-	fullPackage = append(fullPackage, header...)
-	fullPackage = append(fullPackage, data...)
+	if len(data) < 1 {
+		return 0, nil, errors.New("data empty")
+	}
 
-	fullPackage = crypt.DecodeData(fullPackage, c.BlowFish)
-
-	opcode := fullPackage[0]
-
-	return opcode, fullPackage[1:], nil
+	return data[0], data[1:], nil
 }
-
 func (c *ClientCtx) SendBuf(buffer *packets.Buffer) error {
 	data := buffer.Bytes()
 	defer packets.Put(buffer)
@@ -196,3 +186,8 @@ func (c *ClientCtx) SetJoinedGS(isJoinedGS bool) {
 func (c *ClientCtx) IsJoinedGS() bool {
 	return c.joinedGS
 }
+
+type noCopy struct{} //nolint:unused
+
+func (*noCopy) Lock()   {} //nolint:unused
+func (*noCopy) Unlock() {} //nolint:unused

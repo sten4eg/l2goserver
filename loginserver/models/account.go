@@ -2,14 +2,14 @@ package models
 
 import (
 	"database/sql"
-	"github.com/jackc/pgx/pgtype"
+	"time"
 )
 
 type Account struct {
 	Login           string
 	Password        string
-	CreatedAt       pgtype.Timestamp
-	LastActive      pgtype.Timestamp
+	CreatedAt       time.Time
+	LastActive      *time.Time
 	AccessLevel     int8
 	LastIp          sql.NullString
 	LastServer      int8

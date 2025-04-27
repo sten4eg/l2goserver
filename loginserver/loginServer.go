@@ -1,11 +1,11 @@
 package loginserver
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
-	"l2goserver/db"
+
+	"l2goserver/floodProtector"
 	"l2goserver/loginserver/gameserver"
-	"l2goserver/loginserver/ipManager"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/c2ls"
 	"l2goserver/loginserver/network/ls2c"
@@ -19,13 +19,18 @@ import (
 	"sync"
 )
 
+type ipManager interface {
+	IsBannedIp(clientAddr netip.Addr) bool
+}
 type LoginServer struct {
 	clientsListener *net.TCPListener
 	// string(account) => *models.ClientCtx
-	accounts sync.Map
+	accounts  sync.Map
+	db        *sql.DB
+	ipManager ipManager
 }
 
-func New() (*LoginServer, error) {
+func New(db *sql.DB, manager ipManager) (*LoginServer, error) {
 	addr := new(net.TCPAddr)
 	addr.Port = 2106
 	addr.IP = net.IP{127, 0, 0, 1}
@@ -37,6 +42,8 @@ func New() (*LoginServer, error) {
 	login := &LoginServer{
 		accounts:        sync.Map{},
 		clientsListener: clientsListener,
+		db:              db,
+		ipManager:       manager,
 	}
 
 	gs := gameserver.GetGameServerInstance()
@@ -58,22 +65,22 @@ func (ls *LoginServer) Run() {
 			continue
 		}
 
-		conn, err := ls.clientsListener.AcceptTCP()
-		if err != nil {
-			log.Println(err)
-		}
-
-		//tcpConn, err := floodProtecor.AcceptTCP(conn,flootMap)
+		//conn, err := ls.clientsListener.AcceptTCP()
 		//if err != nil {
-		//	log.Println("Accept() error", err)
-		//	continue
+		//	log.Println(err)
 		//}
+
+		conn, err := floodProtecor.AcceptTCP(ls.clientsListener)
+		if err != nil {
+			log.Println("Accept() error", err)
+			continue
+		}
 
 		client.SetConn(conn)
 
 		clientAddrPort := netip.MustParseAddrPort(client.GetRemoteAddr().String())
 
-		if ipManager.IsBannedIp(clientAddrPort.Addr()) {
+		if ls.ipManager.IsBannedIp(clientAddrPort.Addr()) {
 			_ = client.SendBuf(ls2c.AccountKicked(clientReasons.PermanentlyBanned))
 			client.CloseConnection()
 			continue
@@ -111,17 +118,13 @@ func (ls *LoginServer) handleClientPackets(client *models.ClientCtx) {
 				if err != nil {
 					return
 				}
-			} else {
-				return
 			}
 		case clientState.AuthedGameGuard:
 			if opcode == 0 {
-				err = c2ls.RequestAuthLogin(data, client, ls)
+				err = c2ls.RequestAuthLogin(data, client, ls, ls.db)
 				if err != nil {
 					return
 				}
-			} else {
-				return
 			}
 		case clientState.AuthedLogin:
 			switch opcode {
@@ -194,7 +197,7 @@ func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
 	return nil
 }
 
-func (_ *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (bool, error) {
+func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (bool, error) {
 	const AccountLastServerUpdate = `UPDATE loginserver.accounts SET last_server = $1 WHERE login = $2`
 
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
@@ -202,12 +205,7 @@ func (_ *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (
 	if gsi != nil && gsi.IsAuthed() {
 		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetMaxPlayer()) && (gsi.GetStatus() != gameServerStatuses.StatusGmOnly || access > 0)
 		if loginOk && (client.Account.LastServer != int8(serverId)) {
-			dbConn, err := db.GetConn()
-			if err != nil {
-				return loginOk, err
-			}
-			defer dbConn.Release()
-			_, err = dbConn.Exec(context.Background(), AccountLastServerUpdate, serverId, client.Account.Login)
+			_, err := ls.db.Exec(AccountLastServerUpdate, serverId, client.Account.Login)
 			if err != nil {
 				log.Println(err.Error())
 			}

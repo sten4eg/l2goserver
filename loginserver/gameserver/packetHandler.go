@@ -28,17 +28,17 @@ func (gsi *Info) HandlePacket(data []byte) error {
 		case 0x03:
 			gs2ls.PlayerLogout(data, gsi)
 		case 0x04:
-			gs2ls.ChangeAccessLevel(data)
+			gs2ls.ChangeAccessLevel(data, gsi.db)
 		case 0x05:
 			gs2ls.PlayerAuthRequest(data, gsi)
 		case 0x06:
 			gs2ls.ServerStatus(data, gsi)
 		case 0x07:
-			gs2ls.PlayerTracert(data)
+			gs2ls.PlayerTracert(data, gsi.db)
 		case 0x08:
 			gs2ls.ReplyCharacters(data, gsi)
 		case 0x0A:
-			gs2ls.RequestTempBan(data)
+			gs2ls.RequestTempBan(data, gsi.db, gsi.ipManager)
 		}
 	}
 	return err

@@ -1,7 +1,7 @@
 package crypt
 
 import (
-	"l2goserver/loginserver/crypt/blowfish"
+	"l2goserver/crypt/blowfish"
 	"log"
 	"math/rand"
 )
@@ -25,7 +25,8 @@ var StaticBlowfish = []byte{
 	0x6c,
 }
 
-func VerifyCheckSum(raw []byte, size int) bool {
+func VerifyCheckSum(raw []byte) bool {
+	size := len(raw)
 	var checksum int64
 	count := size - 4
 	var i int
@@ -130,18 +131,20 @@ func EncodeData(raw []byte, blowfishKey []byte) (data []byte) {
 	return
 }
 
-func DecodeData(raw []byte, blowfishKey []byte) []byte {
-	size := len(raw) - 2 // minus length package
-	raw = raw[2:]
-	decrypt(raw, size, blowfishKey)
-
-	valid := VerifyCheckSum(raw, size)
-	if !valid {
-		log.Println("not verifiedCheckSum")
+func DecodeData(data []byte, blowfishKey []byte) bool {
+	if len(data) == 0 {
+		return false
 	}
-	return raw
-}
 
+	decrypt(data, blowfishKey)
+
+	if !VerifyCheckSum(data) {
+		log.Println("checksum verification failed")
+		return false
+	}
+
+	return true
+}
 func crypt(raw []byte, size int, blowfishKey []byte) {
 	cipher, _ := blowfish.NewCipher(blowfishKey)
 	for i := 0; i < size; i += 8 {
@@ -149,8 +152,9 @@ func crypt(raw []byte, size int, blowfishKey []byte) {
 	}
 }
 
-func decrypt(raw []byte, size int, blowfishKey []byte) {
+func decrypt(raw []byte, blowfishKey []byte) {
 	cipher, _ := blowfish.NewCipher(blowfishKey)
+	size := len(raw)
 	for i := 0; i < size; i += 8 {
 		cipher.Decrypt(raw, raw, i, i)
 	}

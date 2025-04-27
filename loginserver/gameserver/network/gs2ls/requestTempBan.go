@@ -1,9 +1,7 @@
 package gs2ls
 
 import (
-	"context"
-	"l2goserver/db"
-	"l2goserver/loginserver/ipManager"
+	"database/sql"
 	"l2goserver/packets"
 	"log"
 	"net/netip"
@@ -11,7 +9,11 @@ import (
 
 const IPTempBan = "INSERT INTO loginserver.ip_ban VALUES ($1, $2) ON CONFLICT(ip) DO UPDATE SET  unix_time = $2"
 
-func RequestTempBan(data []byte) {
+type ipManager interface {
+	AddIpToBan(clientAddr netip.Addr, expiration int)
+}
+
+func RequestTempBan(data []byte, db *sql.DB, i ipManager) {
 	packet := packets.NewReader(data)
 	_ = packet.ReadString() // Логин
 	ip := packet.ReadString()
@@ -22,26 +24,20 @@ func RequestTempBan(data []byte) {
 	//	banReason := packet.ReadString()
 	//}
 
-	err := banUser(ip, banTime)
+	err := banUser(ip, banTime, db, i)
 	if err != nil {
 		log.Println(err.Error())
 	}
 
 }
 
-func banUser(ip string, banTime int) error {
-	dbConn, err := db.GetConn()
-	if err != nil {
-		return err
-	}
-	defer dbConn.Release()
-
-	_, err = dbConn.Exec(context.Background(), IPTempBan, ip, banTime)
+func banUser(ip string, banTime int, db *sql.DB, i ipManager) error {
+	_, err := db.Exec(IPTempBan, ip, banTime)
 	if err != nil {
 		return err
 	}
 
-	err = AddBanForAddress(ip, banTime)
+	err = AddBanForAddress(ip, banTime, i)
 	if err != nil {
 		return err
 	}
@@ -49,11 +45,11 @@ func banUser(ip string, banTime int) error {
 
 }
 
-func AddBanForAddress(address string, expiration int) error {
+func AddBanForAddress(address string, expiration int, i ipManager) error {
 	addr, err := netip.ParseAddr(address)
 	if err != nil {
 		return err
 	}
-	ipManager.BannedIp[addr] = expiration
+	i.AddIpToBan(addr, expiration)
 	return nil
 }

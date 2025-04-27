@@ -1,13 +1,13 @@
 package gs2ls
 
 import (
+	"bytes"
 	"errors"
 	"l2goserver/config"
 	"l2goserver/loginserver/gameserver/network/ls2gs"
 	"l2goserver/loginserver/types/reason/loginServer"
 	"l2goserver/loginserver/types/state/gameServer"
 	"l2goserver/packets"
-	"l2goserver/utils"
 	"log"
 	"net/netip"
 )
@@ -73,12 +73,12 @@ func GameServerAuth(data []byte, server gsInterfaceForGameServerAuth) error {
 }
 
 func handleRegProcess(server gsInterfaceForGameServerAuth, data gameServerAuthData) bool {
-	if !utils.Contains(config.GetAllowedServerVersion(), data.serverVersion) {
+	if bytes.IndexByte(config.GetAllowedServerVersion(), data.serverVersion) == -1 {
 		server.ForceClose(loginServer.InvalidGameServerVersion)
 		return false
 	}
 
-	if utils.CompareHexId(data.hexId, config.GetGameServerHexId()) {
+	if compareHexId(data.hexId, config.GetGameServerHexId()) {
 		gsi := server.GetGsiById(data.desiredId)
 		if gsi != nil {
 			if gsi.IsAuthed() {
@@ -92,4 +92,13 @@ func handleRegProcess(server gsInterfaceForGameServerAuth, data gameServerAuthDa
 		return false
 	}
 	return true
+}
+
+func compareHexId(hexId []byte, hexIds [][]byte) bool {
+	for i := range hexIds {
+		if bytes.Equal(hexId, hexIds[i]) {
+			return true
+		}
+	}
+	return false
 }

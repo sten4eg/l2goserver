@@ -2,15 +2,15 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"l2goserver/config"
-	"runtime/trace"
+	"strconv"
 )
 
-var db *pgxpool.Pool
-
-func ConfigureDB() error {
+func ConfigureDB() (*sql.DB, error) {
 	conf := config.GetConfig()
 
 	dsnString := "user=" + conf.LoginServer.Database.User
@@ -26,7 +26,7 @@ func ConfigureDB() error {
 	// unixWayPostgres := "postgresql:///postgres?host=/run/postgresql&port=5432&user=postgres&password=postgres&sslmode=disable"
 	dbConfig, err := pgxpool.ParseConfig(dsnString)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// todo проверить simple и обычный
@@ -34,26 +34,20 @@ func ConfigureDB() error {
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), dbConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = pool.Ping(context.Background())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	db = pool
 
-	return nil
-}
-
-func GetConn() (conn *pgxpool.Conn, err error) {
-	reg := trace.StartRegion(context.Background(), "DBAcquire")
-
-	conn, err = db.Acquire(context.Background())
+	db := stdlib.OpenDBFromPool(pool)
+	maxConni, err := strconv.Atoi(conf.LoginServer.Database.PoolMaxConn)
 	if err != nil {
 		return nil, err
 	}
-	reg.End()
+	db.SetMaxOpenConns(maxConni)
+	return db, nil
 
-	return
 }

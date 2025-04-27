@@ -3,9 +3,10 @@ package gameserver
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"database/sql"
 	"fmt"
-	"l2goserver/loginserver/crypt"
-	"l2goserver/loginserver/crypt/blowfish"
+	"l2goserver/crypt"
+	"l2goserver/crypt/blowfish"
 	"l2goserver/loginserver/gameserver/network/gs2ls"
 	"l2goserver/loginserver/gameserver/network/ls2gs"
 	"l2goserver/loginserver/types/gameServerStatuses"
@@ -17,6 +18,10 @@ import (
 	"net/netip"
 	"sync"
 )
+
+type ipManager interface {
+	AddIpToBan(clientAddr netip.Addr, expiration int)
+}
 
 type Info struct {
 	showBracket     bool
@@ -36,11 +41,14 @@ type Info struct {
 	host            []netip.Prefix
 	hexId           []byte
 	accounts        sync.Map
+	db              *sql.DB
+	ipManager       ipManager
 }
 
-func InitGameServerInfo() (*Info, error) {
+func InitGameServerInfo(db *sql.DB) (*Info, error) {
 	gsi := new(Info)
 	gsi.accounts = sync.Map{}
+	gsi.db = db
 	err := gsi.InitRSAKeys()
 	return gsi, err
 }
@@ -180,7 +188,7 @@ func (gsi *Info) Listen() {
 			gsi.blowfish.Decrypt(data, data, i, i)
 		}
 
-		ok := crypt.VerifyCheckSum(data, dataSize)
+		ok := crypt.VerifyCheckSum(data)
 		if !ok {
 			fmt.Println("Неверная контрольная сумма пакета, закрытие соединения.")
 			return

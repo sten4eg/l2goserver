@@ -1,14 +1,14 @@
-package dao
+package serverNames
 
 var serverName = []string{
 	"Undefined",
-	"Bartz",
+	"Bartzz",
 	"Sieghardt",
 	"Kain",
 	"Lionna",
 	"Erica",
 	"Gustin",
-} //todo продолжение
+}
 
 func GetServerNameById(id byte) string {
 	idI := int(id)

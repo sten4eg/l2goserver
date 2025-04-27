@@ -2,12 +2,10 @@ package c2ls
 
 import (
 	"bytes"
-	"context"
+	"database/sql"
 	"errors"
-	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 	"l2goserver/config"
-	"l2goserver/db"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/gameserver/network/ls2gs"
 	"l2goserver/loginserver/models"
@@ -16,7 +14,6 @@ import (
 	"l2goserver/loginserver/types/state/clientState"
 	"log"
 	"math/big"
-	"runtime/trace"
 	"time"
 )
 
@@ -34,8 +31,8 @@ type isInLoginInterface interface {
 	RemoveAuthedLoginClient(string)
 }
 
-func RequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface) error {
-	err := validate(request, client)
+func RequestAuthLogin(request []byte, client *models.ClientCtx, server isInLoginInterface, db *sql.DB) error {
+	err := validate(request, client, db, 1)
 	if err != nil {
 		err = client.SendBuf(ls2c.NewLoginFailPacket(reasons.LoginOrPassWrong))
 		return err
@@ -97,7 +94,10 @@ func tryCheckinAccount(client *models.ClientCtx, server isInLoginInterface) clie
 	return clientState.AuthSuccess
 }
 
-func validate(request []byte, client *models.ClientCtx) error {
+func validate(request []byte, client *models.ClientCtx, db *sql.DB, attempt int) error {
+	if attempt > 2 {
+		return errors.New("too many attempts")
+	}
 	if cap(request) < 128 {
 		return errNoData
 	}
@@ -117,37 +117,27 @@ func validate(request []byte, client *models.ClientCtx) error {
 	password := string(trimPassword)
 
 	var account models.Account
-	reg := trace.StartRegion(context.Background(), "GetCONN1")
-	dbConn1, err := db.GetConn()
-	if err != nil {
-		log.Println("errConn1")
-		return err
-	}
-	defer dbConn1.Release()
-	reg.End()
 
-	reg = trace.StartRegion(context.Background(), "userInfoSelect")
-	err = dbConn1.QueryRow(context.Background(), UserInfoSelect, login).
+	err := db.QueryRow(UserInfoSelect, login).
 		Scan(&account.Login, &account.Password, &account.CreatedAt, &account.LastActive, &account.AccessLevel, &account.LastIp, &account.LastServer)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) && config.AutoCreateAccounts() {
-			err = createAccount(login, password)
+		if errors.Is(err, sql.ErrNoRows) && config.AutoCreateAccounts() {
+			err = createAccount(login, password, db)
 			if err != nil {
 				return err
 			}
-			return validate(request, client)
+			return validate(request, client, db, attempt+1)
 		}
 
 		return err
 	}
-	reg.End()
 
 	err = bcrypt.CompareHashAndPassword([]byte((account.Password)), []byte(password))
 	if err != nil {
 		return err
 	}
 
-	_, err = dbConn1.Exec(context.Background(), UserLastInfo, client.GetRemoteAddr().String(), time.Now(), login)
+	_, err = db.Exec(UserLastInfo, client.GetRemoteAddr().String(), time.Now(), login)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -157,17 +147,12 @@ func validate(request []byte, client *models.ClientCtx) error {
 	return nil
 }
 
-func createAccount(clearLogin, clearPassword string) error {
+func createAccount(clearLogin, clearPassword string, db *sql.DB) error {
 	password, err := bcrypt.GenerateFromPassword([]byte(clearPassword), 10)
 	if err != nil {
 		return err
 	}
-	dbConn, err := db.GetConn()
-	if err != nil {
-		return err
-	}
-	defer dbConn.Release()
-	_, err = dbConn.Exec(context.Background(), AccountsInsert,
+	_, err = db.Exec(AccountsInsert,
 		clearLogin, string(password))
 	return err
 }

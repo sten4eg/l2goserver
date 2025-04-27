@@ -3,6 +3,7 @@ package packets
 import (
 	"encoding/binary"
 	"math"
+	"strings"
 	"unicode/utf16"
 )
 
@@ -75,6 +76,19 @@ func (b *Buffer) WriteSingleByte(value byte) {
 const EmptyByte byte = 0
 
 func (b *Buffer) WriteS(value string) {
+	sb := strings.Builder{}
+	sb.Grow(len(value)*2 + 2)
+	for _, v := range value {
+		sb.WriteRune(v)
+		sb.WriteByte(EmptyByte)
+	}
+	sb.WriteByte(EmptyByte)
+	sb.WriteByte(EmptyByte)
+	b.b = append(b.b, []byte(sb.String())...)
+	sb.Reset()
+}
+
+func (b *Buffer) WriteSOld(value string) {
 	utf16Slice := utf16.Encode([]rune(value))
 
 	var buffer []byte
