@@ -2,6 +2,7 @@
 loginserver:
   host: 127.0.0.1
   autoCreate: true
+  onlyForAdmin: false
   portForGS: '9014' #порт который выделен для общения с гейм сервером
   database:
     name: postgres

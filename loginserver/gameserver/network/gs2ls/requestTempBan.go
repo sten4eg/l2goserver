@@ -7,7 +7,7 @@ import (
 	"net/netip"
 )
 
-const IPTempBan = "INSERT INTO loginserver.ip_ban VALUES ($1, $2) ON CONFLICT(ip) DO UPDATE SET  unix_time = $2"
+const IPTempBan = "INSERT INTO ip_ban VALUES ($1, $2) ON CONFLICT(ip) DO UPDATE SET  unix_time = $2"
 
 type ipManager interface {
 	AddIpToBan(clientAddr netip.Addr, expiration int)

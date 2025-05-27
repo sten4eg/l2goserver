@@ -33,7 +33,7 @@ func main() {
 			Password: cfg.LoginServer.Database.Password,
 			Host:     cfg.LoginServer.Database.Host,
 			Port:     port,
-			Database: cfg.LoginServer.Database.Schema,
+			Database: cfg.LoginServer.Database.Name,
 		},
 		Fs:     migrations.FS,
 		FsPath: ".",

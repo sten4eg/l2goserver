@@ -198,12 +198,12 @@ func (ls *LoginServer) GetClientCtx(account string) *models.ClientCtx {
 }
 
 func (ls *LoginServer) IsLoginPossible(client *models.ClientCtx, serverId byte) (bool, error) {
-	const AccountLastServerUpdate = `UPDATE loginserver.accounts SET last_server = $1 WHERE login = $2`
+	const AccountLastServerUpdate = `UPDATE accounts SET last_server = $1 WHERE login = $2`
 
 	gsi := gameserver.GetGameServerInstance().GetGameServerById(serverId)
 	access := client.Account.AccessLevel
 	if gsi != nil && gsi.IsAuthed() {
-		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetMaxPlayer()) && (gsi.GetStatus() != gameServerStatuses.StatusGmOnly || access > 0)
+		loginOk := (gsi.GetCurrentPlayerCount() < gsi.GetMaxPlayer()) && (gsi.GetStatus() != gameServerStatuses.StatusGmOnly || access == "admin")
 		if loginOk && (client.Account.LastServer != int8(serverId)) {
 			_, err := ls.db.Exec(AccountLastServerUpdate, serverId, client.Account.Login)
 			if err != nil {

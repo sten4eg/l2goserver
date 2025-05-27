@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-const AccountAccessLevelUpdate = "UPDATE accounts SET accessLevel = $1 WHERE login = $2"
+const AccountAccessLevelUpdate = "UPDATE accounts SET role = $1 WHERE login = $2"
 
 func ChangeAccessLevel(data []byte, db *sql.DB) {
 	packet := packets.NewReader(data)
@@ -21,7 +21,11 @@ func ChangeAccessLevel(data []byte, db *sql.DB) {
 }
 
 func setAccountAccessLevel(account string, level int32, db *sql.DB) error {
-	_, err := db.Exec(AccountAccessLevelUpdate, level, account)
+	role := "user"
+	if level >= 1 {
+		role = "admin"
+	}
+	_, err := db.Exec(AccountAccessLevelUpdate, role, account)
 	if err != nil {
 		return err
 	}

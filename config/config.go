@@ -26,6 +26,7 @@ type DatabaseType struct {
 type LoginServerType struct {
 	Host                 string       `yaml:"host"`
 	AutoCreate           bool         `yaml:"autoCreate"`
+	OnlyForAdmin         bool         `yaml:"onlyForAdmin"`
 	PortForGS            string       `yaml:"portForGS"`
 	Database             DatabaseType `yaml:"database"`
 	AllowedServerVersion []byte       `yaml:"allowedServerVersion"`
@@ -57,6 +58,9 @@ func Read() error {
 
 func AutoCreateAccounts() bool {
 	return globalConfig.LoginServer.AutoCreate
+}
+func IsOnlyForAdmin() bool {
+	return globalConfig.LoginServer.OnlyForAdmin
 }
 
 func GetLoginPortForGameServer() string {

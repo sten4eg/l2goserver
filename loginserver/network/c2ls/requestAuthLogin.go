@@ -17,9 +17,9 @@ import (
 	"time"
 )
 
-const UserInfoSelect = "SELECT accounts.login,accounts.password,accounts.created_at,accounts.last_active,accounts.access_level,accounts.last_ip,accounts.last_server FROM loginserver.accounts WHERE accounts.login = $1"
-const UserLastInfo = "UPDATE loginserver.accounts SET last_ip = $1 , last_active = $2 WHERE login = $3"
-const AccountsInsert = "INSERT INTO loginserver.accounts (login, password) VALUES ($1, $2)"
+const UserInfoSelect = "SELECT accounts.login,accounts.password,accounts.created_at,accounts.last_active,accounts.role,accounts.last_ip,accounts.last_server FROM accounts WHERE accounts.login = $1"
+const UserLastInfo = "UPDATE accounts SET last_ip = $1 , last_active = $2 WHERE login = $3"
+const AccountsInsert = "INSERT INTO accounts (login, password) VALUES ($1, $2)"
 
 var errNoData = errors.New("errNoData")
 
@@ -79,9 +79,6 @@ func RequestAuthLogin(request []byte, client *models.ClientCtx, server isInLogin
 }
 
 func tryCheckinAccount(client *models.ClientCtx, server isInLoginInterface) clientState.ClientAuthState {
-	if client.Account.AccessLevel < 0 {
-		return clientState.AccountBanned
-	}
 
 	ret := clientState.AlreadyOnGs
 	if gameserver.IsAccountInGameServer(client.Account.Login) {
@@ -132,6 +129,11 @@ func validate(request []byte, client *models.ClientCtx, db *sql.DB, attempt int)
 		return err
 	}
 
+	if config.IsOnlyForAdmin() {
+		if account.AccessLevel != "admin" {
+			return errors.New("login server only for admin")
+		}
+	}
 	err = bcrypt.CompareHashAndPassword([]byte((account.Password)), []byte(password))
 	if err != nil {
 		return err

@@ -10,7 +10,7 @@ type Account struct {
 	Password        string
 	CreatedAt       time.Time
 	LastActive      *time.Time
-	AccessLevel     int8
+	AccessLevel     string
 	LastIp          sql.NullString
 	LastServer      int8
 	CharacterCount  map[uint8]uint8
