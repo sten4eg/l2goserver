@@ -168,7 +168,7 @@ func (gsi *Info) Listen() {
 			return
 		}
 		if n != 2 {
-			log.Println("Должно быть 2 байта размера")
+			log.Println("Should bt 2 byte size")
 			return
 		}
 
@@ -180,7 +180,7 @@ func (gsi *Info) Listen() {
 			panic(err)
 		}
 		if n != dataSize {
-			log.Println("Прочитанно байт меньше чем объявлено в размере пакета")
+			log.Println("Read bytes less than declared in packet size")
 			return
 		}
 
@@ -190,7 +190,7 @@ func (gsi *Info) Listen() {
 
 		ok := crypt.VerifyCheckSum(data)
 		if !ok {
-			fmt.Println("Неверная контрольная сумма пакета, закрытие соединения.")
+			fmt.Println("Invalid packet checksum, closing connection.")
 			return
 		}
 		err = gsi.HandlePacket(data)

@@ -7,12 +7,11 @@ import (
 	"time"
 )
 
-const normalConnectionTime = 700 // мс — порог «нормальной» скорости
-const fastConnectionTime = 350   // мс — порог для «подозрительно быстрой» скорости
-const maxConnectionPerIP = 50    // макс. число соединений до немедленной блокировки
-const banTime = time.Minute      // длительность бана
-const safeConnInterval = 5000    // мс — интервал, после которого счётчик «сбрасывается»
-
+const normalConnectionTime = 700 // ms — threshold for "normal" speed
+const fastConnectionTime = 350   // ms — threshold for "suspiciously fast" speed
+const maxConnectionPerIP = 50    // max. number of connections before immediate blocking
+const banTime = time.Minute      // ban duration
+const safeConnInterval = 5000    // ms — interval after which the counter is "reset"
 type State int64
 
 const (
@@ -99,7 +98,7 @@ func AcceptTCP(acceptor TCPAcceptor) (*net.TCPConn, error) {
 
 	if ci.(connectionInfo).state == StateBlocked {
 		_ = conn.Close()
-		return nil, errors.New("соединение закрыто FloodProtection")
+		return nil, errors.New("connection closed by FloodProtection")
 	}
 
 	return conn, nil

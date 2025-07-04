@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"l2goserver/floodProtector"
 	"l2goserver/loginserver/gameserver"
 	"l2goserver/loginserver/models"
 	"l2goserver/loginserver/network/c2ls"
@@ -24,10 +23,9 @@ type ipManager interface {
 }
 type LoginServer struct {
 	clientsListener *net.TCPListener
-	// string(account) => *models.ClientCtx
-	accounts  sync.Map
-	db        *sql.DB
-	ipManager ipManager
+	accounts        sync.Map
+	db              *sql.DB
+	ipManager       ipManager
 }
 
 func New(db *sql.DB, manager ipManager) (*LoginServer, error) {
@@ -54,28 +52,24 @@ func New(db *sql.DB, manager ipManager) (*LoginServer, error) {
 func (ls *LoginServer) Run() {
 	defer ls.clientsListener.Close()
 
-	//flootMap := xsync.NewMapOf[string, floodProtecor.ConnectionInfo]()
-
 	for {
 		var err error
 
 		client, err := models.NewClient()
 		if err != nil {
-			log.Println("Не создан клиент", err)
+			log.Println("Client not created", err)
 			continue
 		}
 
-		//conn, err := ls.clientsListener.AcceptTCP()
+		//conn, err := floodProtecor.AcceptTCP(ls.clientsListener)
 		//if err != nil {
-		//	log.Println(err)
+		//	//log.Println("Accept() error", err)
+		//	continue
 		//}
-
-		conn, err := floodProtecor.AcceptTCP(ls.clientsListener)
+		conn, err := ls.clientsListener.AcceptTCP()
 		if err != nil {
-			log.Println("Accept() error", err)
-			continue
+			log.Println("Accept error", err)
 		}
-
 		client.SetConn(conn)
 
 		clientAddrPort := netip.MustParseAddrPort(client.GetRemoteAddr().String())

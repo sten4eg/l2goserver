@@ -26,7 +26,7 @@ func GetCountGameServer() byte {
 
 func GetGameServerIp(id int) string {
 	gameServer := GetGameServerInstance()
-	gsi := gameServer.gameServersInfo[id] // todo надо проверка
+	gsi := gameServer.gameServersInfo[id] // todo need check
 	addr := gsi.getGameServerConn().RemoteAddr().String()
 	b, _, _ := strings.Cut(addr, ":")
 	return b

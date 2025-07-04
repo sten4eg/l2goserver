@@ -15,14 +15,9 @@ type ipManager interface {
 
 func RequestTempBan(data []byte, db *sql.DB, i ipManager) {
 	packet := packets.NewReader(data)
-	_ = packet.ReadString() // Логин
+	_ = packet.ReadString() // login
 	ip := packet.ReadString()
 	banTime := int(packet.ReadInt64())
-
-	//haveReason := packet.ReadInt8() != 0
-	//if haveReason {
-	//	banReason := packet.ReadString()
-	//}
 
 	err := banUser(ip, banTime, db, i)
 	if err != nil {

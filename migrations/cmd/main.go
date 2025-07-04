@@ -44,7 +44,7 @@ func main() {
 }
 
 type (
-	// Credentials - данные необходимые для выполнения миграции
+	// Credentials - data required to perform migration
 	Credentials struct {
 		Username string
 		Password string
@@ -56,7 +56,7 @@ type (
 )
 
 type (
-	// Config конфигурация для миграций при чтении из встроенной файловой системы
+	// Config configuration for migrations when reading from the embedded file system
 	Config struct {
 		Credentials
 		Fs     embed.FS
@@ -64,7 +64,7 @@ type (
 	}
 )
 
-// Migrate - выполнение миграции
+// Migrate - performing migration
 func Migrate(config Config) error {
 	driver, err := iofs.New(config.Fs, config.FsPath)
 	if err != nil {

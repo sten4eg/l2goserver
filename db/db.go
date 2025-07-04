@@ -22,14 +22,12 @@ func ConfigureDB() (*sql.DB, error) {
 	dsnString += " search_path=" + conf.LoginServer.Database.Schema
 	dsnString += " pool_max_conns=" + conf.LoginServer.Database.PoolMaxConn
 
-	// todo лучше использовать unix socket,в БД выставить max_conn в районе 1000 и shared buffer ~ 1.5GB
 	// unixWayPostgres := "postgresql:///postgres?host=/run/postgresql&port=5432&user=postgres&password=postgres&sslmode=disable"
 	dbConfig, err := pgxpool.ParseConfig(dsnString)
 	if err != nil {
 		return nil, err
 	}
 
-	// todo проверить simple и обычный
 	dbConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), dbConfig)

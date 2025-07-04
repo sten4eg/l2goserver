@@ -7,43 +7,43 @@ import (
 )
 
 const (
-	minBitSize = 6  // 2^6=64 соответствует размеру кэш-линии процессора
-	steps      = 20 // Количество шагов для размеров буферов
+	minBitSize = 6  // 2^6=64 corresponds to the CPU cache line size
+	steps      = 20 // Number of steps for buffer sizes
 
-	minSize = 1 << minBitSize // Минимальный размер буфера
-	// Максимальный размер вычисляется динамически во время калибровки
+	minSize = 1 << minBitSize // Minimum buffer size
+	// Maximum size is calculated dynamically during calibration
 
-	calibrateCallsThreshold = 42000 // Порог вызовов для активации калибровки
-	maxPercentile           = 0.95  // Перцентиль для определения максимального размера
+	calibrateCallsThreshold = 42000 // Threshold of calls to trigger calibration
+	maxPercentile           = 0.95  // Percentile to determine the maximum size
 )
 
-// pools представляет пул байтовых буферов.
+// pools represents a pool of byte buffers.
 //
-// Разные пулы могут использоваться для разных типов буферов.
-// Правильно определенные типы буферов со своими пулами помогают уменьшить
-// потребление памяти.
+// Different pools can be used for different types of buffers.
+// Properly defined buffer types with their own pools help reduce
+// memory usage.
 type pools struct {
-	calls [steps]uint64 // Счетчики вызовов для каждого размера буфера
+	calls [steps]uint64 // Call counters for each buffer size
 
-	calibrating uint64 // Флаг выполнения калибровки (0 или 1)
+	calibrating uint64 // Flag indicating calibration in progress (0 or 1)
 
-	defaultSize uint64 // Размер по умолчанию для новых буферов
-	maxSize     uint64 // Максимальный допустимый размер для возврата в пул
+	defaultSize uint64 // Default size for new buffers
+	maxSize     uint64 // Maximum allowed size to return to the pool
 
-	pool sync.Pool // Основной пул для хранения буферов
+	pool sync.Pool // Main pool for storing buffers
 }
 
-var pool pools // Глобальный экземпляр пула
+var pool pools // Global instance of the pool
 
-// GetBuffer возвращает пустой буфер из пула.
+// GetBuffer returns an empty buffer from the pool.
 //
-// После использования буфер должен быть возвращен в пул через PutBuffer.
-// Это уменьшает количество аллокаций памяти для управления буферами.
+// After use, the buffer should be returned to the pool via PutBuffer.
+// This reduces memory allocations for buffer management.
 func GetBuffer() *Buffer { return pool.get() }
 
-// get возвращает новый буфер с длиной 0.
+// get returns a new buffer with length 0.
 //
-// Буфер может быть возвращен в пул через Put для снижения нагрузки на GC.
+// The buffer can be returned to the pool via Put to reduce GC pressure.
 func (p *pools) get() *Buffer {
 	v := p.pool.Get()
 	if v != nil {
@@ -54,25 +54,25 @@ func (p *pools) get() *Buffer {
 	}
 }
 
-// Put  возвращает буфер в пул.
+// Put returns a buffer to the pool.
 //
-// Буфер не должен использоваться после возврата в пул во избежание
-// состояний гонки.
+// The buffer must not be used after being returned to the pool
+// to avoid race conditions.
 func Put(b *Buffer) { pool.put(b) }
 
-// put возвращает буфер в пул.
+// put returns a buffer to the pool.
 //
-// После возврата в пул к буферу нельзя обращаться.
+// After returning to the pool, the buffer must not be accessed.
 func (p *pools) put(b *Buffer) {
-	// Определяем индекс размера в массиве calls
+	// Determine the size index in the calls array
 	idx := index(len(b.b))
 
-	// Если превышен порог вызовов - запускаем калибровку
+	// If call threshold is exceeded, trigger calibration
 	if atomic.AddUint64(&p.calls[idx], 1) > calibrateCallsThreshold {
 		p.calibrate()
 	}
 
-	// Проверяем максимальный допустимый размер
+	// Check the maximum allowed size
 	maxSize := int(atomic.LoadUint64(&p.maxSize))
 	if maxSize == 0 || cap(b.b) <= maxSize {
 		b.Reset()
@@ -80,14 +80,14 @@ func (p *pools) put(b *Buffer) {
 	}
 }
 
-// calibrate настраивает оптимальные размеры буферов на основе статистики.
+// calibrate adjusts optimal buffer sizes based on usage statistics.
 func (p *pools) calibrate() {
-	// Захватываем флаг калибровки
+	// Acquire calibration flag
 	if !atomic.CompareAndSwapUint64(&p.calibrating, 0, 1) {
 		return
 	}
 
-	// Собираем статистику использования
+	// Collect usage statistics
 	a := make(callSizes, 0, steps)
 	var callsSum uint64
 	for i := uint64(0); i < steps; i++ {
@@ -99,14 +99,14 @@ func (p *pools) calibrate() {
 		})
 	}
 
-	// Сортируем размеры по убыванию частоты использования
+	// Sort sizes by descending frequency of use
 	sort.Sort(a)
 
-	// Вычисляем размер по умолчанию и максимальный размер
+	// Compute default and maximum buffer sizes
 	defaultSize := a[0].size
 	maxSize := defaultSize
 
-	// Определяем размер, покрывающий 95% запросов
+	// Determine size covering 95% of the requests
 	maxSum := uint64(float64(callsSum) * maxPercentile)
 	callsSum = 0
 	for i := 0; i < steps; i++ {
@@ -120,28 +120,28 @@ func (p *pools) calibrate() {
 		}
 	}
 
-	// Обновляем настройки пула
+	// Update pool settings
 	atomic.StoreUint64(&p.defaultSize, defaultSize)
 	atomic.StoreUint64(&p.maxSize, maxSize)
 
-	// Сбрасываем флаг калибровки
+	// Reset calibration flag
 	atomic.StoreUint64(&p.calibrating, 0)
 }
 
-// callSize представляет связь между количеством вызовов и размером буфера
+// callSize represents the relation between call count and buffer size
 type callSize struct {
-	calls uint64 // Количество запросов
-	size  uint64 // Размер буфера
+	calls uint64 // Number of requests
+	size  uint64 // Buffer size
 }
 
-// callSizes реализует интерфейс сортировки для среза callSize
+// callSizes implements sorting interface for a slice of callSize
 type callSizes []callSize
 
 func (ci callSizes) Len() int           { return len(ci) }
 func (ci callSizes) Less(i, j int) bool { return ci[i].calls > ci[j].calls }
 func (ci callSizes) Swap(i, j int)      { ci[i], ci[j] = ci[j], ci[i] }
 
-// index вычисляет индекс в массиве calls для заданного размера буфера
+// index computes the index in the calls array for a given buffer size
 func index(n int) int {
 	n--
 	n >>= minBitSize
@@ -150,7 +150,7 @@ func index(n int) int {
 		n >>= 1
 		idx++
 	}
-	// Ограничиваем максимальный индекс
+	// Limit the maximum index
 	if idx >= steps {
 		idx = steps - 1
 	}

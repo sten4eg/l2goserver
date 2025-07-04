@@ -14,8 +14,8 @@ func ServerList(client *models.ClientCtx) error {
 	lastServer := client.Account.LastServer
 	serversCount := gameserver.GetCountGameServer()
 	buffer.WriteSingleByte(0x04)
-	buffer.WriteSingleByte(serversCount)     // количество серверов
-	buffer.WriteSingleByte(byte(lastServer)) // последний выбранный сервер
+	buffer.WriteSingleByte(serversCount)
+	buffer.WriteSingleByte(byte(lastServer))
 
 	for i := 0; i < int(serversCount); i++ {
 

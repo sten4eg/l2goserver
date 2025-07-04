@@ -49,7 +49,7 @@ func (t *Table) Run(db *sql.DB) error {
 		var err error
 		gsi, err := InitGameServerInfo(db)
 		if err != nil {
-			log.Println("ошибка при создании Gsi:", err)
+			log.Println("error create Gsi:", err)
 			continue
 		}
 		gsi.gameServerTable = t
@@ -60,7 +60,7 @@ func (t *Table) Run(db *sql.DB) error {
 
 		gsi.conn, err = t.Connection.AcceptTCP()
 		if err != nil {
-			log.Println("ошибка при Accept gameserver")
+			log.Println("error  Accept gameserver")
 			continue
 		}
 
@@ -75,7 +75,7 @@ func (t *Table) Run(db *sql.DB) error {
 
 		err = gsi.Send(buffer)
 		if err != nil {
-			log.Println("ошибка при отправке в геймсервера")
+			log.Println("error send packet to gameserver")
 			gameServerInstance.RemoveGsi(gsi.uniqId)
 			continue
 		}

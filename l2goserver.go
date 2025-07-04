@@ -13,15 +13,15 @@ import (
 func main() {
 	err := config.Read()
 	if err != nil {
-		log.Fatal("Ошибка чтения конфига", err)
+		log.Fatal("error read config ", err)
 	}
-	fmt.Println("конфигурационый файл прочитан")
+	fmt.Println("config file read")
 
 	dbConn, err := db.ConfigureDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("подключение к БД установлено")
+	fmt.Println("connection to the database established")
 	manager, err := ipManager.LoadBannedIp(dbConn)
 	if err != nil {
 		log.Fatal(err)
@@ -31,11 +31,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("ожидание подключения к геймсерверу")
+	fmt.Println("Waiting for connection to game server")
 	loginServer, err := loginserver.New(dbConn, manager)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("ожидание подключения клиентов")
+	fmt.Println("Waiting for clients to connect")
 	loginServer.Run()
 }
